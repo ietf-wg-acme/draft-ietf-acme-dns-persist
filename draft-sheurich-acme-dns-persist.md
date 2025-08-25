@@ -157,7 +157,7 @@ For example, if the domain being validated is "example.com", the Authorization D
 
 The RDATA of this TXT record MUST fulfill the following requirements:
 
-1.  The RDATA value MUST conform to the issue-value syntax as defined in {{!RFC8659}}, Section 4. CAs MUST ignore any unknown parameter keys.
+1.  The RDATA value MUST conform to the issue-value syntax defined in {{!RFC8659}}, Section 4. To ensure forward compatibility, the server MUST ignore any parameter within the issue-value that has an unrecognized tag.
 
 2.  The `issuer-domain-name` portion of the issue-value MUST be one of the Issuer Domain Names provided by the CA in the `issuer-domain-names` array of the challenge object.
 
