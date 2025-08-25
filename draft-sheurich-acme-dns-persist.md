@@ -163,7 +163,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
 3.  The issue-value MUST contain an accounturi parameter. The value of this parameter MUST be a unique URI identifying the account of the applicant which requested the validation, constructed according to {{!RFC8657}}, Section 3.
 
-4.  The issue-value MAY contain a `policy` parameter. If present, this parameter modifies the validation scope. The `policy` parameter follows the `key=value` syntax. The policy parameter key and its defined values MUST be treated as case-insensitive.
+4.  The issue-value MAY contain a `policy` parameter. If present, this parameter modifies the validation scope. The `policy` parameter follows the 'tag=value' syntax from {{!RFC8659}}. The parameter's 'tag' and its defined values MUST be treated as case-insensitive.
 
     Note: This requirement ensures forward compatibility, allowing future extensions without breaking existing implementations, consistent with ACME's extensibility model (RFC 8555, Section 7.3). The explicit requirement is necessary to ensure consistent behavior across implementations; without it, some CAs might reject unknown parameters, preventing protocol evolution.
 
@@ -300,7 +300,7 @@ For a persistent TXT record provisioned at `_validation-persist.example.com` wit
 
 # Security Considerations {#security-considerations}
 
-The requirement for CAs to ignore unknown parameter keys means that future extensions must be carefully designed to ensure that being ignored does not create security vulnerabilities. Extensions that require strict enforcement should use alternative mechanisms, such as separate record types or explicit version negotiation.
+The requirement for CAs to ignore unknown parameter tags means that future extensions must be carefully designed to ensure that being ignored does not create security vulnerabilities. Extensions that require strict enforcement should use alternative mechanisms, such as separate record types or explicit version negotiation.
 
 ## Persistent Record Risks {#persistent-record-risks}
 
