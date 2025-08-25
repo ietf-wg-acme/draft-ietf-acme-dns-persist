@@ -163,7 +163,11 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
 3.  The issue-value MUST contain an accounturi parameter. The value of this parameter MUST be a unique URI identifying the account of the applicant which requested the validation, constructed according to {{!RFC8657}}, Section 3.
 
-4.  The issue-value MAY contain a `policy` parameter. If present, this parameter modifies the validation scope. The `policy` parameter follows the `key=value` syntax. The policy parameter key and its defined values MUST be treated as case-insensitive. CAs MUST ignore any unknown parameter keys. The following value for the `policy` parameter is defined with respect to subdomain and wildcard validation:
+4.  The issue-value MAY contain a `policy` parameter. If present, this parameter modifies the validation scope. The `policy` parameter follows the `key=value` syntax. The policy parameter key and its defined values MUST be treated as case-insensitive. CAs MUST ignore any unknown parameter keys.
+
+    Note: This requirement ensures forward compatibility, allowing future extensions without breaking existing implementations, consistent with ACME's extensibility model (RFC 8555, Section 7.3). The explicit requirement is necessary to ensure consistent behavior across implementations; without it, some CAs might reject unknown parameters, preventing protocol evolution.
+
+    The following value for the `policy` parameter is defined with respect to subdomain and wildcard validation:
 
     - `policy=wildcard`: If this value is present, the CA MAY consider this validation sufficient for issuing certificates for the validated FQDN, for specific subdomains of the validated FQDN (as covered by wildcard scope or specific subdomain validation rules), and for wildcard certificates (e.g., `*.example.com`). See {{wildcard-certificate-validation}} and {{subdomain-certificate-validation}}.
 
@@ -295,6 +299,8 @@ For a persistent TXT record provisioned at `_validation-persist.example.com` wit
 - Not permitted without additional validation: `otherexample.com`, `example.net`
 
 # Security Considerations {#security-considerations}
+
+The requirement for CAs to ignore unknown parameter keys means that future extensions must be carefully designed to ensure that being ignored does not create security vulnerabilities. Extensions that require strict enforcement should use alternative mechanisms, such as separate record types or explicit version negotiation.
 
 ## Persistent Record Risks {#persistent-record-risks}
 
@@ -430,6 +436,8 @@ IANA is requested to register the following entry in the "ACME Validation Method
 - **Reference**: This document
 
 # Implementation Considerations {#implementation-considerations}
+
+When designing future extensions to this specification, new parameters SHOULD be designed to degrade gracefully when ignored by CAs that do not recognize them. Parameters that fundamentally change the security properties of the validation SHOULD NOT be introduced without a version negotiation mechanism.
 
 ## DNS Record Size Considerations
 
