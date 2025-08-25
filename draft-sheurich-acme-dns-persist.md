@@ -157,13 +157,13 @@ For example, if the domain being validated is "example.com", the Authorization D
 
 The RDATA of this TXT record MUST fulfill the following requirements:
 
-1.  The RDATA value MUST conform to the issue-value syntax as defined in {{!RFC8659}}, Section 4.
+1.  The RDATA value MUST conform to the issue-value syntax as defined in {{!RFC8659}}, Section 4. CAs MUST ignore any unknown parameter keys.
 
 2.  The `issuer-domain-name` portion of the issue-value MUST be one of the Issuer Domain Names provided by the CA in the `issuer-domain-names` array of the challenge object.
 
 3.  The issue-value MUST contain an accounturi parameter. The value of this parameter MUST be a unique URI identifying the account of the applicant which requested the validation, constructed according to {{!RFC8657}}, Section 3.
 
-4.  The issue-value MAY contain a `policy` parameter. If present, this parameter modifies the validation scope. The `policy` parameter follows the `key=value` syntax. The policy parameter key and its defined values MUST be treated as case-insensitive. CAs MUST ignore any unknown parameter keys.
+4.  The issue-value MAY contain a `policy` parameter. If present, this parameter modifies the validation scope. The `policy` parameter follows the `key=value` syntax. The policy parameter key and its defined values MUST be treated as case-insensitive.
 
     Note: This requirement ensures forward compatibility, allowing future extensions without breaking existing implementations, consistent with ACME's extensibility model (RFC 8555, Section 7.3). The explicit requirement is necessary to ensure consistent behavior across implementations; without it, some CAs might reject unknown parameters, preventing protocol evolution.
 
