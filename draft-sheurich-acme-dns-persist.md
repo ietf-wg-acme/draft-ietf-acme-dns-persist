@@ -3,9 +3,7 @@ title: "Automated Certificate Management Environment (ACME) Challenge for Persis
 abbrev: "ACME Persistent DNS Challenge"
 category: std
 docname: draft-sheurich-acme-dns-persist-latest
-number:
-date: 2025-08-08
-v: 3
+ipr: trust200902
 area: "Security"
 workgroup: "Automated Certificate Management Environment"
 keyword:
