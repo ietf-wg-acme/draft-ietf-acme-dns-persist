@@ -93,6 +93,8 @@ This validation method is designed to provide a robust and persistent mechanism 
 
 Certification Authorities operating under various trust program requirements will find this technical framework suitable for their domain validation needs, as its design inherently supports robust and auditable validation practices.
 
+----
+
 # Conventions and Definitions {#conventions-and-definitions}
 
 {::boilerplate bcp14-tagged}
@@ -113,6 +115,8 @@ Certification Authorities operating under various trust program requirements wil
 
 **persistUntil**
 :   An optional parameter in the validation record that specifies the timestamp after which the validation record should no longer be considered valid by CAs. The value MUST be a base-10 encoded integer representing a UNIX timestamp in UTC (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds).
+
+----
 
 # The "dns-persist-01" Challenge {#dns-persist-01-challenge}
 
@@ -148,6 +152,8 @@ The following shows an example challenge object:
 }
 ~~~
 {: #fig-challenge-object title="Example dns-persist-01 Challenge Object"}
+
+----
 
 # Challenge Response and Verification {#challenge-response-and-verification}
 
@@ -258,6 +264,8 @@ If no DNS TXT record meets the validation requirements, or if the records are ab
 
 This mechanism enables efficient reuse of persistent validation records while maintaining the security properties of the validation method.
 
+----
+
 # Wildcard and Subdomain Certificate Validation {#wildcard-certificate-validation}
 
 This validation method supports validation for wildcard certificates (e.g., *.example.com) and specific subdomains through the use of the `policy=wildcard` parameter.
@@ -273,6 +281,8 @@ When a DNS TXT record includes the `policy=wildcard` parameter value, it authori
 For example, a TXT record at `_validation-persist.example.com` containing `policy=wildcard` can validate certificates for `example.com`, `*.example.com`, `www.example.com`, and any other subdomain of `example.com`.
 
 If the `policy` parameter is absent, or if its value is anything other than `wildcard`, the validation applies only to the specific FQDN being validated and MUST NOT be considered sufficient for wildcard certificates or subdomains.
+
+----
 
 # Subdomain Certificate Validation {#subdomain-certificate-validation}
 
@@ -297,6 +307,8 @@ See {{subdomain-validation-risks}} for important security implications of enabli
 For a persistent TXT record provisioned at `_validation-persist.example.com` with `policy=wildcard`:
 - Permitted: `example.com`, `www.example.com`, `app.example.com`, `server.dept.example.com`, `*.example.com`
 - Not permitted without additional validation: `otherexample.com`, `example.net`
+
+----
 
 # Security Considerations {#security-considerations}
 
@@ -423,6 +435,7 @@ Certificate Authorities (CAs) implementing this method MUST:
 
 While this method provides a persistent signal of control, the fundamental ACME authorization object (as defined in {{!RFC8555}}) remains subject to its own lifecycle, including expiration. A persistent DNS record allows for repeated authorizations, but each authorization object issued by the CA will have a defined validity period, after which it expires unless renewed.
 
+----
 
 # IANA Considerations {#iana-considerations}
 
@@ -434,6 +447,8 @@ IANA is requested to register the following entry in the "ACME Validation Method
 - **Identifier Type**: dns
 - **ACME**: Y
 - **Reference**: This document
+
+----
 
 # Implementation Considerations {#implementation-considerations}
 
@@ -521,6 +536,8 @@ DNS providers supporting this validation method should consider:
 - Providing audit logging for validation record changes
 - Supporting reasonable TTL values for validation records
 - Considering dedicated interfaces or APIs for ACME validation record management
+
+----
 
 # Examples {#examples}
 
