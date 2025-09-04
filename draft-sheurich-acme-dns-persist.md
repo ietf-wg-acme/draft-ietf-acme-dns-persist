@@ -186,6 +186,7 @@ For example, if the ACME client is requesting validation for the FQDN "example.c
 _validation-persist.example.com. IN TXT ("authority.example;"
 " accounturi=https://ca.example/acct/123")
 ~~~
+{: #ex-basic-validation title="Basic Validation TXT Record"}
 
 The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Authorization Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its `issuer-domain-name` value MUST match one of the values provided in the `issuer-domain-names` array from the challenge object, and it must contain a valid `accounturi` for the requesting account. When comparing issuer domain names, the server MUST adhere to the normalization rules specified in {{challenge-object}}. The server also interprets any `policy` parameter values according to this specification.
 
@@ -236,6 +237,7 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
 " accounturi=https://ca2.example/acme/acct/67890;"
 " persistUntil=1767225600")
 ~~~
+{: #ex-multiple-ca-auth title="Multiple CA Authorization Records"}
 
 **Verification Flow for CA1:**
 
@@ -463,10 +465,11 @@ The RDATA of the TXT record, which contains the `issue-value`, may become large,
 **Client Implementation Guidelines:**
 - Clients MUST properly handle the creation of TXT records where the RDATA exceeds 255 octets. As specified in {{!RFC1035}}, Section 3.3, clients MUST split the RDATA into multiple, concatenated, quote-enclosed strings, each no more than 255 octets. For example:
 
-  ~~~ dns
-  _validation-persist.example.com. IN TXT ("first-part-of-long-string..."
-  " ...second-part-of-long-string")
-  ~~~
+    ~~~ dns
+    _validation-persist.example.com. IN TXT ("first-part-of-long-string..."
+    " ...second-part-of-long-string")
+    ~~~
+    {: #ex-long-txt-record title="Multi-String TXT Record Format"}
 
 Failure to correctly format long RDATA values may result in validation failures.
 
@@ -578,6 +581,7 @@ For validation of "*.example.com" (which also validates "example.com" and specif
     " accounturi=https://ca.example/acct/123;"
     " policy=wildcard")
     ~~~
+    {: #ex-wildcard-validation title="Wildcard Policy Validation Record"}
 
 3.  CA validates the record through DNS queries. This validation authorizes certificates for "example.com", "*.example.com", and specific subdomains like "www.example.com".
 
@@ -594,6 +598,7 @@ For validation of "example.com" with an explicit expiration date:
     " accounturi=https://ca.example/acct/123;"
     " persistUntil=1721952000")
     ~~~
+    {: #ex-persist-until title="Validation Record with Expiration Time"}
 
 3.  CA validates the record. This validation is sufficient only for "example.com" and will not be considered valid after the specified timestamp (2024-07-26T00:00:00Z).
 
@@ -611,6 +616,7 @@ For validation of "*.example.com" with an explicit expiration date:
     " policy=wildcard;"
     " persistUntil=1721952000")
     ~~~
+    {: #ex-wildcard-persist-until title="Wildcard Validation Record with Expiration Time"}
 
 3.  CA validates the record. This validation authorizes certificates for "example.com", "*.example.com", and specific subdomains, but will not be considered valid after the specified timestamp (2024-07-26T00:00:00Z).
 
