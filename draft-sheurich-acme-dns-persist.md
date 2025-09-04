@@ -55,9 +55,10 @@ informative:
         name: Henry Birge-Lee
         org: "Princeton University"
     date: 2025
-
-
-normative:
+  cabf-br:
+    title: "Baseline Requirements for the Issuance and Management of Publicly-Trusted TLS Server Certificates"
+    target: https://cabforum.org/baseline-requirements-documents/
+    date: 2025
 
 --- abstract
 
@@ -620,7 +621,7 @@ For validation of "*.example.com" with an explicit expiration date:
 
 The authors acknowledge prior community work that directly informed this specification:
 
-- The CA/Browser Forum ballot proposals to enable persistent / static DNS Domain Control Validation signals in the Baseline Requirements, in particular Ballot SC-082 ("Clarify CA Assisted DNS Validation under 3.2.2.4.7", authored by Michael Slaughter) and the active proposal SC-088 ("DNS TXT Record with Persistent Value DCV Method", GitHub PR #608, also authored by Michael Slaughter). These efforts provided the policy framing and initial industry discussion motivating standardization of a reusable ACME DNS validation record.
+- The CA/Browser Forum ballot proposals to enable persistent / static DNS Domain Control Validation signals in the Baseline Requirements {{cabf-br}}, in particular Ballot SC-082 ("Clarify CA Assisted DNS Validation under 3.2.2.4.7", authored by Michael Slaughter) and the active proposal SC-088 ("DNS TXT Record with Persistent Value DCV Method", also authored by Michael Slaughter). These efforts provided the policy framing and initial industry discussion motivating standardization of a reusable ACME DNS validation record.
 - The formal and empirical security analysis of static / persistent DCV methods performed by Henry Birge-Lee ("Proof of static DCV security" presentation, the "Security of SC-082 Redux" paper {{birgelee-sc082-security}}, and related research), which helped clarify the threat model and informed the security considerations in this document.
 - The Delegated DNS Domain Validation (DDDV) Threat Modeling Tiger Team discussions and document ("Validation SC - Delegated DNS Domain Validation (DDDV) Threat Model"), whose participants contributed to broad threat enumeration; notable contributors include Michael Slaughter (Amazon Trust Services), Corey Bonnell (DigiCert), Clint Wilson (Apple), and Martijn Katerbarg (Sectigo).
 
