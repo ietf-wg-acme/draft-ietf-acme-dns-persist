@@ -2,6 +2,7 @@
 title: "Automated Certificate Management Environment (ACME) Challenge for Persistent DNS TXT Record Validation"
 abbrev: "ACME Persistent DNS Challenge"
 category: std
+submissionType: IETF
 docname: draft-sheurich-acme-dns-persist-latest
 ipr: trust200902
 area: "Security"
