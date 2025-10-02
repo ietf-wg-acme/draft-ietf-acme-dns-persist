@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 3 April 2026                               Princeton University
+Expires: 5 April 2026                               Princeton University
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                       30 September 2025
+                                                          2 October 2025
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -63,7 +63,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 3 April 2026.
+   This Internet-Draft will expire on 5 April 2026.
 
 Copyright Notice
 
