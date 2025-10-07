@@ -131,7 +131,7 @@ The challenge object for "dns-persist-01" contains the following fields:
 - **type** (required, string): The string "dns-persist-01"
 - **url** (required, string): The URL to which a response can be posted
 - **status** (required, string): The status of this challenge
-- **accounturi** (required, string): The URI of the ACME account to include in the DNS TXT record
+- **accounturi** (required, string): A a unique URI identifying the account of the applicant which requested the validation. This value MAY be the ACME account URL, or any other URI as determined by the CA. The client MUST use this exact `accounturi` parameter when populating the DNS TXT record. 
 - **issuer-domain-names** (required, array of strings): A list of one or more Issuer Domain Names. The client MUST choose one of these domain names to include in the DNS TXT record. The challenge is successful if a valid TXT record is found that uses any one of the provided domain names.
 
   Each string in the array MUST be a domain name that complies with the following normalization rules:
