@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2025-10-09T00:06:58.084511+00:00",
+  "timestamp": "2025-10-26T00:07:46.444512+00:00",
   "repo": "sheurich/draft-sheurich-acme-dns-persist",
   "labels": [
     {
@@ -1106,7 +1106,7 @@
       "labels": [],
       "body": "Added accounturi attribute to the challenge response object.\r\n\r\nChanges include:\r\n- Updated accounturi references to refer to the server provided accounturi rather than \"a valid account uri\"\r\n- Cleaned up accounturi references and examples.\r\n\r\n\r\n**Motivation**: This change eliminates ambiguity and improves interoperability of implementations. While ACME clients are aware of their account URI, explicitly providing this value in the challenge object removes any dependency on client-side URI construction or format assumptions. This approach makes the exact value the server expects in DNS explicit and ensures the challenge object is completely self-contained and driven by the server.",
       "createdAt": "2025-10-07T13:54:22Z",
-      "updatedAt": "2025-10-07T14:18:52Z",
+      "updatedAt": "2025-10-24T18:20:06Z",
       "baseRepository": "sheurich/draft-sheurich-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "dbfeecbfdd96ae91f2f02d775ac8fcdd927c8c6b",
@@ -1117,7 +1117,22 @@
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
-      "comments": [],
+      "comments": [
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Hi all,\r\n\r\nI can probably clean up the build error on this.\r\n\r\nThat said, I was wondering if there is any other language that could improve specificity while also permitting there to possibly be multiple account uris values that permit issuance by a single account. The motivation is twofold:\r\n\r\n1) in the future allow for orgs to obfuscate the relationship of multiple domains using the same ACME account. This could make that ACME account a target for hijack or allow adversaries to discover organizational infrastructure that they otherwise would not be able to pin back to the host organization.\r\n\r\n2) allow more fine-grained access controls within an ACME account. I am not sure if any CAs have adopted this model, but particularly when EAB (external account binding) is used or rate limit exceptions are in play, there may be a desire for a single ACME account to be subdivided into different policy roles each one authorized for some subset of domains. In this nature, an account id could be used to refer to a specific policy role and apposed to mapping to a true ACME account. I can't tell if this really makes sense (as these roles need independent credentials, so they are sort of just ACME accounts themselves), but I sort of like the idea of this field being a more abstract notion of identity than a forced 1-to-1 binding with an ACME account.\r\n",
+          "createdAt": "2025-10-24T16:35:38Z",
+          "updatedAt": "2025-10-24T16:35:38Z"
+        },
+        {
+          "author": "slghtr-says",
+          "authorAssociation": "NONE",
+          "body": "> Hi all,\r\n> \r\n> I can probably clean up the build error on this.\r\n> \r\n> That said, I was wondering if there is any other language that could improve specificity while also permitting there to possibly be multiple account uris values that permit issuance by a single account. The motivation is twofold:\r\n> \r\n> 1. in the future allow for orgs to obfuscate the relationship of multiple domains using the same ACME account. This could make that ACME account a target for hijack or allow adversaries to discover organizational infrastructure that they otherwise would not be able to pin back to the host organization.\r\n> 2. allow more fine-grained access controls within an ACME account. I am not sure if any CAs have adopted this model, but particularly when EAB (external account binding) is used or rate limit exceptions are in play, there may be a desire for a single ACME account to be subdivided into different policy roles each one authorized for some subset of domains. In this nature, an account id could be used to refer to a specific policy role and apposed to mapping to a true ACME account. I can't tell if this really makes sense (as these roles need independent credentials, so they are sort of just ACME accounts themselves), but I sort of like the idea of this field being a more abstract notion of identity than a forced 1-to-1 binding with an ACME account.\r\n\r\nThank you @birgelee. Apologies for missing the build error!\r\n\r\nBoth use cases make sense and align with SC-088's intentional flexibility around how CAs construct and define accounts.\r\n\r\nI envision domain-specific obfuscation and/or deeper account sub-scoping settings being configured at the account level for each CA. These settings would influence account URI generation and be returned to clients within the challenge object. I haven't considered EAB which is another interesting angle. \r\n\r\nOne potential modification I can think of would be including a list of eligible accountURIs (similar to issuer-domain-names). However, I'm concerned this pushes business logic to the \r\nclient rather than having the CA make that determination and provide a single value. How does the client then determine which accountURI to add for example to achieve their desired security property?\r\n\r\n> I sort of like the idea of this field being a more abstract notion of identity than a forced 1-to-1 binding with an ACME account.\r\n\r\nAgreed!",
+          "createdAt": "2025-10-24T18:20:06Z",
+          "updatedAt": "2025-10-24T18:20:06Z"
+        }
+      ],
       "reviews": [
         {
           "id": "PRR_kwDOO4VY2c7FT1vf",
