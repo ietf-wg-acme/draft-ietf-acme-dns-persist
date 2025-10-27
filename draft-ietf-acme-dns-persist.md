@@ -3,7 +3,7 @@ title: "Automated Certificate Management Environment (ACME) Challenge for Persis
 abbrev: "ACME Persistent DNS Challenge"
 category: std
 submissionType: IETF
-docname: draft-sheurich-acme-dns-persist-latest
+docname: draft-ietf-acme-dns-persist-latest
 ipr: trust200902
 area: "Security"
 workgroup: "Automated Certificate Management Environment"
@@ -27,8 +27,8 @@ author:
    email: "sheurich@fastly.com"
  -
    name: "Henry Birge-Lee"
-   org: "Princeton University"
-   email: "birgelee@princeton.edu"
+   org: "Crosslayer Labs, Inc."
+   email: "henry@crosslayerlabs.com"
  -
    name: "Michael Slaughter"
    org: "Amazon Trust Services"
