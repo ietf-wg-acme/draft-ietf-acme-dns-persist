@@ -1,0 +1,2455 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>Automated Certificate Management Environment (ACME) Challenge for Persistent DNS TXT Record Validation</title>
+<meta content="Shiloh Heurich" name="author">
+<meta content="Henry Birge-Lee" name="author">
+<meta content="Michael Slaughter" name="author">
+<meta content='
+       This document specifies "dns-persist-01", a new validation method for the Automated Certificate Management Environment (ACME) protocol. This method allows a Certification Authority (CA) to verify control over a domain by confirming the presence of a persistent DNS TXT record containing CA and account identification information. This method is particularly suited for environments where traditional challenge methods are impractical, such as IoT deployments, multi-tenant platforms, and scenarios requiring batch certificate operations. The validation method is designed with a strong focus on security and robustness, incorporating widely adopted industry best practices for persistent domain control validation. This design aims to make it suitable for Certification Authorities operating under various policy environments, including those that align with the CA/Browser Forum Baseline Requirements. 
+    ' name="description">
+<meta content="xml2rfc 3.31.0" name="generator">
+<meta content="acme" name="keyword">
+<meta content="dns" name="keyword">
+<meta content="validation" name="keyword">
+<meta content="persistent" name="keyword">
+<meta content="draft-ietf-acme-dns-persist-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.31.0
+    Python 3.12.12
+    ConfigArgParse 1.7
+    google-i18n-address 3.1.1
+    intervaltree 3.1.0
+    Jinja2 3.1.6
+    lxml 5.3.1
+    platformdirs 4.5.0
+    pycountry 24.6.1
+    PyYAML 6.0.2
+    requests 2.32.5
+    wcwidth 0.2.14
+-->
+<link href="draft-ietf-acme-dns-persist.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  --font-title: "Sofia Sans Semi Condensed", sans-serif;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+section {
+  clear: both;
+}
+.section-number {
+  padding-right: 0.5em;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  font-weight: 680;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1#title {
+  font-size: 32px;
+  line-height: 40px;
+  clear: both;
+}
+h1#title, h1#rfcnum {
+  margin: 1.5em 0 0.2em;
+}
+h1#rfcnum + h1#title {
+  margin: 0.2em 0;
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+  vertical-align: top;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+}
+#abstract+p code, #abstract+p samp, #abstract+p tt {
+  font-size: 16px;
+  line-height: 0;
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight.art-text {
+  background-color: var(--highlight-color);
+  border: 1px solid var(--line-color);
+  border-radius: 3px;
+  padding: 0.5em 1em 0;
+  margin-bottom: 0.5em;
+}
+.alignRight.art-text pre {
+  padding: 0;
+  width: auto;
+}
+.alignRight {
+  margin: 1em 0;
+}
+.alignRight > *:first-child {
+  border: none;
+  margin: 0;
+  float: right;
+  clear: both;
+}
+.alignRight > *:nth-child(2) {
+  clear: both;
+  display: block;
+  border: none;
+}
+svg {
+  display: block;
+}
+/* font-family isn't space-separated, but =~ will have to do */
+svg[font-family~="monospace" i], svg [font-family~="monospace" i] {
+  font-family: var(--font-mono);
+}
+.alignCenter.art-text {
+  background-color: var(--highlight-color);
+  border: 1px solid var(--line-color);
+  border-radius: 3px;
+  padding: 0.5em 1em 0;
+  margin-bottom: 0.5em;
+}
+.alignCenter.art-text pre {
+  padding: 0;
+  width: auto;
+}
+.alignCenter {
+  margin: 1em 0;
+}
+.alignCenter > *:first-child {
+  border: none;
+  /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+     support flexbox yet.
+  */
+  display: table;
+  margin: 0 auto;
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+  & :is(ol, ul) {
+    margin-left: 1em;
+  }
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+  & li {
+    margin-top: 0.5em;
+  }
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  margin: 0 0 0 2em;
+  & li {
+    margin: 0;
+    & :first-child { margin-top: 0; }
+    & :last-child { margin-bottom: 0; }
+  }
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+  &.olPercent {
+    --indent: 5ch;
+    & > dt {
+      min-width: calc(var(--indent) - 2ch);
+    }
+  }
+  &.olPercent > dt {
+    float: none;
+  }
+
+  dl > dd > & {
+    margin-top: 0.5em;
+    margin-bottom: 0;
+  }
+}
+dl:not(.dlNewline) > dt {
+  float: left;
+  margin-right: 2ch;
+  min-width: 8ch;
+}
+dl > dd {
+  margin-bottom: .8em;
+  margin-left: var(--indent) !important; /* stupid element overrides */
+  min-height: 2ex;
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+  & > :is(:first-child, .break:first-child + *) {
+    margin-top: 0;
+  }
+  & > :is(:last-child) {
+    margin-bottom: 0;
+  }
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a, a[href].selfRef:hover {
+  text-decoration: none;
+}
+a[href] {
+  color: var(--link-color);
+}
+a[href].selfRef, .iref + a[href].internal {
+  color: var(--text-color);
+}
+a[href]:hover {
+  text-decoration: underline;
+}
+a[href].selfRef:hover {
+  background-color: var(--highlight-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+}
+figure blockquote {
+  margin: 0.8em 0.4em 0.4em;
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+  caption-side: bottom;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) p {
+    margin: -2px 0;
+    max-height: 0;
+    transition: max-height 2s ease, margin 0.5s ease 0.5s;
+    overflow: hidden;
+  }
+  :is(#status-of-memo, #copyright):hover p,
+  :is(#status-of-memo, #copyright) h2:target ~ p {
+    margin: 0.5em 0;
+    max-height: 500px;
+    overflow: auto;
+  }
+  pre, svg {
+    display: inline-block;
+    /* In the horizontal direction, sometimes people make over-sized figures.
+       Scrollbars for those is therefore necessary: auto adds them as necessary..
+       In the vertical direction, the line-height can combine with the font
+       asender/descender height to produce scrollbars: hidden avoids that. */
+    overflow: auto hidden;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  width: auto;
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+}
+table.right {
+  margin-left: auto;
+}
+table.center {
+  margin-left: auto;
+  margin-right: auto;
+}
+table.left {
+  margin-right: auto;
+}
+table .text-left {
+  text-align: left;
+}
+table .text-center {
+  text-align: center;
+}
+table .text-right {
+  text-align: right;
+}
+
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+table caption {
+  margin: 0;
+  padding: 3px 0 3px 1em;
+}
+table p {
+  margin: 0;
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+  &[href] {
+    color: var(--pilcrow-weak);
+    &:hover { text-decoration: none; }
+  }
+}
+@media not print {
+  :hover > a.pilcrow {
+    opacity: 1;
+  }
+  a.pilcrow[href]:hover {
+    color: var(--pilcrow-strong);
+    background-color: transparent;
+  }
+}
+@media print {
+  a.pilcrow {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+  & dt {
+    width: var(--identifier-width);
+    min-width: var(--identifier-width);
+    clear: left;
+    float: left;
+    text-align: right;
+    margin-right: 1ch;
+  }
+  & dd {
+    margin: 0;
+    margin-left: calc(1em + var(--identifier-width)) !important;
+    min-width: 5em;
+  }
+  & .authors {
+    & .author {
+      display: inline-block;
+      margin-right: 1.5em;
+    }
+    & .org {
+      font-style: italic;
+    }
+  }
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+}
+.docInfo .prepared {
+  float: right;
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+
+  & nav {
+    & ul {
+      margin: 0 0.5em 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    & li {
+      line-height: 1.3em;
+      margin: 2px 0;
+      padding-left: 1.2em;
+      text-indent: -1.2em;
+    }
+  }
+  & a.xref {
+    white-space: normal;
+  }
+}
+
+.references {
+  & > dt {
+    text-align: right;
+    font-weight: bold;
+    min-width: 10ch;
+    margin-right: 1.5ch;
+    &:target::before {
+      content: "⇒";
+      margin: 0 10px 0 -25px;
+    }
+  }
+  & > dd {
+    margin-left: 12ch !important;
+    overflow: visible;
+    & .refInstance {
+      margin-bottom: 0.8em;
+    }
+    & .ascii {
+      margin-bottom: 0.25em;
+    }
+  }
+}
+
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  max-width: 20em;
+  margin: 1em auto 1em 0;
+
+  & .nameRole {
+    font-weight: 700;
+    margin-left: 0;
+  }
+  & .label {
+    margin: 0.5em 0;
+  }
+  & .type {
+    display: none;
+  }
+  & .alternative-contact {
+    margin: 0.5em 0 0.25em 0;
+  }
+  & .non-ascii {
+    margin: 0 0 0 2em;
+  }
+  & div.left {
+    text-align: left;
+  }
+  & div.right {
+    text-align: right;
+  }
+}
+
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses > section {
+    column-count: 2;
+    column-gap: 20px;
+  }
+  #authors-addresses > section > h2 {
+    column-span: all;
+  }
+  /* hack for break-inside: avoid-column */
+  #authors-addresses address {
+    display: inline-block;
+    break-inside: avoid-column;
+  }
+}
+
+/* Comments */
+.rfcEditorRemove p:first-of-type {
+  font-style: italic;
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+
+@media screen {
+  #toc nav {
+    font-family: var(--font-title);
+    font-weight: 360;
+    & > ul { margin-bottom: 2em; }
+    & ul {
+      margin: 0 0 0 4px;
+      & :is(p, li) {
+        margin: 2px 0;
+      }
+    }
+  }
+  #toc a.toplink {
+    float: right;
+  }
+}
+@media not screen {
+  #toc a.toplink {
+    display: none;
+  }
+}
+
+
+/* TOC layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 1px 0 0 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+  }
+  #toc h2 {
+    margin: 0;
+    padding: 2px 0 2px 6px;
+    padding-right: 1em;
+    font-size: 18px;
+    line-height: 24px;
+    min-width: 190px;
+    text-align: right;
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+    &::before { /* css hamburger */
+      float: right;
+      position: relative;
+      width: 1em;
+      height: 1px;
+      left: -164px;
+      margin: 8px 0 0 0;
+      background: white none repeat scroll 0 0;
+      box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+      content: "";
+    }
+  }
+  #toc nav {
+    display: none;
+    background-color: var(--background-color);
+    padding: 0.5em 1em 1em;
+    overflow: auto;
+    overscroll-behavior: contain;
+    height: calc(100vh - 48px);
+    border-left: 1px solid #ddd;
+  }
+  #toc.active {
+    opacity: 1;
+    & nav { display: block; }
+  }
+  /* Make the collapsed ToC header render white on gray also when it's a link */
+  #toc h2 a,
+  #toc h2 a:is(:link, :focus, :hover),
+  #toc a.toplink,
+  #toc a.toplink:hover {
+    color: white;
+    background-color: #444;
+    text-decoration: none;
+  }
+  #toc a.toplink {
+    margin: 2px 0.5em 0;
+  }
+}
+
+/* TOC layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+  }
+  #toc h2 {
+    margin: 0;
+    padding: 0.25em 1em 1em 0;
+  }
+  #toc nav {
+    display: block;
+    height: calc(90vh - 84px);
+    bottom: 0;
+    padding: 0.5em 0 2em;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+  #toc a.toplink {
+    margin: 8px 0.5em 0;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc, #n-introduction {
+    page-break-before: always;
+  }
+  #toc {
+    border-top: none;
+    padding-top: 0;
+  }
+  figure, pre, .vcard {
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  :is(h2, h3, h4, h5, h6)+*, dd {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg :is([stroke="black"], [stroke^="#000"]) {
+  stroke: var(--text-color);
+}
+svg :is([stroke="white"], [stroke^="#fff"]) {
+  stroke: var(--background-color);
+}
+svg :is([fill="black"], [fill^="#000"], :not([fill])) {
+  fill: var(--text-color);
+}
+svg :is([fill="white"], [fill^="#fff"]) {
+  fill: var(--background-color);
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">ACME Persistent DNS Challenge</td>
+<td class="right">October 2025</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Heurich, et al.</td>
+<td class="center">Expires 30 April 2026</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Automated Certificate Management Environment</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-ietf-acme-dns-persist-latest</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2025-10-27" class="published">27 October 2025</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Standards Track</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2026-04-30">30 April 2026</time></dd>
+<dt class="label-authors">Authors:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">S. Heurich</div>
+<div class="org">Fastly</div>
+</div>
+<div class="author">
+      <div class="author-name">H. Birge-Lee</div>
+<div class="org">Crosslayer Labs, Inc.</div>
+</div>
+<div class="author">
+      <div class="author-name">M. Slaughter</div>
+<div class="org">Amazon Trust Services</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">Automated Certificate Management Environment (ACME) Challenge for Persistent DNS TXT Record Validation</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">This document specifies "dns-persist-01", a new validation method for the Automated Certificate Management Environment (ACME) protocol. This method allows a Certification Authority (CA) to verify control over a domain by confirming the presence of a persistent DNS TXT record containing CA and account identification information. This method is particularly suited for environments where traditional challenge methods are impractical, such as IoT deployments, multi-tenant platforms, and scenarios requiring batch certificate operations. The validation method is designed with a strong focus on security and robustness, incorporating widely adopted industry best practices for persistent domain control validation. This design aims to make it suitable for Certification Authorities operating under various policy environments, including those that align with the CA/Browser Forum Baseline Requirements.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-about-this-document">
+<a href="#name-about-this-document" class="section-name selfRef">About This Document</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">
+        Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-ietf-acme-dns-persist/">https://datatracker.ietf.org/doc/draft-ietf-acme-dns-persist/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+<p id="section-note.1-3">
+        Discussion of this document takes place on the
+        Automated Certificate Management Environment Working Group mailing list (<span><a href="mailto:acme@ietf.org">mailto:acme@ietf.org</a></span>),
+        which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/acme/">https://mailarchive.ietf.org/arch/browse/acme/</a></span>.
+        Subscribe at <span><a href="https://www.ietf.org/mailman/listinfo/acme/">https://www.ietf.org/mailman/listinfo/acme/</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
+<p id="section-note.1-4">Source for this draft and an issue tracker can be found at
+        <span><a href="https://github.com/sheurich/draft-sheurich-acme-dns-persist">https://github.com/sheurich/draft-sheurich-acme-dns-persist</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 30 April 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2025 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-robustness-and-alignment-wi" class="internal xref">Robustness and Alignment with Industry Best Practices</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-definitions" class="internal xref">Conventions and Definitions</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-the-dns-persist-01-challeng" class="internal xref">The "dns-persist-01" Challenge</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
+                <p id="section-toc.1-1.3.2.1.1"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-challenge-object" class="internal xref">Challenge Object</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-challenge-response-and-veri" class="internal xref">Challenge Response and Verification</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-multiple-issuer-support" class="internal xref">Multiple Issuer Support</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1.2.1">
+                    <p id="section-toc.1-1.4.2.1.2.1.1"><a href="#section-4.1.1" class="auto internal xref">4.1.1</a>.  <a href="#name-coexistence-of-records" class="internal xref">Coexistence of Records</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1.2.2">
+                    <p id="section-toc.1-1.4.2.1.2.2.1"><a href="#section-4.1.2" class="auto internal xref">4.1.2</a>.  <a href="#name-ca-verification-process" class="internal xref">CA Verification Process</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1.2.3">
+                    <p id="section-toc.1-1.4.2.1.2.3.1"><a href="#section-4.1.3" class="auto internal xref">4.1.3</a>.  <a href="#name-security-and-management-con" class="internal xref">Security and Management Considerations</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1.2.4">
+                    <p id="section-toc.1-1.4.2.1.2.4.1"><a href="#section-4.1.4" class="auto internal xref">4.1.4</a>.  <a href="#name-example-authorizing-two-cas" class="internal xref">Example: Authorizing Two CAs</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-just-in-time-validation" class="internal xref">Just-in-Time Validation</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-wildcard-and-subdomain-cert" class="internal xref">Wildcard and Subdomain Certificate Validation</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-scope-of-policywildcard" class="internal xref">Scope of <code>policy=wildcard</code></a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-subdomain-certificate-valid" class="internal xref">Subdomain Certificate Validation</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.1">
+                <p id="section-toc.1-1.6.2.1.1"><a href="#section-6.1" class="auto internal xref">6.1</a>.  <a href="#name-determining-permitted-subdo" class="internal xref">Determining Permitted Subdomains</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.2">
+                <p id="section-toc.1-1.6.2.2.1"><a href="#section-6.2" class="auto internal xref">6.2</a>.  <a href="#name-implementation-requirements" class="internal xref">Implementation Requirements</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3">
+                <p id="section-toc.1-1.6.2.3.1"><a href="#section-6.3" class="auto internal xref">6.3</a>.  <a href="#name-example-subdomain-validatio" class="internal xref">Example: Subdomain Validation</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
+                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-persistent-record-risks" class="internal xref">Persistent Record Risks</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2">
+                <p id="section-toc.1-1.7.2.2.1"><a href="#section-7.2" class="auto internal xref">7.2</a>.  <a href="#name-account-binding-security" class="internal xref">Account Binding Security</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2.2.1">
+                    <p id="section-toc.1-1.7.2.2.2.1.1"><a href="#section-7.2.1" class="auto internal xref">7.2.1</a>.  <a href="#name-account-key-rotation" class="internal xref">Account Key Rotation</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.3">
+                <p id="section-toc.1-1.7.2.3.1"><a href="#section-7.3" class="auto internal xref">7.3</a>.  <a href="#name-subdomain-validation-risks" class="internal xref">Subdomain Validation Risks</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.4">
+                <p id="section-toc.1-1.7.2.4.1"><a href="#section-7.4" class="auto internal xref">7.4</a>.  <a href="#name-cross-ca-validation-reuse" class="internal xref">Cross-CA Validation Reuse</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.5">
+                <p id="section-toc.1-1.7.2.5.1"><a href="#section-7.5" class="auto internal xref">7.5</a>.  <a href="#name-record-tampering-and-integr" class="internal xref">Record Tampering and Integrity</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.6">
+                <p id="section-toc.1-1.7.2.6.1"><a href="#section-7.6" class="auto internal xref">7.6</a>.  <a href="#name-issuer-domain-name-normaliz" class="internal xref">Issuer Domain Name Normalization and Limits</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.7">
+                <p id="section-toc.1-1.7.2.7.1"><a href="#section-7.7" class="auto internal xref">7.7</a>.  <a href="#name-dns-security-measures" class="internal xref">DNS Security Measures</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.7.2.1">
+                    <p id="section-toc.1-1.7.2.7.2.1.1"><a href="#section-7.7.1" class="auto internal xref">7.7.1</a>.  <a href="#name-dnssec" class="internal xref">DNSSEC</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.7.2.2">
+                    <p id="section-toc.1-1.7.2.7.2.2.1"><a href="#section-7.7.2" class="auto internal xref">7.7.2</a>.  <a href="#name-multi-perspective-validatio" class="internal xref">Multi-Perspective Validation</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.8">
+                <p id="section-toc.1-1.7.2.8.1"><a href="#section-7.8" class="auto internal xref">7.8</a>.  <a href="#name-validation-data-reuse-and-t" class="internal xref">Validation Data Reuse and TTL Handling</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.9">
+                <p id="section-toc.1-1.7.2.9.1"><a href="#section-7.9" class="auto internal xref">7.9</a>.  <a href="#name-persistuntil-parameter-cons" class="internal xref">persistUntil Parameter Considerations</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.10">
+                <p id="section-toc.1-1.7.2.10.1"><a href="#section-7.10" class="auto internal xref">7.10</a>. <a href="#name-revocation-and-invalidation" class="internal xref">Revocation and Invalidation of Persistent Authorizations</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1">
+                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-acme-validation-methods-reg" class="internal xref">ACME Validation Methods Registry</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-implementation-consideratio" class="internal xref">Implementation Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.1">
+                <p id="section-toc.1-1.9.2.1.1"><a href="#section-9.1" class="auto internal xref">9.1</a>.  <a href="#name-dns-record-size-considerati" class="internal xref">DNS Record Size Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.1.2.1">
+                    <p id="section-toc.1-1.9.2.1.2.1.1"><a href="#section-9.1.1" class="auto internal xref">9.1.1</a>.  <a href="#name-domain-name-normalization-a" class="internal xref">Domain Name Normalization Algorithm</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.2">
+                <p id="section-toc.1-1.9.2.2.1"><a href="#section-9.2" class="auto internal xref">9.2</a>.  <a href="#name-ca-implementation-guideline" class="internal xref">CA Implementation Guidelines</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.2.2.1">
+                    <p id="section-toc.1-1.9.2.2.2.1.1"><a href="#section-9.2.1" class="auto internal xref">9.2.1</a>.  <a href="#name-error-handling" class="internal xref">Error Handling</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.3">
+                <p id="section-toc.1-1.9.2.3.1"><a href="#section-9.3" class="auto internal xref">9.3</a>.  <a href="#name-client-implementation-guide" class="internal xref">Client Implementation Guidelines</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.4">
+                <p id="section-toc.1-1.9.2.4.1"><a href="#section-9.4" class="auto internal xref">9.4</a>.  <a href="#name-dns-provider-considerations" class="internal xref">DNS Provider Considerations</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-examples" class="internal xref">Examples</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.1">
+                <p id="section-toc.1-1.10.2.1.1"><a href="#section-10.1" class="auto internal xref">10.1</a>.  <a href="#name-basic-validation-example-fq" class="internal xref">Basic Validation Example (FQDN Only)</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.2">
+                <p id="section-toc.1-1.10.2.2.1"><a href="#section-10.2" class="auto internal xref">10.2</a>.  <a href="#name-wildcard-validation-example" class="internal xref">Wildcard Validation Example</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.3">
+                <p id="section-toc.1-1.10.2.3.1"><a href="#section-10.3" class="auto internal xref">10.3</a>.  <a href="#name-validation-example-with-per" class="internal xref">Validation Example with persistUntil</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.4">
+                <p id="section-toc.1-1.10.2.4.1"><a href="#section-10.4" class="auto internal xref">10.4</a>.  <a href="#name-wildcard-validation-example-" class="internal xref">Wildcard Validation Example with persistUntil</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.1">
+                <p id="section-toc.1-1.11.2.1.1"><a href="#section-11.1" class="auto internal xref">11.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.2">
+                <p id="section-toc.1-1.11.2.2.1"><a href="#section-11.2" class="auto internal xref">11.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">The Automated Certificate Management Environment (ACME) protocol <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span> defines mechanisms for automating certificate issuance and domain validation. The existing challenge methods, "http-01" and "dns-01", require real-time interaction between the ACME client and the domain's infrastructure during the validation process. While effective for many use cases, these methods present challenges in certain deployment scenarios.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">Examples include:<a href="#section-1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1-3.1">
+          <p id="section-1-3.1.1">Internet of Things (IoT) deployments where devices may not be able to host an HTTP service or coordinate DNS updates in real-time.<a href="#section-1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-3.2">
+          <p id="section-1-3.2.1">Edge compute and multi-tenant hosting platforms where the entity managing the DNS zone is distinct from the tenant subscribing to the certificate.<a href="#section-1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-3.3">
+          <p id="section-1-3.3.1">Organizations that wish to pre-validate domains and batch issuance operations offline or at a later time.<a href="#section-1-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-3.4">
+          <p id="section-1-3.4.1">Scenarios requiring wildcard certificates where domain control is proven once and reused over an extended period.<a href="#section-1-3.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-3.5">
+          <p id="section-1-3.5.1">Environments with strict change management processes where DNS modifications require approval workflows.<a href="#section-1-3.5.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-1-4">This document defines a new ACME challenge type, "dns-persist-01". This method proves control over a Fully Qualified Domain Name (FQDN) by confirming the presence of a persistent DNS TXT record containing CA and account identification information.<a href="#section-1-4" class="pilcrow">¶</a></p>
+<p id="section-1-5">The record format is based on the "issue-value" syntax from <span>[<a href="#RFC8659" class="cite xref">RFC8659</a>]</span>, incorporating an issuer-domain-name and a mandatory accounturi parameter <span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span> that uniquely identifies the applicant's account. This design provides strong binding between the domain, the CA, and the specific account requesting validation.<a href="#section-1-5" class="pilcrow">¶</a></p>
+<div id="robustness-and-alignment">
+<section id="section-1.1">
+        <h3 id="name-robustness-and-alignment-wi">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-robustness-and-alignment-wi" class="section-name selfRef">Robustness and Alignment with Industry Best Practices</a>
+        </h3>
+<p id="section-1.1-1">This validation method is designed to provide a robust and persistent mechanism for domain control verification within the ACME protocol. Its technical design incorporates widely adopted security principles and best practices for domain validation, ensuring high assurance regardless of the specific CA policy environment. These principles include, but are not limited to:<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-1.1-2">
+<li id="section-1.1-2.1">
+            <p id="section-1.1-2.1.1">The use of a well-defined, unique DNS label (e.g., "_validation-persist") for persistent validation records, minimizing potential conflicts.<a href="#section-1.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-1.1-2.2">
+            <p id="section-1.1-2.2.1">Consideration of DNS TTL values when determining the effective validity period of an authorization, balancing persistence with responsiveness to DNS changes (see <a href="#validation-data-reuse-and-ttl-handling" class="auto internal xref">Section 7.8</a>).<a href="#section-1.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-1.1-2.3">
+            <p id="section-1.1-2.3.1">Explicit binding of the domain validation to a specific ACME account through a unique identifier, establishing clear accountability and enhancing security against unauthorized use.<a href="#section-1.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-1.1-3">Certification Authorities operating under various trust program requirements will find this technical framework suitable for their domain validation needs, as its design inherently supports robust and auditable validation practices.<a href="#section-1.1-3" class="pilcrow">¶</a></p>
+<p id="section-1.1-4"></p>
+</section>
+</div>
+</section>
+</div>
+<div id="conventions-and-definitions">
+<section id="section-2">
+      <h2 id="name-conventions-and-definitions">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-conventions-and-definitions" class="section-name selfRef">Conventions and Definitions</a>
+      </h2>
+<p id="section-2-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
+"<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
+appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-2-2">
+        <dt id="section-2-2.1"><strong>DNS TXT Record Persistent DCV Domain Label</strong></dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.2">
+          <p id="section-2-2.2.1">The label "_validation-persist" as specified in this document. This label is consistent with industry practices for persistent domain validation.<a href="#section-2-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.3"><strong>Authorization Domain Name</strong></dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.4">
+          <p id="section-2-2.4.1">The domain name at which the validation TXT record is provisioned. It is formed by prepending the DNS TXT Record Persistent DCV Domain Label to the FQDN being validated.<a href="#section-2-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.5"><strong>Issuer Domain Name</strong></dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.6">
+          <p id="section-2-2.6.1">A domain name disclosed by the CA in Section 4.2 of the CA's Certificate Policy and/or Certification Practices Statement to identify the CA for the purposes of this validation method.<a href="#section-2-2.6.1" class="pilcrow">¶</a></p>
+<p id="section-2-2.6.2">Note: The <code>issuer-domain-names</code> provided in the challenge object <span class="bcp14">MAY</span> be drawn from the machine-readable <code>caaIdentities</code> array in the ACME server's directory object, as specified in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 9.7.6. This creates a clearer programmatic link between the server's advertised identities and the challenge object.<a href="#section-2-2.6.2" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.7"><strong>Validation Data Reuse Period</strong></dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.8">
+          <p id="section-2-2.8.1">The period during which a CA may rely on validation data, as defined by the CA's practices and applicable requirements.<a href="#section-2-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.9"><strong>persistUntil</strong></dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.10">
+          <p id="section-2-2.10.1">An optional parameter in the validation record that specifies the timestamp after which the validation record should no longer be considered valid by CAs. The value <span class="bcp14">MUST</span> be a base-10 encoded integer representing a UNIX timestamp in UTC (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds).<a href="#section-2-2.10.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<p id="section-2-3"></p>
+</section>
+</div>
+<div id="dns-persist-01-challenge">
+<section id="section-3">
+      <h2 id="name-the-dns-persist-01-challeng">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-the-dns-persist-01-challeng" class="section-name selfRef">The "dns-persist-01" Challenge</a>
+      </h2>
+<p id="section-3-1">The "dns-persist-01" challenge allows an ACME client to demonstrate control over an FQDN by proving it can provision a DNS TXT record containing specific, persistent validation information. The validation information links the FQDN to both the Certificate Authority performing the validation and the specific ACME account requesting the validation.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<p id="section-3-2">When an ACME client accepts a "dns-persist-01" challenge, it proves control by provisioning a DNS TXT record at the Authorization Domain Name. Unlike the existing "dns-01" challenge, this record is designed to persist and may be reused for multiple certificate issuances over an extended period.<a href="#section-3-2" class="pilcrow">¶</a></p>
+<div id="challenge-object">
+<section id="section-3.1">
+        <h3 id="name-challenge-object">
+<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-challenge-object" class="section-name selfRef">Challenge Object</a>
+        </h3>
+<p id="section-3.1-1">The challenge object for "dns-persist-01" contains the following fields:<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3.1-2.1">
+            <p id="section-3.1-2.1.1"><strong>type</strong> (required, string): The string "dns-persist-01"<a href="#section-3.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-3.1-2.2">
+            <p id="section-3.1-2.2.1"><strong>url</strong> (required, string): The URL to which a response can be posted<a href="#section-3.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-3.1-2.3">
+            <p id="section-3.1-2.3.1"><strong>status</strong> (required, string): The status of this challenge<a href="#section-3.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-3.1-2.4">
+            <p id="section-3.1-2.4.1"><strong>issuer-domain-names</strong> (required, array of strings): A list of one or more Issuer Domain Names. The client <span class="bcp14">MUST</span> choose one of these domain names to include in the DNS TXT record. The challenge is successful if a valid TXT record is found that uses any one of the provided domain names.<a href="#section-3.1-2.4.1" class="pilcrow">¶</a></p>
+<p id="section-3.1-2.4.2">
+Each string in the array <span class="bcp14">MUST</span> be a domain name that complies with the following normalization rules:<a href="#section-3.1-2.4.2" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-3.1-2.4.3">
+<li id="section-3.1-2.4.3.1">
+                <p id="section-3.1-2.4.3.1.1">The domain name <span class="bcp14">MUST</span> be represented in A-label format (Punycode, <span>[<a href="#RFC5890" class="cite xref">RFC5890</a>]</span>).<a href="#section-3.1-2.4.3.1.1" class="pilcrow">¶</a></p>
+</li>
+              <li id="section-3.1-2.4.3.2">
+                <p id="section-3.1-2.4.3.2.1">All characters <span class="bcp14">MUST</span> be lowercase.<a href="#section-3.1-2.4.3.2.1" class="pilcrow">¶</a></p>
+</li>
+              <li id="section-3.1-2.4.3.3">
+                <p id="section-3.1-2.4.3.3.1">The domain name <span class="bcp14">MUST NOT</span> have a trailing dot.<a href="#section-3.1-2.4.3.3.1" class="pilcrow">¶</a></p>
+</li>
+            </ol>
+<p id="section-3.1-2.4.4">
+The server <span class="bcp14">MUST</span> ensure the array is not empty. Servers <span class="bcp14">MUST NOT</span> send more than 10 issuer domain names. This limit serves as a practical measure to prevent denial-of-service vectors against clients. Clients <span class="bcp14">MUST</span> consider a challenge malformed if the <code>issuer-domain-names</code> array is empty or if it contains more than 10 entries, and <span class="bcp14">MUST</span> reject such challenges. Each domain name <span class="bcp14">MUST NOT</span> exceed 253 octets in length.<a href="#section-3.1-2.4.4" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-3.1-3">The following shows an example challenge object:<a href="#section-3.1-3" class="pilcrow">¶</a></p>
+<span id="name-example-dns-persist-01-chal"></span><div id="fig-challenge-object">
+<figure id="figure-1">
+          <div class="lang-json sourcecode" id="section-3.1-4.1">
+<pre>
+{
+  "type": "dns-persist-01",
+  "url": "https://ca.example/acme/authz/1234/0",
+  "status": "pending",
+  "issuer-domain-names": ["authority.example", "ca.example.net"]
+}
+</pre>
+</div>
+<figcaption><a href="#figure-1" class="selfRef">Figure 1</a>:
+<a href="#name-example-dns-persist-01-chal" class="selfRef">Example dns-persist-01 Challenge Object</a>
+          </figcaption></figure>
+</div>
+<p id="section-3.1-5"></p>
+</section>
+</div>
+</section>
+</div>
+<div id="challenge-response-and-verification">
+<section id="section-4">
+      <h2 id="name-challenge-response-and-veri">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-challenge-response-and-veri" class="section-name selfRef">Challenge Response and Verification</a>
+      </h2>
+<p id="section-4-1">To respond to the challenge, the ACME client provisions a DNS TXT record for the Authorization Domain Name being validated. The Authorization Domain Name is formed by prepending the label "_validation-persist" to the domain name being validated.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<p id="section-4-2">For example, if the domain being validated is "example.com", the Authorization Domain Name would be "_validation-persist.example.com".<a href="#section-4-2" class="pilcrow">¶</a></p>
+<p id="section-4-3">The RDATA of this TXT record <span class="bcp14">MUST</span> fulfill the following requirements:<a href="#section-4-3" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4-4">
+<li id="section-4-4.1">
+          <p id="section-4-4.1.1">The RDATA value <span class="bcp14">MUST</span> conform to the issue-value syntax defined in <span>[<a href="#RFC8659" class="cite xref">RFC8659</a>]</span>, Section 4. To ensure forward compatibility, the server <span class="bcp14">MUST</span> ignore any parameter within the issue-value that has an unrecognized tag.<a href="#section-4-4.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-4-4.2">
+          <p id="section-4-4.2.1">The <code>issuer-domain-name</code> portion of the issue-value <span class="bcp14">MUST</span> be one of the Issuer Domain Names provided by the CA in the <code>issuer-domain-names</code> array of the challenge object.<a href="#section-4-4.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-4-4.3">
+          <p id="section-4-4.3.1">The issue-value <span class="bcp14">MUST</span> contain an accounturi parameter. The value of this parameter <span class="bcp14">MUST</span> be a unique URI identifying the account of the applicant which requested the validation, constructed according to <span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>, Section 3.<a href="#section-4-4.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-4-4.4">
+          <p id="section-4-4.4.1">The issue-value <span class="bcp14">MAY</span> contain a <code>policy</code> parameter. If present, this parameter modifies the validation scope. The <code>policy</code> parameter follows the 'tag=value' syntax from <span>[<a href="#RFC8659" class="cite xref">RFC8659</a>]</span>. The parameter's 'tag' and its defined values <span class="bcp14">MUST</span> be treated as case-insensitive.<a href="#section-4-4.4.1" class="pilcrow">¶</a></p>
+<p id="section-4-4.4.2">
+Note: This requirement ensures forward compatibility, allowing future extensions without breaking existing implementations, consistent with ACME's extensibility model (RFC 8555, Section 7.3). The explicit requirement is necessary to ensure consistent behavior across implementations; without it, some CAs might reject unknown parameters, preventing protocol evolution.<a href="#section-4-4.4.2" class="pilcrow">¶</a></p>
+<p id="section-4-4.4.3">
+The following value for the <code>policy</code> parameter is defined with respect to subdomain and wildcard validation:<a href="#section-4-4.4.3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4-4.4.4.1">
+              <p id="section-4-4.4.4.1.1"><code>policy=wildcard</code>: If this value is present, the CA <span class="bcp14">MAY</span> consider this validation sufficient for issuing certificates for the validated FQDN, for specific subdomains of the validated FQDN (as covered by wildcard scope or specific subdomain validation rules), and for wildcard certificates (e.g., <code>*.example.com</code>). See <a href="#wildcard-certificate-validation" class="auto internal xref">Section 5</a> and <a href="#subdomain-certificate-validation" class="auto internal xref">Section 6</a>.<a href="#section-4-4.4.4.1.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-4-4.4.5">
+If the <code>policy</code> parameter is absent, or if its value is anything other than <code>wildcard</code>, the CA <span class="bcp14">MUST</span> proceed as if the policy parameter were not present (i.e., the validation applies only to the specific FQDN).<a href="#section-4-4.4.5" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-4-4.5">
+          <p id="section-4-4.5.1">The issue-value <span class="bcp14">MAY</span> contain a <code>persistUntil</code> parameter. If present, the value <span class="bcp14">MUST</span> be a base-10 encoded integer representing a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds). CAs <span class="bcp14">MUST NOT</span> consider this validation record valid for new validation attempts after the specified timestamp. However, this does not affect the reuse of already-validated data.<a href="#section-4-4.5.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+<p id="section-4-5">For example, if the ACME client is requesting validation for the FQDN "example.com" from a CA that uses "authority.example" as its Issuer Domain Name, and the client's account URI is "https://ca.example/acct/123", it might provision:<a href="#section-4-5" class="pilcrow">¶</a></p>
+<span id="name-basic-validation-txt-record"></span><div id="ex-basic-validation">
+<figure id="figure-2">
+        <div class="lang-dns sourcecode" id="section-4-6.1">
+<pre>
+_validation-persist.example.com. IN TXT ("authority.example;"
+" accounturi=https://ca.example/acct/123")
+</pre>
+</div>
+<figcaption><a href="#figure-2" class="selfRef">Figure 2</a>:
+<a href="#name-basic-validation-txt-record" class="selfRef">Basic Validation TXT Record</a>
+        </figcaption></figure>
+</div>
+<p id="section-4-7">The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Authorization Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its <code>issuer-domain-name</code> value <span class="bcp14">MUST</span> match one of the values provided in the <code>issuer-domain-names</code> array from the challenge object, and it must contain a valid <code>accounturi</code> for the requesting account. When comparing issuer domain names, the server <span class="bcp14">MUST</span> adhere to the normalization rules specified in <a href="#challenge-object" class="auto internal xref">Section 3.1</a>. The server also interprets any <code>policy</code> parameter values according to this specification.<a href="#section-4-7" class="pilcrow">¶</a></p>
+<div id="multiple-issuer-support">
+<section id="section-4.1">
+        <h3 id="name-multiple-issuer-support">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-multiple-issuer-support" class="section-name selfRef">Multiple Issuer Support</a>
+        </h3>
+<p id="section-4.1-1">A domain <span class="bcp14">MAY</span> authorize multiple Certificate Authorities (CAs) by provisioning a separate <code>_validation-persist</code> TXT record for each issuer. This allows domain owners to maintain relationships with multiple CAs simultaneously, enhancing flexibility and resilience.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<div id="coexistence-of-records">
+<section id="section-4.1.1">
+          <h4 id="name-coexistence-of-records">
+<a href="#section-4.1.1" class="section-number selfRef">4.1.1. </a><a href="#name-coexistence-of-records" class="section-name selfRef">Coexistence of Records</a>
+          </h4>
+<p id="section-4.1.1-1">When multiple TXT records are present at the same DNS label (e.g., <code>_validation-persist.example.com</code>), each record functions as an independent authorization for the specified issuer. This follows a similar pattern to CAA records <span>[<a href="#RFC8659" class="cite xref">RFC8659</a>]</span>, where multiple records at the same label are permissible.<a href="#section-4.1.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="ca-verification-process">
+<section id="section-4.1.2">
+          <h4 id="name-ca-verification-process">
+<a href="#section-4.1.2" class="section-number selfRef">4.1.2. </a><a href="#name-ca-verification-process" class="section-name selfRef">CA Verification Process</a>
+          </h4>
+<p id="section-4.1.2-1">When a CA performs validation for a domain with multiple <code>_validation-persist</code> TXT records, it <span class="bcp14">MUST</span> follow these steps:<a href="#section-4.1.2-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.1.2-2">
+<li id="section-4.1.2-2.1">
+              <p id="section-4.1.2-2.1.1"><strong>Query DNS</strong>: Retrieve all TXT records from the Authorization Domain Name.<a href="#section-4.1.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.1.2-2.2">
+              <p id="section-4.1.2-2.2.1"><strong>Filter Records</strong>: Iterate through the returned records to find one where the <code>issuer-domain-name</code> value matches one of the Issuer Domain Names the CA is configured to use for this validation. The CA <span class="bcp14">MUST</span> ignore all other records.<a href="#section-4.1.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.1.2-2.3">
+              <p id="section-4.1.2-2.3.1"><strong>Validate Record</strong>: If a matching record is found, the CA proceeds to validate it according to the requirements in this specification, including verifying the <code>accounturi</code> and <code>persistUntil</code> parameters.<a href="#section-4.1.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.1.2-2.4">
+              <p id="section-4.1.2-2.4.1"><strong>Handle No Match</strong>: If no record with a matching <code>issuer-domain-name</code> is found, the validation attempt <span class="bcp14">MUST</span> fail.<a href="#section-4.1.2-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          </ol>
+</section>
+</div>
+<div id="security-and-management-considerations">
+<section id="section-4.1.3">
+          <h4 id="name-security-and-management-con">
+<a href="#section-4.1.3" class="section-number selfRef">4.1.3. </a><a href="#name-security-and-management-con" class="section-name selfRef">Security and Management Considerations</a>
+          </h4>
+<p id="section-4.1.3-1">When authorizing multiple issuers, domain owners <span class="bcp14">MUST</span> consider the following:<a href="#section-4.1.3-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-4.1.3-2">
+            <dt id="section-4.1.3-2.1"><strong>Auditing</strong></dt>
+            <dd style="margin-left: 1.5em" id="section-4.1.3-2.2">
+              <p id="section-4.1.3-2.2.1">Regularly audit DNS records to ensure that only intended CAs remain authorized. Remove records for CAs that are no longer in use.<a href="#section-4.1.3-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-4.1.3-2.3"><strong>Independent Security</strong></dt>
+            <dd style="margin-left: 1.5em" id="section-4.1.3-2.4">
+              <p id="section-4.1.3-2.4.1">Each authorized CA operates independently. The compromise of one CA's systems does not directly affect the security of other authorized CAs.<a href="#section-4.1.3-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-4.1.3-2.5"><strong>Weakest Link</strong></dt>
+            <dd style="margin-left: 1.5em" id="section-4.1.3-2.6">
+              <p id="section-4.1.3-2.6.1">The domain's overall security posture is influenced by the security practices of all authorized CAs. Domain owners should consider the practices of each CA they authorize.<a href="#section-4.1.3-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-4.1.3-2.7"><strong>Authorization Removal</strong></dt>
+            <dd style="margin-left: 1.5em" id="section-4.1.3-2.8">
+              <p id="section-4.1.3-2.8.1">To de-authorize a CA, the corresponding TXT record <span class="bcp14">MUST</span> be deleted from the DNS zone.<a href="#section-4.1.3-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="example-authorizing-two-cas">
+<section id="section-4.1.4">
+          <h4 id="name-example-authorizing-two-cas">
+<a href="#section-4.1.4" class="section-number selfRef">4.1.4. </a><a href="#name-example-authorizing-two-cas" class="section-name selfRef">Example: Authorizing Two CAs</a>
+          </h4>
+<p id="section-4.1.4-1">This example demonstrates how a domain owner can authorize two different CAs, "ca1.example" and "ca2.example", to issue certificates for <code>example.org</code>.<a href="#section-4.1.4-1" class="pilcrow">¶</a></p>
+<p id="section-4.1.4-2"><strong>DNS Configuration:</strong><a href="#section-4.1.4-2" class="pilcrow">¶</a></p>
+<span id="name-multiple-ca-authorization-r"></span><div id="ex-multiple-ca-auth">
+<figure id="figure-3">
+            <div class="lang-dns sourcecode" id="section-4.1.4-3.1">
+<pre>
+_validation-persist.example.org. 3600 IN TXT ("ca1.example;"
+" accounturi=https://ca1.example/acme/acct/12345;"
+" policy=wildcard")
+_validation-persist.example.org. 3600 IN TXT ("ca2.example;"
+" accounturi=https://ca2.example/acme/acct/67890;"
+" persistUntil=1767225600")
+</pre>
+</div>
+<figcaption><a href="#figure-3" class="selfRef">Figure 3</a>:
+<a href="#name-multiple-ca-authorization-r" class="selfRef">Multiple CA Authorization Records</a>
+            </figcaption></figure>
+</div>
+<p id="section-4.1.4-4"><strong>Verification Flow for CA1:</strong><a href="#section-4.1.4-4" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.1.4-5">
+<li id="section-4.1.4-5.1">
+              <p id="section-4.1.4-5.1.1">CA1 queries for TXT records at <code>_validation-persist.example.org</code>.<a href="#section-4.1.4-5.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.1.4-5.2">
+              <p id="section-4.1.4-5.2.1">It receives both records.<a href="#section-4.1.4-5.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.1.4-5.3">
+              <p id="section-4.1.4-5.3.1">It filters for the record where <code>issuer-domain-name</code> is "ca1.example".<a href="#section-4.1.4-5.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.1.4-5.4">
+              <p id="section-4.1.4-5.4.1">It validates the request using this record, noting the <code>policy=wildcard</code> authorization.<a href="#section-4.1.4-5.4.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.1.4-5.5">
+              <p id="section-4.1.4-5.5.1">The second record for "ca2.example" is ignored.<a href="#section-4.1.4-5.5.1" class="pilcrow">¶</a></p>
+</li>
+          </ol>
+<p id="section-4.1.4-6"><strong>Verification Flow for CA2:</strong><a href="#section-4.1.4-6" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.1.4-7">
+<li id="section-4.1.4-7.1">
+              <p id="section-4.1.4-7.1.1">CA2 queries for TXT records at <code>_validation-persist.example.org</code>.<a href="#section-4.1.4-7.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.1.4-7.2">
+              <p id="section-4.1.4-7.2.1">It receives both records.<a href="#section-4.1.4-7.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.1.4-7.3">
+              <p id="section-4.1.4-7.3.1">It filters for the record where <code>issuer-domain-name</code> is "ca2.example".<a href="#section-4.1.4-7.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.1.4-7.4">
+              <p id="section-4.1.4-7.4.1">It validates the request using this record, noting the <code>persistUntil</code> constraint.<a href="#section-4.1.4-7.4.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.1.4-7.5">
+              <p id="section-4.1.4-7.5.1">The first record for "ca1.example" is ignored.<a href="#section-4.1.4-7.5.1" class="pilcrow">¶</a></p>
+</li>
+          </ol>
+</section>
+</div>
+</section>
+</div>
+<div id="just-in-time-validation">
+<section id="section-4.2">
+        <h3 id="name-just-in-time-validation">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-just-in-time-validation" class="section-name selfRef">Just-in-Time Validation</a>
+        </h3>
+<p id="section-4.2-1">When processing a new authorization request, a CA <span class="bcp14">MAY</span> perform an immediate DNS lookup for <code>_validation-persist</code> TXT records at the Authorization Domain Name corresponding to the requested domain identifier.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.2-2">If one or more such records exist, the CA <span class="bcp14">MUST</span> evaluate them according to the requirements specified in <a href="#multiple-issuer-support" class="auto internal xref">Section 4.1</a>. If at least one record meets all validation requirements, the CA <span class="bcp14">MAY</span> transition the authorization to the "valid" status without returning a "pending" challenge to the client. This mechanism is an optimization and does not alter the ACME state machine defined in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>. The server internally transitions the authorization from "pending" through "processing" to "valid" instantaneously. From the client's perspective, it receives a "valid" authorization object directly in response to its creation request.<a href="#section-4.2-2" class="pilcrow">¶</a></p>
+<p id="section-4.2-3">If no DNS TXT record meets the validation requirements, or if the records are absent, the CA <span class="bcp14">MUST</span> proceed with the standard authorization flow by returning a "pending" authorization with an associated <code>dns-persist-01</code> challenge object.<a href="#section-4.2-3" class="pilcrow">¶</a></p>
+<p id="section-4.2-4">This mechanism enables efficient reuse of persistent validation records while maintaining the security properties of the validation method.<a href="#section-4.2-4" class="pilcrow">¶</a></p>
+<p id="section-4.2-5"></p>
+</section>
+</div>
+</section>
+</div>
+<div id="wildcard-certificate-validation">
+<section id="section-5">
+      <h2 id="name-wildcard-and-subdomain-cert">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-wildcard-and-subdomain-cert" class="section-name selfRef">Wildcard and Subdomain Certificate Validation</a>
+      </h2>
+<p id="section-5-1">This validation method supports validation for wildcard certificates (e.g., *.example.com) and specific subdomains through the use of the <code>policy=wildcard</code> parameter.<a href="#section-5-1" class="pilcrow">¶</a></p>
+<div id="scope-of-policywildcard">
+<section id="section-5.1">
+        <h3 id="name-scope-of-policywildcard">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-scope-of-policywildcard" class="section-name selfRef">Scope of <code>policy=wildcard</code></a>
+        </h3>
+<p id="section-5.1-1">When a DNS TXT record includes the <code>policy=wildcard</code> parameter value, it authorizes certificate issuance for:<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-5.1-2">
+<li id="section-5.1-2.1">
+            <p id="section-5.1-2.1.1"><strong>The validated FQDN itself</strong> - The base domain for which the TXT record exists (e.g., <code>example.com</code>)<a href="#section-5.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-5.1-2.2">
+            <p id="section-5.1-2.2.1"><strong>Wildcard certificates</strong> - Certificates covering immediate subdomains (e.g., <code>*.example.com</code>)<a href="#section-5.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-5.1-2.3">
+            <p id="section-5.1-2.3.1"><strong>Specific subdomains</strong> - Any specific subdomain of the validated FQDN (e.g., <code>www.example.com</code>, <code>app.example.com</code>, <code>server.dept.example.com</code>)<a href="#section-5.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-5.1-3">For example, a TXT record at <code>_validation-persist.example.com</code> containing <code>policy=wildcard</code> can validate certificates for <code>example.com</code>, <code>*.example.com</code>, <code>www.example.com</code>, and any other subdomain of <code>example.com</code>.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+<p id="section-5.1-4">If the <code>policy</code> parameter is absent, or if its value is anything other than <code>wildcard</code>, the validation applies only to the specific FQDN being validated and <span class="bcp14">MUST NOT</span> be considered sufficient for wildcard certificates or subdomains.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
+<p id="section-5.1-5"></p>
+</section>
+</div>
+</section>
+</div>
+<div id="subdomain-certificate-validation">
+<section id="section-6">
+      <h2 id="name-subdomain-certificate-valid">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-subdomain-certificate-valid" class="section-name selfRef">Subdomain Certificate Validation</a>
+      </h2>
+<p id="section-6-1">When the <code>policy=wildcard</code> parameter is present (as described in <a href="#wildcard-certificate-validation" class="auto internal xref">Section 5</a>), CAs <span class="bcp14">MAY</span> issue certificates for subdomains of the validated FQDN. This section describes the implementation details for subdomain validation.<a href="#section-6-1" class="pilcrow">¶</a></p>
+<div id="determining-permitted-subdomains">
+<section id="section-6.1">
+        <h3 id="name-determining-permitted-subdo">
+<a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-determining-permitted-subdo" class="section-name selfRef">Determining Permitted Subdomains</a>
+        </h3>
+<p id="section-6.1-1">To determine which subdomains are permitted, the FQDN for which the persistent TXT record exists (referred to as the "validated FQDN") must appear as the exact suffix of the FQDN for which a certificate is requested (referred to as the "requested FQDN").<a href="#section-6.1-1" class="pilcrow">¶</a></p>
+<p id="section-6.1-2">For example, if <code>dept.example.com</code> is the validated FQDN, a certificate for <code>server.dept.example.com</code> is permitted because <code>dept.example.com</code> is its suffix.<a href="#section-6.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="implementation-requirements">
+<section id="section-6.2">
+        <h3 id="name-implementation-requirements">
+<a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-implementation-requirements" class="section-name selfRef">Implementation Requirements</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="section-6.2-1.1">
+            <p id="section-6.2-1.1.1">The persistent DNS TXT record <span class="bcp14">MUST</span> include <code>policy=wildcard</code> for subdomain validation to be permitted.<a href="#section-6.2-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.2-1.2">
+            <p id="section-6.2-1.2.1">CAs <span class="bcp14">MUST</span> verify that the validated FQDN is a proper suffix of the requested FQDN.<a href="#section-6.2-1.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.2-1.3">
+            <p id="section-6.2-1.3.1">If the <code>policy</code> parameter is absent or has any value other than <code>wildcard</code>, subdomain validation <span class="bcp14">MUST NOT</span> be permitted.<a href="#section-6.2-1.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-6.2-2">See <a href="#subdomain-validation-risks" class="auto internal xref">Section 7.3</a> for important security implications of enabling subdomain validation.<a href="#section-6.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="example-subdomain-validation">
+<section id="section-6.3">
+        <h3 id="name-example-subdomain-validatio">
+<a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-example-subdomain-validatio" class="section-name selfRef">Example: Subdomain Validation</a>
+        </h3>
+<p id="section-6.3-1">For a persistent TXT record provisioned at <code>_validation-persist.example.com</code> with <code>policy=wildcard</code>:
+- Permitted: <code>example.com</code>, <code>www.example.com</code>, <code>app.example.com</code>, <code>server.dept.example.com</code>, <code>*.example.com</code>
+- Not permitted without additional validation: <code>otherexample.com</code>, <code>example.net</code><a href="#section-6.3-1" class="pilcrow">¶</a></p>
+<p id="section-6.3-2"></p>
+</section>
+</div>
+</section>
+</div>
+<div id="security-considerations">
+<section id="section-7">
+      <h2 id="name-security-considerations">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<p id="section-7-1">The requirement for CAs to ignore unknown parameter tags means that future extensions must be carefully designed to ensure that being ignored does not create security vulnerabilities. Extensions that require strict enforcement should use alternative mechanisms, such as separate record types or explicit version negotiation.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<div id="persistent-record-risks">
+<section id="section-7.1">
+        <h3 id="name-persistent-record-risks">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-persistent-record-risks" class="section-name selfRef">Persistent Record Risks</a>
+        </h3>
+<p id="section-7.1-1">The persistence of validation records creates extended windows of vulnerability compared to traditional ACME challenge methods. If an attacker gains control of a DNS zone containing persistent validation records, they can potentially obtain certificates for the validated domains until the validation records are removed or modified.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+<p id="section-7.1-2">Clients <span class="bcp14">SHOULD</span> protect validation records through appropriate DNS security measures, including:<a href="#section-7.1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7.1-3.1">
+            <p id="section-7.1-3.1.1">Using DNS providers with strong authentication and access controls<a href="#section-7.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.1-3.2">
+            <p id="section-7.1-3.2.1">Implementing DNS Security Extensions (DNSSEC) where possible<a href="#section-7.1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.1-3.3">
+            <p id="section-7.1-3.3.1">Monitoring DNS zones for unauthorized changes<a href="#section-7.1-3.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.1-3.4">
+            <p id="section-7.1-3.4.1">Regularly reviewing and rotating validation records<a href="#section-7.1-3.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="account-binding-security">
+<section id="section-7.2">
+        <h3 id="name-account-binding-security">
+<a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-account-binding-security" class="section-name selfRef">Account Binding Security</a>
+        </h3>
+<p id="section-7.2-1">The <code>accounturi</code> parameter provides strong binding between domain validation and specific ACME accounts. However, this binding depends on the security of the ACME account itself.<a href="#section-7.2-1" class="pilcrow">¶</a></p>
+<p id="section-7.2-2">The security of this method is fundamentally bound to the security of the ACME account's private key. If this key is compromised, an attacker can immediately use any pre-existing <code>dns-persist-01</code> authorizations associated with that account to issue certificates, without needing any further access to the domain's DNS infrastructure. This elevates the importance of secure key management for ACME clients far above that required for transient challenge methods, as the window of opportunity for an attacker is tied to the lifetime of the persistent authorization, not a momentary challenge.<a href="#section-7.2-2" class="pilcrow">¶</a></p>
+<p id="section-7.2-3">CAs <span class="bcp14">SHOULD</span> implement robust account security measures, including:<a href="#section-7.2-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7.2-4.1">
+            <p id="section-7.2-4.1.1">Strong authentication requirements for ACME accounts<a href="#section-7.2-4.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.2-4.2">
+            <p id="section-7.2-4.2.1">Account activity monitoring and anomaly detection<a href="#section-7.2-4.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.2-4.3">
+            <p id="section-7.2-4.3.1">Rapid account revocation capabilities<a href="#section-7.2-4.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.2-4.4">
+            <p id="section-7.2-4.4.1">Regular account security reviews<a href="#section-7.2-4.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.2-4.5">
+            <p id="section-7.2-4.5.1">Account key rotation policies and procedures<a href="#section-7.2-4.5.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-7.2-5">Clients <span class="bcp14">SHOULD</span> protect their ACME account keys with the same level of security as they would protect private keys for high-value certificates.<a href="#section-7.2-5" class="pilcrow">¶</a></p>
+<div id="account-key-rotation">
+<section id="section-7.2.1">
+          <h4 id="name-account-key-rotation">
+<a href="#section-7.2.1" class="section-number selfRef">7.2.1. </a><a href="#name-account-key-rotation" class="section-name selfRef">Account Key Rotation</a>
+          </h4>
+<p id="section-7.2.1-1">The <code>accounturi</code> parameter is a stable identifier for the ACME account that persists across key rotations. When a client rotates their account key following the procedures defined in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3.5, the <code>accounturi</code> remains unchanged. Therefore, existing DNS TXT records containing the <code>accounturi</code> parameter do not require modification when performing account key rotations.<a href="#section-7.2.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="subdomain-validation-risks">
+<section id="section-7.3">
+        <h3 id="name-subdomain-validation-risks">
+<a href="#section-7.3" class="section-number selfRef">7.3. </a><a href="#name-subdomain-validation-risks" class="section-name selfRef">Subdomain Validation Risks</a>
+        </h3>
+<p id="section-7.3-1">Enabling subdomain validation via <code>policy=wildcard</code> creates significant security implications. Organizations using this feature <span class="bcp14">MUST</span> carefully control subdomain delegation and monitor for unauthorized subdomains. This policy value serves as the explicit mechanism for domain owners to opt-in to broader validation scopes.<a href="#section-7.3-1" class="pilcrow">¶</a></p>
+<p id="section-7.3-2">The ability to issue certificates for subdomains of validated FQDNs creates significant security risks, particularly in environments with subdomain delegation or where subdomains may be controlled by different entities.<a href="#section-7.3-2" class="pilcrow">¶</a></p>
+<p id="section-7.3-3">Potential risks include:<a href="#section-7.3-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7.3-4.1">
+            <p id="section-7.3-4.1.1">Subdomain takeover attacks where abandoned subdomains are claimed by attackers<a href="#section-7.3-4.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.3-4.2">
+            <p id="section-7.3-4.2.1">Unauthorized certificate issuance for subdomains controlled by different organizations<a href="#section-7.3-4.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.3-4.3">
+            <p id="section-7.3-4.3.1">Confusion about which entity has authority over specific subdomains<a href="#section-7.3-4.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-7.3-5">Organizations considering the use of subdomain validation <span class="bcp14">MUST</span>:<a href="#section-7.3-5" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7.3-6.1">
+            <p id="section-7.3-6.1.1">Maintain strict control over subdomain delegation<a href="#section-7.3-6.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.3-6.2">
+            <p id="section-7.3-6.2.1">Implement monitoring for subdomain creation and changes<a href="#section-7.3-6.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.3-6.3">
+            <p id="section-7.3-6.3.1">Consider limiting subdomain validation to specific, controlled scenarios<a href="#section-7.3-6.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.3-6.4">
+            <p id="section-7.3-6.4.1">Provide clear governance policies for subdomain certificate authority<a href="#section-7.3-6.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="cross-ca-validation-reuse">
+<section id="section-7.4">
+        <h3 id="name-cross-ca-validation-reuse">
+<a href="#section-7.4" class="section-number selfRef">7.4. </a><a href="#name-cross-ca-validation-reuse" class="section-name selfRef">Cross-CA Validation Reuse</a>
+        </h3>
+<p id="section-7.4-1">The persistent nature of validation records raises concerns about potential reuse across different Certificate Authorities. While the issuer-domain-name parameter is designed to prevent such reuse, implementations <span class="bcp14">MUST</span> carefully validate that the issuer-domain-name in the DNS record matches the CA's disclosed Issuer Domain Name.<a href="#section-7.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="record-tampering-and-integrity">
+<section id="section-7.5">
+        <h3 id="name-record-tampering-and-integr">
+<a href="#section-7.5" class="section-number selfRef">7.5. </a><a href="#name-record-tampering-and-integr" class="section-name selfRef">Record Tampering and Integrity</a>
+        </h3>
+<p id="section-7.5-1">DNS records are generally not authenticated end-to-end, making them potentially vulnerable to tampering. CAs <span class="bcp14">SHOULD</span> implement additional integrity checks where possible and consider the overall security posture of the DNS infrastructure when relying on persistent validation records.<a href="#section-7.5-1" class="pilcrow">¶</a></p>
+<p id="section-7.5-2">Additionally, CAs <span class="bcp14">MUST</span> protect their <code>issuer-domain-name</code> with robust security measures. Using DNSSEC to protect the CA's <code>issuer-domain-name</code> is a recommended mechanism for this purpose. An attacker who compromises the DNS for a CA's <code>issuer-domain-name</code> could disrupt validation or potentially impersonate the CA in certain scenarios. While this is a systemic DNS security risk that extends beyond this specification, it is amplified by any mechanism that relies on DNS for identity.<a href="#section-7.5-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="issuer-domain-name-normalization-and-limits">
+<section id="section-7.6">
+        <h3 id="name-issuer-domain-name-normaliz">
+<a href="#section-7.6" class="section-number selfRef">7.6. </a><a href="#name-issuer-domain-name-normaliz" class="section-name selfRef">Issuer Domain Name Normalization and Limits</a>
+        </h3>
+<p id="section-7.6-1">The <code>issuer-domain-names</code> field requires domain names to be provided in a normalized form (lowercase A-labels, no trailing dot) to prevent errors and security issues arising from case-sensitivity differences or Unicode homograph attacks. By requiring a canonical representation, servers and clients can perform simple byte-for-byte comparisons, ensuring interoperability and deterministic validation. The order of names in the array has no significance.<a href="#section-7.6-1" class="pilcrow">¶</a></p>
+<p id="section-7.6-2">The server-side limit on the number of issuer domain names provided in a single challenge (e.g., 10) helps mitigate denial-of-service vectors where a client might be forced to perform an excessive number of DNS queries or a server might be burdened by validating against a large set of domains.<a href="#section-7.6-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="dns-security-measures">
+<section id="section-7.7">
+        <h3 id="name-dns-security-measures">
+<a href="#section-7.7" class="section-number selfRef">7.7. </a><a href="#name-dns-security-measures" class="section-name selfRef">DNS Security Measures</a>
+        </h3>
+<p id="section-7.7-1">To enhance the security and integrity of the validation process, CAs and clients should consider implementing advanced DNS security measures.<a href="#section-7.7-1" class="pilcrow">¶</a></p>
+<div id="dnssec">
+<section id="section-7.7.1">
+          <h4 id="name-dnssec">
+<a href="#section-7.7.1" class="section-number selfRef">7.7.1. </a><a href="#name-dnssec" class="section-name selfRef">DNSSEC</a>
+          </h4>
+<p id="section-7.7.1-1">DNS Security Extensions (DNSSEC) provide cryptographic authentication of DNS data, ensuring that the validation records retrieved by a CA are authentic and have not been tampered with. To ensure the integrity of the validation process, DNSSEC signatures <span class="bcp14">SHOULD</span> be validated on <code>dns-persist-01</code> TXT records.<a href="#section-7.7.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="multi-perspective-validation">
+<section id="section-7.7.2">
+          <h4 id="name-multi-perspective-validatio">
+<a href="#section-7.7.2" class="section-number selfRef">7.7.2. </a><a href="#name-multi-perspective-validatio" class="section-name selfRef">Multi-Perspective Validation</a>
+          </h4>
+<p id="section-7.7.2-1">Multi-Perspective Issuance Corroboration (MPIC) is a technique to validate domain control from multiple network vantage points. This is a critical defense against localized network attacks, such as BGP hijacking and DNS spoofing, which could otherwise lead to certificate mis-issuance.<a href="#section-7.7.2-1" class="pilcrow">¶</a></p>
+<p id="section-7.7.2-2">For CAs subject to requirements like the CA/Browser Forum Baseline Requirements, MPIC is essential for robust domain validation. However, for private PKI systems where the network topology is well-known and such localized attacks are not part of the threat model, MPIC may be considered optional.<a href="#section-7.7.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="validation-data-reuse-and-ttl-handling">
+<section id="section-7.8">
+        <h3 id="name-validation-data-reuse-and-t">
+<a href="#section-7.8" class="section-number selfRef">7.8. </a><a href="#name-validation-data-reuse-and-t" class="section-name selfRef">Validation Data Reuse and TTL Handling</a>
+        </h3>
+<p id="section-7.8-1">This validation method is explicitly designed for persistence and reuse. The period for which a CA may rely on validation data is its <code>Validation Data Reuse Period</code> (as defined in <a href="#conventions-and-definitions" class="auto internal xref">Section 2</a>). However, if the DNS TXT record's Time-to-Live (TTL) is shorter than this period, the CA <span class="bcp14">MUST</span> treat the record's TTL as the effective validation data reuse period for that specific validation.<a href="#section-7.8-1" class="pilcrow">¶</a></p>
+<p id="section-7.8-2">CAs <span class="bcp14">MAY</span> reuse validation data obtained through this method for the duration of their validation data reuse period, subject to the TTL constraints described in this section. The <code>persistUntil</code> parameter indicates when the DNS validation record should no longer be considered valid for new validation attempts. If a <code>persistUntil</code> parameter is present in the DNS TXT record, the CA <span class="bcp14">MUST NOT</span> successfully complete a validation attempt after the date and time specified in that parameter. This restriction does not preclude reuse of data that has already been validated.<a href="#section-7.8-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="persistuntil-parameter-considerations">
+<section id="section-7.9">
+        <h3 id="name-persistuntil-parameter-cons">
+<a href="#section-7.9" class="section-number selfRef">7.9. </a><a href="#name-persistuntil-parameter-cons" class="section-name selfRef">persistUntil Parameter Considerations</a>
+        </h3>
+<p id="section-7.9-1">The <code>persistUntil</code> parameter provides domain owners with direct control over the validity period of their validation records. CAs and clients should be aware of the following considerations:<a href="#section-7.9-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7.9-2.1">
+            <p id="section-7.9-2.1.1">Domain owners should set expiration dates for validation records that balance security and operational needs. To avoid unexpected validation failures during certificate renewal, domain owners are advised to:<a href="#section-7.9-2.1.1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7.9-2.1.2.1">
+                <p id="section-7.9-2.1.2.1.1">Align <code>persistUntil</code> values with certificate lifetimes or planned maintenance intervals<a href="#section-7.9-2.1.2.1.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-7.9-2.1.2.2">
+                <p id="section-7.9-2.1.2.2.1">Monitor or set reminders for <code>persistUntil</code> expirations<a href="#section-7.9-2.1.2.2.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-7.9-2.1.2.3">
+                <p id="section-7.9-2.1.2.3.1">Document <code>persistUntil</code> practices in certificate management procedures<a href="#section-7.9-2.1.2.3.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-7.9-2.1.2.4">
+                <p id="section-7.9-2.1.2.4.1">Automate updates to validation records with new <code>persistUntil</code> values during certificate renewal workflows<a href="#section-7.9-2.1.2.4.1" class="pilcrow">¶</a></p>
+</li>
+            </ul>
+</li>
+          <li class="normal" id="section-7.9-2.2">
+            <p id="section-7.9-2.2.1">CAs <span class="bcp14">MUST</span> properly parse and interpret the integer timestamp value as a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds) and apply the expiration correctly.<a href="#section-7.9-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.9-2.3">
+            <p id="section-7.9-2.3.1">CAs <span class="bcp14">MUST</span> reject or consider expired any validation record where the current time exceeds the <code>persistUntil</code> timestamp.<a href="#section-7.9-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="revocation-and-invalidation">
+<section id="section-7.10">
+        <h3 id="name-revocation-and-invalidation">
+<a href="#section-7.10" class="section-number selfRef">7.10. </a><a href="#name-revocation-and-invalidation" class="section-name selfRef">Revocation and Invalidation of Persistent Authorizations</a>
+        </h3>
+<p id="section-7.10-1">The persistent nature of <code>dns-persist-01</code> authorizations means that a valid DNS TXT record can grant control for an extended period, potentially even if the domain owner's intent changes or if the associated ACME account key is compromised. Therefore, explicit mechanisms for revoking or invalidating these persistent authorizations are critical.<a href="#section-7.10-1" class="pilcrow">¶</a></p>
+<p id="section-7.10-2">The primary method for an Applicant to invalidate a <code>dns-persist-01</code> authorization for a domain is to <strong>remove the corresponding DNS TXT record</strong> from the Authorization Domain Name. After the record is removed, new validation attempts for the domain will fail. This behavior represents a deliberate design trade-off: any existing authorization obtained via this method will remain valid until it expires as per the CA's Validation Data Reuse Period. This persistence underscores the importance of protecting the ACME account key.<a href="#section-7.10-2" class="pilcrow">¶</a></p>
+<p id="section-7.10-3">For situations requiring immediate revocation of issuance capability, such as a suspected account key compromise, the primary and most effective mechanism is to <strong>deactivate the ACME account</strong> as specified in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.5.2. Deactivating the account immediately and irrevocably prevents it from being used for any further certificate issuance.<a href="#section-7.10-3" class="pilcrow">¶</a></p>
+<p id="section-7.10-4">ACME Clients <span class="bcp14">SHOULD</span> provide clear mechanisms for users to:<a href="#section-7.10-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7.10-5.1">
+            <p id="section-7.10-5.1.1">Remove the <code>_validation-persist</code> DNS TXT record.<a href="#section-7.10-5.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.10-5.2">
+            <p id="section-7.10-5.2.1">Monitor the presence and content of their <code>_validation-persist</code> records to ensure they accurately reflect desired authorization.<a href="#section-7.10-5.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-7.10-6">Certificate Authorities (CAs) implementing this method <span class="bcp14">MUST</span>:<a href="#section-7.10-6" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7.10-7.1">
+            <p id="section-7.10-7.1.1">During a validation attempt, fail the validation if the corresponding DNS TXT record is no longer present or if its content does not meet the requirements of this specification (e.g., incorrect <code>issuer-domain-name</code>, missing <code>accounturi</code>, altered <code>policy</code>).<a href="#section-7.10-7.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.10-7.2">
+            <p id="section-7.10-7.2.1">Reject new validation attempts when the current time exceeds the timestamp specified in a <code>persistUntil</code> parameter, even if the DNS TXT record remains present and would otherwise satisfy all other validation requirements.<a href="#section-7.10-7.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.10-7.3">
+            <p id="section-7.10-7.3.1">Ensure their internal systems are capable of efficiently handling the validation failure when DNS records are removed or become invalid.<a href="#section-7.10-7.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-7.10-8">While this method provides a persistent signal of control, the fundamental ACME authorization object (as defined in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>) remains subject to its own lifecycle, including expiration. A persistent DNS record allows for repeated authorizations, but each authorization object issued by the CA will have a defined validity period, after which it expires unless renewed.<a href="#section-7.10-8" class="pilcrow">¶</a></p>
+<p id="section-7.10-9"></p>
+</section>
+</div>
+</section>
+</div>
+<div id="iana-considerations">
+<section id="section-8">
+      <h2 id="name-iana-considerations">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<div id="acme-validation-methods-registry">
+<section id="section-8.1">
+        <h3 id="name-acme-validation-methods-reg">
+<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-acme-validation-methods-reg" class="section-name selfRef">ACME Validation Methods Registry</a>
+        </h3>
+<p id="section-8.1-1">IANA is requested to register the following entry in the "ACME Validation Methods" registry:<a href="#section-8.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.1-2.1">
+            <p id="section-8.1-2.1.1"><strong>Label</strong>: dns-persist-01<a href="#section-8.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.1-2.2">
+            <p id="section-8.1-2.2.1"><strong>Identifier Type</strong>: dns<a href="#section-8.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.1-2.3">
+            <p id="section-8.1-2.3.1"><strong>ACME</strong>: Y<a href="#section-8.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.1-2.4">
+            <p id="section-8.1-2.4.1"><strong>Reference</strong>: This document<a href="#section-8.1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-8.1-3"></p>
+</section>
+</div>
+</section>
+</div>
+<div id="implementation-considerations">
+<section id="section-9">
+      <h2 id="name-implementation-consideratio">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-implementation-consideratio" class="section-name selfRef">Implementation Considerations</a>
+      </h2>
+<p id="section-9-1">When designing future extensions to this specification, new parameters <span class="bcp14">SHOULD</span> be designed to degrade gracefully when ignored by CAs that do not recognize them. Parameters that fundamentally change the security properties of the validation <span class="bcp14">SHOULD NOT</span> be introduced without a version negotiation mechanism.<a href="#section-9-1" class="pilcrow">¶</a></p>
+<div id="dns-record-size-considerations">
+<section id="section-9.1">
+        <h3 id="name-dns-record-size-considerati">
+<a href="#section-9.1" class="section-number selfRef">9.1. </a><a href="#name-dns-record-size-considerati" class="section-name selfRef">DNS Record Size Considerations</a>
+        </h3>
+<p id="section-9.1-1">The RDATA of the TXT record, which contains the <code>issue-value</code>, may become large, particularly if the <code>accounturi</code> is long. While the total size of a TXT record's RDATA can be up to 65,535 octets, it must be formatted as a sequence of one or more character-strings, where each string is limited to 255 octets in length.<a href="#section-9.1-1" class="pilcrow">¶</a></p>
+<p id="section-9.1-2"><strong>CA Implementation Guidelines:</strong>
+- CAs <span class="bcp14">SHOULD</span> endeavor to keep the <code>accounturi</code> values they generate reasonably concise to minimize the final record size.<a href="#section-9.1-2" class="pilcrow">¶</a></p>
+<p id="section-9.1-3"><strong>Client Implementation Guidelines:</strong>
+- Clients <span class="bcp14">MUST</span> properly handle the creation of TXT records where the RDATA exceeds 255 octets. As specified in <span>[<a href="#RFC1035" class="cite xref">RFC1035</a>]</span>, Section 3.3, clients <span class="bcp14">MUST</span> split the RDATA into multiple, concatenated, quote-enclosed strings, each no more than 255 octets. For example:<a href="#section-9.1-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-9.1-4">
+<pre>
+~~~ dns
+_validation-persist.example.com. IN TXT ("first-part-of-long-string..."
+" ...second-part-of-long-string")
+~~~
+{: #ex-long-txt-record title="Multi-String TXT Record Format"}
+</pre><a href="#section-9.1-4" class="pilcrow">¶</a>
+</div>
+<p id="section-9.1-5">Failure to correctly format long RDATA values may result in validation failures.<a href="#section-9.1-5" class="pilcrow">¶</a></p>
+<div id="domain-name-normalization-algorithm">
+<section id="section-9.1.1">
+          <h4 id="name-domain-name-normalization-a">
+<a href="#section-9.1.1" class="section-number selfRef">9.1.1. </a><a href="#name-domain-name-normalization-a" class="section-name selfRef">Domain Name Normalization Algorithm</a>
+          </h4>
+<p id="section-9.1.1-1">This section provides a non-normative algorithm for domain name normalization to promote interoperability. Both clients and servers <span class="bcp14">SHOULD</span> follow a consistent normalization process to ensure that domain names are handled uniformly.<a href="#section-9.1.1-1" class="pilcrow">¶</a></p>
+<p id="section-9.1.1-2">The recommended normalization process consists of the following four steps, applied in order:<a href="#section-9.1.1-2" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-9.1.1-3">
+<li id="section-9.1.1-3.1">
+              <p id="section-9.1.1-3.1.1"><strong>Case-folding</strong>: Apply Unicode-aware, locale-independent case-folding to the entire domain name string to convert it to lowercase.<a href="#section-9.1.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-9.1.1-3.2">
+              <p id="section-9.1.1-3.2.1"><strong>Unicode Normalization</strong>: Normalize the string to Unicode Normalization Form C (NFC).<a href="#section-9.1.1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-9.1.1-3.3">
+              <p id="section-9.1.1-3.3.1"><strong>Punycode Conversion</strong>: Convert each label of the domain name to its A-label (Punycode) representation as specified in <span>[<a href="#RFC5890" class="cite xref">RFC5890</a>]</span>.<a href="#section-9.1.1-3.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-9.1.1-3.4">
+              <p id="section-9.1.1-3.4.1"><strong>Trailing Dot Removal</strong>: Remove any trailing dot from the final string.<a href="#section-9.1.1-3.4.1" class="pilcrow">¶</a></p>
+</li>
+          </ol>
+<p id="section-9.1.1-4">For example, a domain name like <code>EXAMPLE.com.</code> is normalized as follows:
+1. After case-folding: <code>example.com.</code>
+2. After NFC normalization: <code>example.com.</code>
+3. After Punycode conversion: <code>example.com.</code>
+4. After removing trailing dot: <code>example.com</code><a href="#section-9.1.1-4" class="pilcrow">¶</a></p>
+<p id="section-9.1.1-5">An internationalized domain name like <code>üÑICODE-example.com.</code> is normalized as follows:
+1. After case-folding: <code>ünicode-example.com.</code>
+2. After NFC normalization: <code>ünicode-example.com.</code>
+3. After Punycode conversion: <code>xn--nicode-example-9jb.com.</code>
+4. After removing trailing dot: <code>xn--nicode-example-9jb.com</code><a href="#section-9.1.1-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="ca-implementation-guidelines">
+<section id="section-9.2">
+        <h3 id="name-ca-implementation-guideline">
+<a href="#section-9.2" class="section-number selfRef">9.2. </a><a href="#name-ca-implementation-guideline" class="section-name selfRef">CA Implementation Guidelines</a>
+        </h3>
+<p id="section-9.2-1">Certificate Authorities implementing this validation method should consider:<a href="#section-9.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-9.2-2.1">
+            <p id="section-9.2-2.1.1">Establishing clear policies for Issuer Domain Name disclosure in Certificate Policies and Certification Practice Statements<a href="#section-9.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.2-2.2">
+            <p id="section-9.2-2.2.1">Developing procedures for handling validation record TTL variations<a href="#section-9.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.2-2.3">
+            <p id="section-9.2-2.3.1">Creating account security monitoring and incident response procedures<a href="#section-9.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.2-2.4">
+            <p id="section-9.2-2.4.1">Providing clear documentation for clients on proper record construction<a href="#section-9.2-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<div id="error-handling">
+<section id="section-9.2.1">
+          <h4 id="name-error-handling">
+<a href="#section-9.2.1" class="section-number selfRef">9.2.1. </a><a href="#name-error-handling" class="section-name selfRef">Error Handling</a>
+          </h4>
+<p id="section-9.2.1-1">When implementing the "dns-persist-01" validation method, Certificate Authorities <span class="bcp14">SHOULD</span> return appropriate ACME error codes to provide clear feedback on validation failures. Specifically:<a href="#section-9.2.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-9.2.1-2.1">
+              <p id="section-9.2.1-2.1.1">CAs <span class="bcp14">SHOULD</span> return a <code>malformed</code> error (as defined in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>) when the TXT record has invalid syntax, such as duplicate parameters, invalid timestamp format in the <code>persistUntil</code> parameter, missing mandatory <code>accounturi</code> parameter, or other syntactic violations of the record format specified in this document.<a href="#section-9.2.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-9.2.1-2.2">
+              <p id="section-9.2.1-2.2.1">CAs <span class="bcp14">SHOULD</span> return an <code>unauthorized</code> error (as defined in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>) when validation fails due to authorization issues, including:<a href="#section-9.2.1-2.2.1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-9.2.1-2.2.2.1">
+                  <p id="section-9.2.1-2.2.2.1.1">The <code>accounturi</code> parameter in the DNS TXT record does not match the URI of the ACME account making the request<a href="#section-9.2.1-2.2.2.1.1" class="pilcrow">¶</a></p>
+</li>
+                <li class="normal" id="section-9.2.1-2.2.2.2">
+                  <p id="section-9.2.1-2.2.2.2.1">The <code>persistUntil</code> timestamp has expired, indicating that the validation record is no longer considered valid for new validation attempts<a href="#section-9.2.1-2.2.2.2.1" class="pilcrow">¶</a></p>
+</li>
+                <li class="normal" id="section-9.2.1-2.2.2.3">
+                  <p id="section-9.2.1-2.2.2.3.1">The <code>issuer-domain-name</code> in the DNS TXT record does not match any of the values provided in the <code>issuer-domain-names</code> array of the challenge object<a href="#section-9.2.1-2.2.2.3.1" class="pilcrow">¶</a></p>
+</li>
+              </ul>
+</li>
+          </ul>
+<p id="section-9.2.1-3">Note that these error codes apply to validation attempts on specific challenges. In the case of Just-in-Time Validation (see <a href="#just-in-time-validation" class="auto internal xref">Section 4.2</a>), when a CA finds a pre-existing DNS TXT record that does not meet validation requirements, the CA proceeds with the standard authorization flow by issuing a new <code>pending</code> challenge rather than returning an error.<a href="#section-9.2.1-3" class="pilcrow">¶</a></p>
+<p id="section-9.2.1-4">These error codes help ACME clients distinguish between different types of validation failures and take appropriate corrective actions.<a href="#section-9.2.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="client-implementation-guidelines">
+<section id="section-9.3">
+        <h3 id="name-client-implementation-guide">
+<a href="#section-9.3" class="section-number selfRef">9.3. </a><a href="#name-client-implementation-guide" class="section-name selfRef">Client Implementation Guidelines</a>
+        </h3>
+<p id="section-9.3-1">ACME clients implementing this validation method should consider:<a href="#section-9.3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-9.3-2.1">
+            <p id="section-9.3-2.1.1">Implementing secure DNS record management practices<a href="#section-9.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.3-2.2">
+            <p id="section-9.3-2.2.1">Providing clear user interfaces for managing persistent validation records<a href="#section-9.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.3-2.3">
+            <p id="section-9.3-2.3.1">Implementing validation record monitoring and alerting<a href="#section-9.3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.3-2.4">
+            <p id="section-9.3-2.4.1">Designing appropriate error handling for validation failures<a href="#section-9.3-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.3-2.5">
+            <p id="section-9.3-2.5.1">Considering the security implications of persistent records in their threat models<a href="#section-9.3-2.5.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="dns-provider-considerations">
+<section id="section-9.4">
+        <h3 id="name-dns-provider-considerations">
+<a href="#section-9.4" class="section-number selfRef">9.4. </a><a href="#name-dns-provider-considerations" class="section-name selfRef">DNS Provider Considerations</a>
+        </h3>
+<p id="section-9.4-1">DNS providers supporting this validation method should consider:<a href="#section-9.4-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-9.4-2.1">
+            <p id="section-9.4-2.1.1">Implementing appropriate access controls for validation record management<a href="#section-9.4-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.4-2.2">
+            <p id="section-9.4-2.2.1">Providing audit logging for validation record changes<a href="#section-9.4-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.4-2.3">
+            <p id="section-9.4-2.3.1">Supporting reasonable TTL values for validation records<a href="#section-9.4-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.4-2.4">
+            <p id="section-9.4-2.4.1">Considering dedicated interfaces or APIs for ACME validation record management<a href="#section-9.4-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-9.4-3"></p>
+</section>
+</div>
+</section>
+</div>
+<div id="examples">
+<section id="section-10">
+      <h2 id="name-examples">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-examples" class="section-name selfRef">Examples</a>
+      </h2>
+<div id="basic-validation-example">
+<section id="section-10.1">
+        <h3 id="name-basic-validation-example-fq">
+<a href="#section-10.1" class="section-number selfRef">10.1. </a><a href="#name-basic-validation-example-fq" class="section-name selfRef">Basic Validation Example (FQDN Only)</a>
+        </h3>
+<p id="section-10.1-1">For validation of "example.com" by a CA using "authority.example" as its Issuer Domain Name, where the validation should only apply to "example.com":<a href="#section-10.1-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-10.1-2">
+<li id="section-10.1-2.1">
+            <p id="section-10.1-2.1.1">CA provides challenge object with a list of valid Issuer Domain Names:<a href="#section-10.1-2.1.1" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="section-10.1-2.1.2">
+<pre>
+{
+  "type": "dns-persist-01",
+  "url": "https://ca.example/acme/authz/1234/0",
+  "status": "pending",
+  "issuer-domain-names": ["authority.example", "ca.example.net"]
+}
+</pre><a href="#section-10.1-2.1.2" class="pilcrow">¶</a>
+</div>
+</li>
+          <li id="section-10.1-2.2">
+            <p id="section-10.1-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record (note the absence of a <code>policy</code> parameter for scope):<a href="#section-10.1-2.2.1" class="pilcrow">¶</a></p>
+<div class="lang-dns sourcecode" id="section-10.1-2.2.2">
+<pre>
+_validation-persist.example.com. IN TXT ("authority.example;"
+" accounturi=https://ca.example/acct/123")
+</pre><a href="#section-10.1-2.2.2" class="pilcrow">¶</a>
+</div>
+</li>
+          <li id="section-10.1-2.3">
+            <p id="section-10.1-2.3.1">CA validates the record through DNS queries. This validation is sufficient only for "example.com".<a href="#section-10.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+</section>
+</div>
+<div id="wildcard-validation-example">
+<section id="section-10.2">
+        <h3 id="name-wildcard-validation-example">
+<a href="#section-10.2" class="section-number selfRef">10.2. </a><a href="#name-wildcard-validation-example" class="section-name selfRef">Wildcard Validation Example</a>
+        </h3>
+<p id="section-10.2-1">For validation of "*.example.com" (which also validates "example.com" and specific subdomains like "www.example.com") by a CA using "authority.example" as its Issuer Domain Name:<a href="#section-10.2-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-10.2-2">
+<li id="section-10.2-2.1">
+            <p id="section-10.2-2.1.1">The CA provides a challenge object similar to the basic example, containing an <code>issuer-domain-names</code> array.<a href="#section-10.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-10.2-2.2">
+            <p id="section-10.2-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record at the base domain's Authorization Domain Name, including <code>policy=wildcard</code>:<a href="#section-10.2-2.2.1" class="pilcrow">¶</a></p>
+<span id="name-wildcard-policy-validation-"></span><div id="ex-wildcard-validation">
+<figure id="figure-4">
+              <div class="lang-dns sourcecode" id="section-10.2-2.2.2.1">
+<pre>
+_validation-persist.example.com. IN TXT ("authority.example;"
+" accounturi=https://ca.example/acct/123;"
+" policy=wildcard")
+</pre>
+</div>
+<figcaption><a href="#figure-4" class="selfRef">Figure 4</a>:
+<a href="#name-wildcard-policy-validation-" class="selfRef">Wildcard Policy Validation Record</a>
+              </figcaption></figure>
+</div>
+</li>
+          <li id="section-10.2-2.3">
+            <p id="section-10.2-2.3.1">CA validates the record through DNS queries. This validation authorizes certificates for "example.com", "*.example.com", and specific subdomains like "www.example.com".<a href="#section-10.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+</section>
+</div>
+<div id="validation-example-with-persistuntil">
+<section id="section-10.3">
+        <h3 id="name-validation-example-with-per">
+<a href="#section-10.3" class="section-number selfRef">10.3. </a><a href="#name-validation-example-with-per" class="section-name selfRef">Validation Example with persistUntil</a>
+        </h3>
+<p id="section-10.3-1">For validation of "example.com" with an explicit expiration date:<a href="#section-10.3-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-10.3-2">
+<li id="section-10.3-2.1">
+            <p id="section-10.3-2.1.1">The CA provides a challenge object similar to the basic example, containing an <code>issuer-domain-names</code> array.<a href="#section-10.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-10.3-2.2">
+            <p id="section-10.3-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record including <code>persistUntil</code>:<a href="#section-10.3-2.2.1" class="pilcrow">¶</a></p>
+<span id="name-validation-record-with-expi"></span><div id="ex-persist-until">
+<figure id="figure-5">
+              <div class="lang-dns sourcecode" id="section-10.3-2.2.2.1">
+<pre>
+_validation-persist.example.com. IN TXT ("authority.example;"
+" accounturi=https://ca.example/acct/123;"
+" persistUntil=1721952000")
+</pre>
+</div>
+<figcaption><a href="#figure-5" class="selfRef">Figure 5</a>:
+<a href="#name-validation-record-with-expi" class="selfRef">Validation Record with Expiration Time</a>
+              </figcaption></figure>
+</div>
+</li>
+          <li id="section-10.3-2.3">
+            <p id="section-10.3-2.3.1">CA validates the record. This validation is sufficient only for "example.com" and will not be considered valid after the specified timestamp (2024-07-26T00:00:00Z).<a href="#section-10.3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+</section>
+</div>
+<div id="wildcard-validation-example-with-persistuntil">
+<section id="section-10.4">
+        <h3 id="name-wildcard-validation-example-">
+<a href="#section-10.4" class="section-number selfRef">10.4. </a><a href="#name-wildcard-validation-example-" class="section-name selfRef">Wildcard Validation Example with persistUntil</a>
+        </h3>
+<p id="section-10.4-1">For validation of "*.example.com" with an explicit expiration date:<a href="#section-10.4-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-10.4-2">
+<li id="section-10.4-2.1">
+            <p id="section-10.4-2.1.1">The CA provides a challenge object similar to the basic example, containing an <code>issuer-domain-names</code> array.<a href="#section-10.4-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-10.4-2.2">
+            <p id="section-10.4-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record including <code>policy=wildcard</code> and <code>persistUntil</code>:<a href="#section-10.4-2.2.1" class="pilcrow">¶</a></p>
+<span id="name-wildcard-validation-record-"></span><div id="ex-wildcard-persist-until">
+<figure id="figure-6">
+              <div class="lang-dns sourcecode" id="section-10.4-2.2.2.1">
+<pre>
+_validation-persist.example.com. IN TXT ("authority.example;"
+" accounturi=https://ca.example/acct/123;"
+" policy=wildcard;"
+" persistUntil=1721952000")
+</pre>
+</div>
+<figcaption><a href="#figure-6" class="selfRef">Figure 6</a>:
+<a href="#name-wildcard-validation-record-" class="selfRef">Wildcard Validation Record with Expiration Time</a>
+              </figcaption></figure>
+</div>
+</li>
+          <li id="section-10.4-2.3">
+            <p id="section-10.4-2.3.1">CA validates the record. This validation authorizes certificates for "example.com", "*.example.com", and specific subdomains, but will not be considered valid after the specified timestamp (2024-07-26T00:00:00Z).<a href="#section-10.4-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+</section>
+</div>
+</section>
+</div>
+<div id="sec-combined-references">
+<section id="section-11">
+      <h2 id="name-references">
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-11.1">
+        <h3 id="name-normative-references">
+<a href="#section-11.1" class="section-number selfRef">11.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="RFC8555">[RFC8555]</dt>
+        <dd>
+<span class="refAuthor">Barnes, R.</span>, <span class="refAuthor">Hoffman-Andrews, J.</span>, <span class="refAuthor">McCarney, D.</span>, and <span class="refAuthor">J. Kasten</span>, <span class="refTitle">"Automatic Certificate Management Environment (ACME)"</span>, <span class="seriesInfo">RFC 8555</span>, <span class="seriesInfo">DOI 10.17487/RFC8555</span>, <time datetime="2019-03" class="refDate">March 2019</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8555">https://www.rfc-editor.org/info/rfc8555</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8659">[RFC8659]</dt>
+        <dd>
+<span class="refAuthor">Hallam-Baker, P.</span>, <span class="refAuthor">Stradling, R.</span>, and <span class="refAuthor">J. Hoffman-Andrews</span>, <span class="refTitle">"DNS Certification Authority Authorization (CAA) Resource Record"</span>, <span class="seriesInfo">RFC 8659</span>, <span class="seriesInfo">DOI 10.17487/RFC8659</span>, <time datetime="2019-11" class="refDate">November 2019</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8659">https://www.rfc-editor.org/info/rfc8659</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8657">[RFC8657]</dt>
+        <dd>
+<span class="refAuthor">Landau, H.</span>, <span class="refTitle">"Certification Authority Authorization (CAA) Record Extensions for Account URI and Automatic Certificate Management Environment (ACME) Method Binding"</span>, <span class="seriesInfo">RFC 8657</span>, <span class="seriesInfo">DOI 10.17487/RFC8657</span>, <time datetime="2019-11" class="refDate">November 2019</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8657">https://www.rfc-editor.org/info/rfc8657</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc2119">https://www.rfc-editor.org/info/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+        <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8174">https://www.rfc-editor.org/info/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC5890">[RFC5890]</dt>
+        <dd>
+<span class="refAuthor">Klensin, J.</span>, <span class="refTitle">"Internationalized Domain Names for Applications (IDNA): Definitions and Document Framework"</span>, <span class="seriesInfo">RFC 5890</span>, <span class="seriesInfo">DOI 10.17487/RFC5890</span>, <time datetime="2010-08" class="refDate">August 2010</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc5890">https://www.rfc-editor.org/info/rfc5890</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC1035">[RFC1035]</dt>
+      <dd>
+<span class="refAuthor">Mockapetris, P.</span>, <span class="refTitle">"Domain names - implementation and specification"</span>, <span class="seriesInfo">STD 13</span>, <span class="seriesInfo">RFC 1035</span>, <span class="seriesInfo">DOI 10.17487/RFC1035</span>, <time datetime="1987-11" class="refDate">November 1987</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc1035">https://www.rfc-editor.org/info/rfc1035</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-11.2">
+        <h3 id="name-informative-references">
+<a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="draft-sheth-identifiers-dns">[draft-sheth-identifiers-dns]</dt>
+        <dd>
+<span class="refAuthor">Sheth, S.</span> and <span class="refAuthor">A. Kaizer</span>, <span class="refTitle">"Best Practices for Persistent References in DNS"</span>, <time datetime="2025-04-22" class="refDate">22 April 2025</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-sheth-identifiers-dns/">https://datatracker.ietf.org/doc/draft-sheth-identifiers-dns/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="birgelee-sc082-security">[birgelee-sc082-security]</dt>
+        <dd>
+<span class="refAuthor">Birge-Lee, H.</span>, <span class="refTitle">"Security of SC-082 Redux"</span>, <time datetime="2025" class="refDate">2025</time>. </dd>
+<dd class="break"></dd>
+<dt id="cabf-br">[cabf-br]</dt>
+      <dd>
+<span class="refTitle">"Baseline Requirements for the Issuance and Management of Publicly-Trusted TLS Server Certificates"</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://cabforum.org/baseline-requirements-documents/">https://cabforum.org/baseline-requirements-documents/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="acknowledgments">
+<section id="appendix-A">
+      <h2 id="name-acknowledgments">
+<a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
+      </h2>
+<p id="appendix-A-1">The authors acknowledge prior community work that directly informed this specification:<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-A-2.1">
+          <p id="appendix-A-2.1.1">The CA/Browser Forum ballot proposals to enable persistent / static DNS Domain Control Validation signals in the Baseline Requirements <span>[<a href="#cabf-br" class="cite xref">cabf-br</a>]</span>, in particular Ballot SC-082 ("Clarify CA Assisted DNS Validation under 3.2.2.4.7", authored by Michael Slaughter) and the active proposal SC-088 ("DNS TXT Record with Persistent Value DCV Method", also authored by Michael Slaughter). These efforts provided the policy framing and initial industry discussion motivating standardization of a reusable ACME DNS validation record.<a href="#appendix-A-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-A-2.2">
+          <p id="appendix-A-2.2.1">The formal and empirical security analysis of static / persistent DCV methods performed by Henry Birge-Lee ("Proof of static DCV security" presentation, the "Security of SC-082 Redux" paper <span>[<a href="#birgelee-sc082-security" class="cite xref">birgelee-sc082-security</a>]</span>, and related research), which helped clarify the threat model and informed the security considerations in this document.<a href="#appendix-A-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-A-2.3">
+          <p id="appendix-A-2.3.1">The Delegated DNS Domain Validation (DDDV) Threat Modeling Tiger Team discussions and document ("Validation SC - Delegated DNS Domain Validation (DDDV) Threat Model"), whose participants contributed to broad threat enumeration; notable contributors include Michael Slaughter (Amazon Trust Services), Corey Bonnell (DigiCert), Clint Wilson (Apple), and Martijn Katerbarg (Sectigo).<a href="#appendix-A-2.3.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="appendix-A-3">The authors also thank members of the ACME Working Group and CA/Browser Forum who provided early review, critique, and operational perspectives on persistent validation records.<a href="#appendix-A-3" class="pilcrow">¶</a></p>
+<p id="appendix-A-4">Any errors or omissions are the responsibility of the authors.<a href="#appendix-A-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-B">
+      <h2 id="name-authors-addresses">
+<a href="#name-authors-addresses" class="section-name selfRef">Authors' Addresses</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Shiloh Heurich</span></div>
+<div dir="auto" class="left"><span class="org">Fastly</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:sheurich@fastly.com" class="email">sheurich@fastly.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Henry Birge-Lee</span></div>
+<div dir="auto" class="left"><span class="org">Crosslayer Labs, Inc.</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:henry@crosslayerlabs.com" class="email">henry@crosslayerlabs.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Michael Slaughter</span></div>
+<div dir="auto" class="left"><span class="org">Amazon Trust Services</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:slghtr@amazon.com" class="email">slghtr@amazon.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
