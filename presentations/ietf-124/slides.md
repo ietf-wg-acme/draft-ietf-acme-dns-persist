@@ -83,16 +83,16 @@ IETF ACME WG - Montreal
 
 `draft-sheurich-acme-dns-persist` → `draft-ietf-acme-dns-persist`
 
-**Parallel Industry Progress:**
+**Industry Progress:**
 - **Oct 9:** CA/BF SC088v3 **PASSED** (26 CAs YES, 3 consumers YES)
-- **Nov 8:** IP Rights Review completes
+- **Nov 8:** IP Rights Review completed
 
-**Implementation Status:**
-- **Committed (2026):** Fastly/Certainly, Let's Encrypt
+**Implementation Commitments:**
+- **2026:** Fastly/Certainly, Let's Encrypt
 - **Assessing:** Amazon Trust Services
 
 **Proof of Concept:** pebble server, eggsampler client
-- Full interoperability with regular and wildcard issuance
+- Interoperates with regular and wildcard issuance
 
 ---
 
@@ -115,11 +115,11 @@ _validation-persist.example.com. IN TXT
 
 ### Key Features
 
-✓ **Persistent** - Reuse for multiple certificates
-✓ **Account-bound** - `accounturi` parameter
-✓ **CA-specific** - Issuer domain name
-✓ **Multi-CA** - Separate TXT records per issuer
-✓ **Expiration** - Optional `persistUntil`
+✓ **Persistent** - Reuses across certificates
+✓ **Account-bound** - Uses `accounturi` parameter
+✓ **CA-specific** - Contains issuer domain name
+✓ **Multi-CA** - Supports multiple issuers
+✓ **Expiration** - Optional `persistUntil` timestamp
 ✓ **Scope** - `policy=wildcard` covers subdomains
 
 </div>
@@ -139,30 +139,30 @@ _validation-persist.example.com. IN TXT
 ### Current Challenges
 
 **http-01/tls-alpn-01**
-- Port 80/443 required
-- Geo-blocking blocks validation
-- Wildcards unsupported
+- Requires ports 80/443
+- Geo-blocking prevents validation
+- Cannot validate wildcards
 
 **dns-01**
-- DNS propagation delays
-- API keys on servers risk compromise
-- Automation complexity
+- DNS propagation delays validation
+- Server-stored API keys risk compromise
+- Complex automation
 
 </div>
 
 <div>
 
 **dns-account-01**
-- Scoped labels per account
-- Addresses multi-region needs
-- Still requires per-validation provisioning
+- Account-scoped labels
+- Handles multi-region needs
+- Requires per-validation provisioning
 
 ### Current Workarounds
 
 **"Magic CNAMEs"** (acme-dns.io)
 - Single point of failure
-- DNS cache poisoning risk
-- BGP hijacking vulnerability
+- Vulnerable to DNS cache poisoning
+- Vulnerable to BGP hijacking
 
 </div>
 
@@ -172,11 +172,11 @@ _validation-persist.example.com. IN TXT
 
 # Why Standardize?
 
-CAs could check persistent DNS records outside ACME, but this would bypass the protocol's challenge negotiation where clients choose their validation method.
+CAs could check persistent DNS records outside ACME, but this bypasses the protocol's challenge negotiation where clients choose validation methods.
 
-**Standardization enables proper protocol integration.**
+**Standardization ensures proper protocol integration.**
 
-**Key insight:** ACME account URIs provide durable, cryptographic binding
+**Key insight:** ACME account URIs provide durable cryptographic binding
 
 ---
 
@@ -190,15 +190,15 @@ CAs could check persistent DNS records outside ACME, but this would bypass the p
 
 ### Strong Account Binding
 - **ACME accounturi**: Durable identity
-- Prevents unauthorized use with DNS access alone
+- Prevents unauthorized use via DNS alone
 - Survives account key rotation
-- No new trust anchors
+- Requires no new trust anchors
 
 ### Multi-CA Architecture
 - **Per-issuer TXT records**
-- Each CA validates only their records
-- No CA coordination required
-- Domain owner controls authorization
+- Each CA validates its own records
+- Requires no CA coordination
+- Domain owners control authorization
 
 </div>
 
@@ -206,15 +206,15 @@ CAs could check persistent DNS records outside ACME, but this would bypass the p
 
 ### Flexibility & Extensibility
 - **Optional parameters:**
-  - `persistUntil` - explicit expiration
-  - `policy=wildcard` - subdomain coverage
-- **Unknown parameters ignored**
-- Enables future protocol extensions
+  - `persistUntil` - sets expiration
+  - `policy=wildcard` - enables subdomains
+- **Ignores unknown parameters**
+- Enables future extensions
 
 ### Security Constraints
 - **MUST respect DNS TTL**
-- Bounded by CA policy limits
-- DNSSEC SHOULD be validated
+- CA policy limits apply
+- DNSSEC validation recommended
 
 </div>
 
@@ -233,13 +233,8 @@ CAs could check persistent DNS records outside ACME, but this would bypass the p
 ### Security Trade-offs
 - Freshness vs. operational simplicity
 - Account key becomes long-lived credential
-- **Key compromise:** Immediate issuance without DNS access
-- **Privacy:** `accounturi` in public DNS
-
-### DNSSEC Validation
-- **Draft:** SHOULD validate signatures
-- **Alternative:** MUST use validating resolver
-- **Trade-off:** Security vs. private PKI flexibility
+- **Key compromise:** Enables issuance without DNS access
+- **Privacy:** `accounturi` exposed in public DNS
 
 </div>
 
@@ -248,9 +243,14 @@ CAs could check persistent DNS records outside ACME, but this would bypass the p
 ### Validation Reuse Period
 
 **Effective period = shortest of:**
-- DNS record TTL (MUST respect)
+- DNS record TTL (mandatory)
 - `persistUntil` parameter
 - CA/BF policy (398d → 10d by 2029)
+
+### DNSSEC Validation
+- **Draft:** SHOULD validate signatures
+- **Alternative:** MUST use validating resolver
+- **Trade-off:** Security vs. private PKI flexibility
 
 </div>
 
@@ -263,15 +263,15 @@ CAs could check persistent DNS records outside ACME, but this would bypass the p
 Changes from `draft-sheurich-acme-dns-persist-00` through WG adoption:
 
 **Just-in-Time Validation**
-  - CA checks for existing DNS records when authorization requested
-  - If valid record found → instant "valid" status (no challenge needed)
-  - If no record found → normal challenge flow continues
+  - CA checks existing DNS records upon authorization request
+  - Valid record → instant "valid" status (no challenge)
+  - No record → normal challenge flow
 
 **Security Considerations expanded** - Record risks, account binding, subdomain validation
 
 **Long TXT record guidance** - Multi-string format for >255 characters
 
-**Error handling** - `malformed` for syntax, `unauthorized` for auth failures
+**Error handling** - `malformed` for syntax errors, `unauthorized` for auth failures
 
 **Document renamed** - `draft-ietf-acme-dns-persist` (WG adoption)
 
@@ -281,7 +281,7 @@ Changes from `draft-sheurich-acme-dns-persist-00` through WG adoption:
 
 # Seeking WG Input
 
-**Acknowledging concerns:** Use case definition, trust relationships, existing validation interactions
+**Acknowledging concerns:** Use cases, trust relationships, validation interactions
 
 <div class="columns">
 
@@ -292,10 +292,10 @@ Changes from `draft-sheurich-acme-dns-persist-00` through WG adoption:
 1. **DNSSEC requirement?**
    - Draft: SHOULD validate
    - Alternative: MUST validate
-   - Which level?
+   - Which approach?
 
 2. **Security considerations?**
-   What else to address?
+   What else needs coverage?
 
 </div>
 
@@ -305,9 +305,9 @@ Changes from `draft-sheurich-acme-dns-persist-00` through WG adoption:
    Given industry momentum
 
 4. **AccountURI flexibility?** (PR #30)
-   Multiple URIs per account?
+   Allow multiple URIs per account?
    - **Pro:** Privacy, access control
-   - **Con:** CA cannot predict client's choice
+   - **Con:** Unpredictable client choice
    - Trade-off: Privacy vs. simplicity
 
 </div>
