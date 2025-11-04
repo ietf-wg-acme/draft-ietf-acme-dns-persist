@@ -17,8 +17,7 @@ Industry validation parallel track:
 - IP Rights Review completes Nov 8
 
 Implementations:
-- Deployed: Fastly/Certainly
-- Committed: Let's Encrypt (2026 Boulder integration)
+- Committed: Fastly/Certainly, Let's Encrypt (2026 Boulder integration)
 - Assessing: Amazon Trust Services
 - PoC: Pebble server fork, eggsampler client fork
 
@@ -34,7 +33,7 @@ Existing challenges:
 
 ## Slide 4: Why Standardize? (30 seconds)
 
-CAs could deploy via pre-validation without protocol changes, but this bypasses ACME's challenge selection.
+CAs could check persistent DNS records outside ACME, but this would bypass the protocol's challenge negotiation where clients choose their validation method.
 
 Standardization enables proper protocol integration.
 
@@ -87,7 +86,7 @@ Validation reuse = shortest of:
 ## Slide 8: Evolution to WG Draft (1 minute)
 
 Changes from draft-sheurich-acme-dns-persist-00:
-- Pre-validation optimization: CA checks existing records, skips challenge if valid
+- Just-in-time optimization: CA checks existing records, skips challenge if valid
 - Enhanced security considerations
 - Long TXT record guidance (>255 chars)
 - Error handling: `malformed` vs. `unauthorized`

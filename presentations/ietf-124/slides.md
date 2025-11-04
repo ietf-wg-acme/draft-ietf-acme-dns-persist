@@ -172,7 +172,7 @@ _validation-persist.example.com. IN TXT
 
 # Why Standardize?
 
-CAs could deploy via pre-validation without protocol changes, but this bypasses ACME's challenge selection.
+CAs could check persistent DNS records outside ACME, but this would bypass the protocol's challenge negotiation where clients choose their validation method.
 
 **Standardization enables proper protocol integration.**
 
@@ -262,18 +262,18 @@ CAs could deploy via pre-validation without protocol changes, but this bypasses 
 
 Changes from `draft-sheurich-acme-dns-persist-00` through WG adoption:
 
-✓ **Pre-validation optimization**
-  - CA checks existing records during order creation
-  - Authorization becomes "valid" immediately if found
-  - Skips challenge flow with persistent record
+**Just-in-Time Validation**
+  - CA checks for existing DNS records when authorization requested
+  - If valid record found → instant "valid" status (no challenge needed)
+  - If no record found → normal challenge flow continues
 
-✓ **Security Considerations expanded** - Record risks, account binding, subdomain validation
+**Security Considerations expanded** - Record risks, account binding, subdomain validation
 
-✓ **Long TXT record guidance** - Multi-string format for >255 characters
+**Long TXT record guidance** - Multi-string format for >255 characters
 
-✓ **Error handling** - `malformed` for syntax, `unauthorized` for auth failures
+**Error handling** - `malformed` for syntax, `unauthorized` for auth failures
 
-✓ **Document renamed** - `draft-ietf-acme-dns-persist` (WG adoption)
+**Document renamed** - `draft-ietf-acme-dns-persist` (WG adoption)
 
 ---
 
