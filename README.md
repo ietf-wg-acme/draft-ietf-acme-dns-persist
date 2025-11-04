@@ -11,7 +11,7 @@ This draft specifies `dns-persist-01`, a new ACME validation method proving doma
 
 ## Abstract
 
-The method verifies domain control through a persistent DNS TXT record containing CA and account identification. The record binds strongly to accounts through `accounturi` and expires optionally through `persistUntil`. Operators reuse the validation record across multiple certificate issuances. Its security properties align with CA/Browser Forum Baseline Requirements.
+The method verifies domain control through a persistent DNS TXT record containing CA and account identification. The record binds strongly to accounts through `accounturi`. Operators reuse the validation record across multiple certificate issuances. Its security properties align with CA/Browser Forum Baseline Requirements.
 
 ## Building the Draft
 
