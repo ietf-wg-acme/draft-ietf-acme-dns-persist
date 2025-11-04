@@ -8,7 +8,7 @@ style: |
     background-color: #ffffff;
     color: #333333;
     font-family: 'Helvetica Neue', Arial, sans-serif;
-    padding: 15px 70px 100px 70px;
+    padding: 15px 70px 50px 70px;
   }
   h1 {
     color: #1a5490;
@@ -59,16 +59,6 @@ style: |
     grid-template-columns: 1fr 1fr;
     gap: 1.5em;
   }
-  .timeline {
-    background: linear-gradient(to right, #1a5490 0%, #4a90e2 100%);
-    color: white;
-    padding: 1em;
-    border-radius: 5px;
-    margin: 1em 0;
-  }
-  .timeline strong {
-    color: white;
-  }
 ---
 
 <!-- _class: lead -->
@@ -85,13 +75,24 @@ IETF ACME WG - Montreal
 
 ---
 
+<!-- _style: "font-size: 0.88em; h1 { font-size: 2.0em; margin-bottom: 0.4em; } h2 { margin-bottom: 0.3em; } ul { margin-bottom: 0.4em; line-height: 1.25; } li { margin: 0.12em 0; } strong { display: inline; }" -->
+
 # Status Update
 
 **WG adopted October 16, 2025**
 
 `draft-sheurich-acme-dns-persist` → `draft-ietf-acme-dns-persist`
 
-**Authors:** Shiloh Heurich (Fastly), Henry Birge-Lee (Crosslayer Labs), Michael Slaughter (Amazon Trust Services)
+**Parallel Industry Progress:**
+- **Oct 9:** CA/BF SC088v3 **PASSED** (26 CAs YES, 3 consumers YES)
+- **Nov 8:** IP Rights Review completes
+
+**Implementation Status:**
+- **Committed (2026):** Fastly/Certainly, Let's Encrypt
+- **Assessing:** Amazon Trust Services
+
+**Proof of Concept:** pebble server, eggsampler client
+- Full interoperability with regular and wildcard issuance
 
 ---
 
@@ -127,7 +128,7 @@ _validation-persist.example.com. IN TXT
 
 ---
 
-<!-- _style: "font-size: 0.85em; h2 { font-size: 1.3em; margin-bottom: 0.3em; } h3 { font-size: 1em; margin-bottom: 0.3em; } ul { margin-bottom: 0.4em; } li { margin: 0.15em 0; }" -->
+<!-- _style: "font-size: 0.88em; h2 { font-size: 1.3em; margin-bottom: 0.3em; } h3 { font-size: 1.05em; margin-bottom: 0.25em; } ul { margin-bottom: 0.4em; } li { margin: 0.15em 0; } strong { display: inline-block; margin-bottom: 0.1em; }" -->
 
 # Why We Need This
 
@@ -147,14 +148,14 @@ _validation-persist.example.com. IN TXT
 - API keys on servers risk compromise
 - Automation complexity
 
-**dns-account-01** (draft-ietf-acme-dns-account-challenge)
-- Scoped labels per account
-- Addresses multi-region needs
-- Still requires per-validation provisioning
-
 </div>
 
 <div>
+
+**dns-account-01**
+- Scoped labels per account
+- Addresses multi-region needs
+- Still requires per-validation provisioning
 
 ### Current Workarounds
 
@@ -179,29 +180,49 @@ CAs could deploy via pre-validation without protocol changes, but this bypasses 
 
 ---
 
-# Implementation Support
+<!-- _style: "font-size: 0.72em; h1 { font-size: 1.8em; margin-bottom: 0.2em; margin-top: -10px; } h2 { font-size: 1.15em; margin-bottom: 0.1em; } h3 { font-size: 0.95em; margin-bottom: 0.1em; margin-top: 0.05em; } ul { margin-bottom: 0.15em; margin-top: 0; line-height: 1.05; } li { margin: 0.02em 0; padding: 0; font-size: 0.95em; }" -->
 
-<div class="timeline">
+# Design Principles
 
-**Timeline:**
-- **Oct 9:** CA/BF SC088v3 **PASSED** (26 CAs YES, 3 consumers YES)
-- **Oct 9 - Nov 8:** IP Rights Review Period
-- **Oct 16:** IETF WG adoption
-- **2026:** Let's Encrypt Boulder implementation
+<div class="columns">
+
+<div>
+
+### Strong Account Binding
+- **ACME accounturi**: Durable identity
+- Prevents unauthorized use with DNS access alone
+- Survives account key rotation
+- No new trust anchors
+
+### Multi-CA Architecture
+- **Per-issuer TXT records**
+- Each CA validates only their records
+- No CA coordination required
+- Domain owner controls authorization
 
 </div>
 
-### Status
+<div>
 
-**Committed:** Fastly/Certainly, Let's Encrypt
+### Flexibility & Extensibility
+- **Optional parameters:**
+  - `persistUntil` - explicit expiration
+  - `policy=wildcard` - subdomain coverage
+- **Unknown parameters ignored**
+- Enables future protocol extensions
 
-**Assessing:** Amazon Trust Services
+### Security Constraints
+- **MUST respect DNS TTL**
+- Bounded by CA policy limits
+- DNSSEC SHOULD be validated
 
-**Proof of Concept:** Pebble server fork, eggsampler client fork
+</div>
+
+</div>
 
 ---
 
-<!-- _style: "font-size: 0.85em; h2 { font-size: 1.3em; margin-bottom: 0.3em; } h3 { font-size: 1em; margin-bottom: 0.3em; } ul { margin-bottom: 0.4em; } li { margin: 0.15em 0; }" -->
+<!-- _style: "font-size: 0.68em; h1 { font-size: 1.75em; margin-bottom: 0.15em; margin-top: -10px; } h2 { font-size: 1.1em; margin-bottom: 0.05em; margin-top: 0; } h3 { font-size: 0.92em; margin-bottom: 0.05em; margin-top: 0.1em; } ul { margin-bottom: 0.1em; margin-top: 0; line-height: 1.05; } li { margin: 0.01em 0; padding: 0; font-size: 0.95em; } p { margin: 0.05em 0; } strong { display: inline; }" -->
 
 # Active WG Discussions
 
@@ -219,19 +240,17 @@ CAs could deploy via pre-validation without protocol changes, but this bypasses 
 - **Draft:** SHOULD validate signatures
 - **Alternative:** MUST use validating resolver
 - **Trade-off:** Security vs. private PKI flexibility
-- Related: draft-ietf-dnsop-domain-verification-techniques
 
 </div>
 
 <div>
 
 ### Validation Reuse Period
-How long CA relies on one DNS check
 
 **Effective period = shortest of:**
 - DNS record TTL (MUST respect)
 - `persistUntil` parameter
-- CA policy (398 days → 10 days by 2029)
+- CA/BF policy (398d → 10d by 2029)
 
 </div>
 
@@ -260,9 +279,13 @@ Changes from `draft-sheurich-acme-dns-persist-00` through WG adoption:
 
 <!-- _style: "font-size: 0.85em; h2 { font-size: 1.3em; margin-bottom: 0.3em; } ul { margin-bottom: 0.4em; } li { margin: 0.15em 0; } ol { margin-bottom: 0.4em; }" -->
 
-# Seeking WG Input (1/2)
+# Seeking WG Input
 
 **Acknowledging concerns:** Use case definition, trust relationships, existing validation interactions
+
+<div class="columns">
+
+<div>
 
 **Questions:**
 
@@ -277,9 +300,9 @@ Changes from `draft-sheurich-acme-dns-persist-00` through WG adoption:
 3. **Security considerations?**
    What else to address?
 
----
+</div>
 
-# Seeking WG Input (2/2)
+<div>
 
 4. **Timeline?**
    Given industry momentum
@@ -289,6 +312,10 @@ Changes from `draft-sheurich-acme-dns-persist-00` through WG adoption:
    - **Pro:** Privacy, access control
    - **Con:** CA cannot predict client's choice
    - Trade-off: Privacy vs. simplicity
+
+</div>
+
+</div>
 
 ---
 

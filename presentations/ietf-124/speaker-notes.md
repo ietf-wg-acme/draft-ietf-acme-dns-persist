@@ -6,18 +6,23 @@
 - Authors: Heurich (Fastly), Birge-Lee (Crosslayer), Slaughter (Amazon)
 - Thank WG for adoption
 
-## Slide 2: Technical Recap (1 minute)
+## Slide 2: Dual-Track Progress (1 minute)
 
-Persistent DNS TXT record for ACME validation
+WG adopted Oct 16: draft-sheurich-acme-dns-persist → draft-ietf-acme-dns-persist-00
 
-Format: `_validation-persist.example.com IN TXT "ca.example; accounturi=https://ca.example/acct/123"`
+Industry validation parallel track:
+- CA/Browser Forum Ballot SC088v3 PASSED Oct 9
+- 26 CAs voted YES (Fastly, Amazon, DigiCert, GlobalSign, GoDaddy, others)
+- 3 consumers voted YES (Google, Mozilla, Cisco)
+- IP Rights Review completes Nov 8
 
-Features:
-- Reusable across issuances
-- Account binding via accounturi
-- Multi-CA support
-- Optional expiration (persistUntil)
-- policy=wildcard covers subdomains
+Implementations:
+- Deployed: Fastly/Certainly
+- Committed: Let's Encrypt (2026 Boulder integration)
+- Assessing: Amazon Trust Services
+- PoC: Pebble server fork, eggsampler client fork
+
+This shows real-world validation while IETF process continues.
 
 ## Slide 3: Problem Space (1 minute)
 
@@ -35,19 +40,33 @@ Standardization enables proper protocol integration.
 
 Key: ACME account URLs provide durable, cryptographic binding
 
-## Slide 5: Industry Momentum (1 minute)
+## Slide 6: Design Principles (1 minute)
 
-CA/Browser Forum: Ballot SC088v3 PASSED Oct 9
-- 26 CAs voted YES (including Fastly, Amazon, DigiCert, GlobalSign, GoDaddy)
-- 3 consumers voted YES (Google, Mozilla, Cisco)
-- IP Rights Review through Nov 8
+Key design choices that address the problems:
 
-Implementations:
-- Committed: Let's Encrypt (2026)
-- Expected: Fastly/Certainly, Amazon Trust Services
-- PoC: Pebble server, eggsampler client
+Account binding:
+- ACME accounturi provides durable, cryptographic identity
+- Leverages existing ACME infrastructure
+- No new trust anchors needed
 
-## Slide 6: WG Concerns (2 minutes)
+Multi-CA:
+- Per-issuer TXT records (issuer domain in record)
+- No coordination between CAs required
+- Client controls which CAs can validate
+
+Flexibility within constraints:
+- Optional persistUntil expiration
+- policy=wildcard for subdomain coverage
+- Unknown parameters ignored for forward compatibility
+
+Security constraints:
+- MUST respect DNS TTL
+- Bounded by CA/BF certificate lifetimes (398d → 10d by 2029)
+- Just-in-time validation optimization
+
+This bridges motivation with open questions ahead.
+
+## Slide 7: Active WG Discussions (2 minutes)
 
 Security trade-offs:
 - Freshness vs. operational simplification
@@ -59,21 +78,21 @@ DNSSEC validation:
 - Draft: SHOULD validate
 - Alternative: MUST validate
 - Trade-off: Security vs. private PKI flexibility
-- Related: draft-ietf-dnsop-domain-verification-techniques
 
 Validation reuse = shortest of:
 - DNS TTL (MUST respect)
 - persistUntil parameter
 - CA policy (398 days → 10 days by 2029)
 
-## Slide 7: Changes in -00 (1 minute)
+## Slide 8: Evolution to WG Draft (1 minute)
 
+Changes from draft-sheurich-acme-dns-persist-00:
 - Pre-validation optimization: CA checks existing records, skips challenge if valid
 - Enhanced security considerations
 - Long TXT record guidance (>255 chars)
 - Error handling: `malformed` vs. `unauthorized`
 
-## Slide 8: WG Input Part 1 (1 minute)
+## Slide 9: Seeking WG Input (1.5 minutes)
 
 Acknowledge concerns: Use cases, trust relationships, existing validation
 
@@ -81,23 +100,21 @@ Questions:
 1. DNSSEC requirement level? SHOULD vs. MUST
 2. Protocol validation caps beyond persistUntil?
 3. Additional security considerations?
-
-## Slide 9: WG Input Part 2 (1 minute)
-
 4. Timeline given industry momentum?
 5. AccountURI flexibility (PR #30):
    - Multiple URIs per account?
    - Pro: Privacy, access control
    - Con: CA cannot predict client's choice
-   - Most deployments pre-provision records
    - Trade-off: Privacy vs. simplicity
 
-## Slide 10: Next Steps (30 seconds)
+## Slide 10: Path Forward (30 seconds)
 
-- Incorporate WG feedback
+- Incorporate Montreal feedback
 - Expand security considerations
-- Target for WGLC?
-- Coordinate with CA/BF timeline
+- Resolve PR #30 (accounturi flexibility)
+- Address use case and trust concerns
+- Target WGLC after 1-2 revisions
+- Coordinate with CA/Browser Forum
 
 ## Slide 11: Discussion (remaining time)
 
