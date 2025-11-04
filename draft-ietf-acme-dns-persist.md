@@ -81,7 +81,7 @@ Examples include:
 
 This document defines a new ACME challenge type, "dns-persist-01". This method proves control over a Fully Qualified Domain Name (FQDN) by confirming the presence of a persistent DNS TXT record containing CA and account identification information.
 
-The record format is based on the "issue-value" syntax from {{!RFC8659}}, incorporating an issuer-domain-name and a mandatory accounturi parameter {{!RFC8657}} that uniquely identifies the applicant's account. This design provides strong binding between the domain, the CA, and the specific account requesting validation.
+The record format is based on the "issue-value" syntax from {{!RFC8659}}, incorporating an `issuer-domain-name` and a mandatory `accounturi` parameter {{!RFC8657}} that uniquely identifies the applicant's account. This design provides strong binding between the domain, the CA, and the specific account requesting validation.
 
 ## Robustness and Alignment with Industry Best Practices {#robustness-and-alignment}
 
@@ -131,6 +131,7 @@ The challenge object for "dns-persist-01" contains the following fields:
 - **type** (required, string): The string "dns-persist-01"
 - **url** (required, string): The URL to which a response can be posted
 - **status** (required, string): The status of this challenge
+- **accounturi** (required, string): A a unique URI identifying the account of the applicant which requested the validation. This value MAY be the ACME account URL, or any other URI as determined by the CA. The client MUST use this exact `accounturi` parameter when populating the DNS TXT record.
 - **issuer-domain-names** (required, array of strings): A list of one or more Issuer Domain Names. The client MUST choose one of these domain names to include in the DNS TXT record. The challenge is successful if a valid TXT record is found that uses any one of the provided domain names.
 
   Each string in the array MUST be a domain name that complies with the following normalization rules:
@@ -148,6 +149,7 @@ The following shows an example challenge object:
   "type": "dns-persist-01",
   "url": "https://ca.example/acme/authz/1234/0",
   "status": "pending",
+  "accounturi": "https://ca.example/acct/123",
   "issuer-domain-names": ["authority.example", "ca.example.net"]
 }
 ~~~
@@ -167,7 +169,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
 2.  The `issuer-domain-name` portion of the issue-value MUST be one of the Issuer Domain Names provided by the CA in the `issuer-domain-names` array of the challenge object.
 
-3.  The issue-value MUST contain an accounturi parameter. The value of this parameter MUST be a unique URI identifying the account of the applicant which requested the validation, constructed according to {{!RFC8657}}, Section 3.
+3.  The issue-value MUST contain an `accounturi` parameter. The value of this parameter MUST match the `accounturi` provided by the CA in the challenge object, which is constructed according to {{!RFC8657}}, Section 3.
 
 4.  The issue-value MAY contain a `policy` parameter. If present, this parameter modifies the validation scope. The `policy` parameter follows the 'tag=value' syntax from {{!RFC8659}}. The parameter's 'tag' and its defined values MUST be treated as case-insensitive.
 
@@ -177,11 +179,11 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
     - `policy=wildcard`: If this value is present, the CA MAY consider this validation sufficient for issuing certificates for the validated FQDN, for specific subdomains of the validated FQDN (as covered by wildcard scope or specific subdomain validation rules), and for wildcard certificates (e.g., `*.example.com`). See {{wildcard-certificate-validation}} and {{subdomain-certificate-validation}}.
 
-    If the `policy` parameter is absent, or if its value is anything other than `wildcard`, the CA MUST proceed as if the policy parameter were not present (i.e., the validation applies only to the specific FQDN).
+    If the `policy` parameter is absent, or if its value is anything other than `wildcard`, the CA MUST proceed as if the `policy` parameter were not present (i.e., the validation applies only to the specific FQDN).
 
 5.  The issue-value MAY contain a `persistUntil` parameter. If present, the value MUST be a base-10 encoded integer representing a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds). CAs MUST NOT consider this validation record valid for new validation attempts after the specified timestamp. However, this does not affect the reuse of already-validated data.
 
-For example, if the ACME client is requesting validation for the FQDN "example.com" from a CA that uses "authority.example" as its Issuer Domain Name, and the client's account URI is "https://ca.example/acct/123", it might provision:
+For example, if the ACME client is requesting validation for the FQDN "example.com" and receives a challenge object with `issuer-domain-names` containing "authority.example" and `accounturi` of "https://ca.example/acct/123", it would provision:
 
 ~~~ dns
 _validation-persist.example.com. IN TXT ("authority.example;"
@@ -189,7 +191,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 ~~~
 {: #ex-basic-validation title="Basic Validation TXT Record"}
 
-The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Authorization Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its `issuer-domain-name` value MUST match one of the values provided in the `issuer-domain-names` array from the challenge object, and it must contain a valid `accounturi` for the requesting account. When comparing issuer domain names, the server MUST adhere to the normalization rules specified in {{challenge-object}}. The server also interprets any `policy` parameter values according to this specification.
+The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Authorization Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its `issuer-domain-name` value MUST match one of the values provided in the `issuer-domain-names` array from the challenge object, and it MUST contain an `accounturi` parameter that matches the value provided in the challenge object. When comparing issuer domain names, the server MUST adhere to the normalization rules specified in {{challenge-object}}. The server also interprets any `policy` parameter values according to this specification.
 
 ## Multiple Issuer Support {#multiple-issuer-support}
 
@@ -232,10 +234,10 @@ This example demonstrates how a domain owner can authorize two different CAs, "c
 
 ~~~dns
 _validation-persist.example.org. 3600 IN TXT ("ca1.example;"
-" accounturi=https://ca1.example/acme/acct/12345;"
+" accounturi=https://ca1.example/acct/12345;"
 " policy=wildcard")
 _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
-" accounturi=https://ca2.example/acme/acct/67890;"
+" accounturi=https://ca2.example/acct/67890;"
 " persistUntil=1767225600")
 ~~~
 {: #ex-multiple-ca-auth title="Multiple CA Authorization Records"}
@@ -368,7 +370,7 @@ Organizations considering the use of subdomain validation MUST:
 
 ## Cross-CA Validation Reuse {#cross-ca-validation-reuse}
 
-The persistent nature of validation records raises concerns about potential reuse across different Certificate Authorities. While the issuer-domain-name parameter is designed to prevent such reuse, implementations MUST carefully validate that the issuer-domain-name in the DNS record matches the CA's disclosed Issuer Domain Name.
+The persistent nature of validation records raises concerns about potential reuse across different Certificate Authorities. While the `issuer-domain-name` parameter is designed to prevent such reuse, implementations MUST carefully validate that the `issuer-domain-name` in the DNS record matches the CA's disclosed Issuer Domain Name.
 
 ## Record Tampering and Integrity {#record-tampering-and-integrity}
 
