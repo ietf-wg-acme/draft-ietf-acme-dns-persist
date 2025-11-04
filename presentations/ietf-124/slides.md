@@ -294,20 +294,17 @@ Changes from `draft-sheurich-acme-dns-persist-00` through WG adoption:
    - Alternative: MUST validate
    - Which level?
 
-2. **Protocol validation caps?**
-   Beyond `persistUntil`
-
-3. **Security considerations?**
+2. **Security considerations?**
    What else to address?
 
 </div>
 
 <div>
 
-4. **Timeline?**
+3. **Timeline?**
    Given industry momentum
 
-5. **AccountURI flexibility?** (PR #30)
+4. **AccountURI flexibility?** (PR #30)
    Multiple URIs per account?
    - **Pro:** Privacy, access control
    - **Con:** CA cannot predict client's choice

@@ -23,15 +23,30 @@ Implementations:
 
 This shows real-world validation while IETF process continues.
 
-## Slide 3: Problem Space (1 minute)
+## Slide 3: How dns-persist-01 Works (1 minute)
 
-Existing challenges:
-- http-01/tls-alpn-01: Port 80 required, geo-blocking prevents validation, no wildcards
-- dns-01: Propagation delays, API key risks
-- dns-account-01 (draft-ietf-acme-dns-account-challenge): Uses account-scoped labels (_<hash>._acme-challenge) to allow multiple independent validations; addresses multi-region/multi-cloud needs but still requires provisioning for each validation (not persistent)
-- "Magic CNAMEs": Single point of failure, cache poisoning, BGP hijacking
+Explain the mechanics:
+- Record lives at _validation-persist subdomain (industry standard label)
+- Contains CA identifier (issuer domain) + account binding (accounturi)
+- accounturi is the key innovation - cryptographically ties to ACME account
+- policy=wildcard is explicit opt-in for broader scope (security trade-off)
+- persistUntil gives domain owners control over expiration
+- Multi-CA support: Each CA looks for their own issuer domain in records
+- This is fundamentally different from dns-01's transient challenges
 
-## Slide 4: Why Standardize? (30 seconds)
+## Slide 4: Why We Need This (1 minute)
+
+Real-world pain points driving this work:
+- Port 80/443 requirements exclude IoT devices, internal services
+- Geo-blocking is increasing - validation servers blocked by country/region
+- DNS API credentials on every server = compromise risk multiplier
+- dns-account-01 helps multi-region but still requires per-cert provisioning
+- "Magic CNAMEs" (acme-dns.io) work but create systemic risk
+- Industry seeing 10-day validation coming (2029) - need efficiency
+
+Key insight: Persistent records solve automation at scale
+
+## Slide 5: Why Standardize? (30 seconds)
 
 CAs could check persistent DNS records outside ACME, but this would bypass the protocol's challenge negotiation where clients choose their validation method.
 
@@ -67,53 +82,57 @@ This bridges motivation with open questions ahead.
 
 ## Slide 7: Active WG Discussions (2 minutes)
 
-Security trade-offs:
-- Freshness vs. operational simplification
-- Account key = long-lived credential
-- Key compromise enables immediate issuance
-- Privacy: accounturi in public DNS
+Frame the philosophical tensions:
 
-DNSSEC validation:
-- Draft: SHOULD validate
-- Alternative: MUST validate
-- Trade-off: Security vs. private PKI flexibility
+**Freshness vs. operations:**
+- Traditional ACME = fresh challenge every time
+- This draft = trust persists with the account key
+- Account key compromise now has lasting impact
+- Privacy consideration: accounturi reveals business relationships
 
-Validation reuse = shortest of:
-- DNS TTL (MUST respect)
-- persistUntil parameter
-- CA policy (398 days → 10 days by 2029)
+**DNSSEC debate:**
+- SHOULD allows private PKI flexibility
+- MUST would match CA/BF security expectations
+- Balance: How much to prescribe vs. let deployers decide?
+
+**Validation reuse math:**
+- Show how shortest-wins principle works
+- 398 days shrinking to 10 days changes the equation
+- TTL respect is non-negotiable (DNS fundamentals)
 
 ## Slide 8: Evolution to WG Draft (1 minute)
 
-Changes from draft-sheurich-acme-dns-persist-00:
-- Just-in-time optimization: CA checks existing records, skips challenge if valid
-- Enhanced security considerations
-- Long TXT record guidance (>255 chars)
-- Error handling: `malformed` vs. `unauthorized`
+Highlight what changed with WG input:
+- **Just-in-time validation:** Major efficiency win - explain it like checking for a season pass before selling a ticket
+- **Security section growth:** Shows we're taking concerns seriously
+- **Long TXT handling:** Practical issue many miss - DNS has 255-byte string limits
+- **Error codes:** Help debugging - malformed (syntax) vs unauthorized (wrong account)
+- These changes came from implementer feedback (Pebble testing)
 
 ## Slide 9: Seeking WG Input (1.5 minutes)
 
-Acknowledge concerns: Use cases, trust relationships, existing validation
+Frame each question with its implications:
 
-Questions:
-1. DNSSEC requirement level? SHOULD vs. MUST
-2. Protocol validation caps beyond persistUntil?
-3. Additional security considerations?
-4. Timeline given industry momentum?
-5. AccountURI flexibility (PR #30):
-   - Multiple URIs per account?
-   - Pro: Privacy, access control
-   - Con: CA cannot predict client's choice
-   - Trade-off: Privacy vs. simplicity
+1. **DNSSEC:** Not just security theater - affects private PKI deployments
+2. **Security gaps:** What attacks haven't we considered?
+3. **Timeline pressure:** CA/BF moving ahead - IETF needs to guide vs follow
+4. **PR #30 (accounturi flex):**
+   - Multiple URIs = privacy win but complexity cost
+   - CA can't predict which URI client will use
+   - Is the privacy gain worth the operational complexity?
+
+Emphasize: Your input shapes industry practice for years
 
 ## Slide 10: Path Forward (30 seconds)
 
-- Incorporate Montreal feedback
-- Expand security considerations
-- Resolve PR #30 (accounturi flexibility)
-- Address use case and trust concerns
-- Target WGLC after 1-2 revisions
-- Coordinate with CA/Browser Forum
+Timeline context:
+- Montreal feedback → -01 draft (December)
+- Resolve PR #30 is blocking issue
+- WGLC realistic Q1 2026 if we address concerns
+- CA/BF implementation starts 2026 regardless
+- This is our chance to get it right before deployment
+
+Key message: Moving deliberately but industry won't wait forever
 
 ## Slide 11: Discussion (remaining time)
 
