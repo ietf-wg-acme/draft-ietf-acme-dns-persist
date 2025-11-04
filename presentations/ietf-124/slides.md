@@ -187,15 +187,15 @@ CAs could deploy via pre-validation without protocol changes, but this bypasses 
 - **Oct 9:** CA/BF SC088v3 **PASSED** (26 CAs YES, 3 consumers YES)
 - **Oct 9 - Nov 8:** IP Rights Review Period
 - **Oct 16:** IETF WG adoption
-- **2026:** Let's Encrypt implementation
+- **2026:** Let's Encrypt Boulder implementation
 
 </div>
 
 ### Status
 
-**Committed:** Let's Encrypt (2026)
+**Committed:** Fastly/Certainly, Let's Encrypt
 
-**Expected:** Fastly/Certainly, Amazon Trust Services
+**Assessing:** Amazon Trust Services
 
 **Proof of Concept:** Pebble server fork, eggsampler client fork
 
