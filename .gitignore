@@ -1,6 +1,7 @@
 .tags
 *.html
 *.pdf
+!presentations/**/*.pdf
 *.redxml
 *.swp
 *.txt

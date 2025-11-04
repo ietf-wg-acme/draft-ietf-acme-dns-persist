@@ -1,0 +1,26 @@
+# Pre-commit hooks for draft-ietf-acme-dns-persist
+repos:
+  - repo: local
+    hooks:
+      # Marp: Build presentation PDF when slides change
+      - id: marp-build
+        name: Build Marp Presentation PDF
+        entry: bash -c 'cd presentations/ietf-124 && marp slides.md -o slides.pdf --pdf && git add slides.pdf'
+        language: system
+        files: presentations/ietf-124/slides\.md$
+        pass_filenames: false
+        verbose: true
+
+  # Optional: Standard pre-commit hooks for general hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.md$'  # Exclude markdown files (kramdown-rfc may have specific whitespace rules)
+      - id: end-of-file-fixer
+        exclude: '\.md$'
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=5000']
+      - id: mixed-line-ending
+        args: ['--fix=lf']
