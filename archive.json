@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2025-10-28T00:07:06.538716+00:00",
+  "timestamp": "2025-11-06T00:55:42.305777+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -1189,6 +1189,34 @@
           ]
         }
       ]
+    },
+    {
+      "number": 31,
+      "id": "PR_kwDOO4VY2c6xgP41",
+      "title": "IETF 124 ACME WG Presentation",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/31",
+      "state": "MERGED",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "This pull request introduces a new presentation for IETF 124 on the `draft-ietf-acme-dns-persist` standard, including slide source, speaker notes, and supporting documentation. It also adds automated tooling for building and maintaining the presentation PDF, and establishes pre-commit hooks for repository hygiene.\r\n\r\n**Presentation materials and automation:**\r\n\r\n* Added a new presentation for IETF 124, including `slides.md` (Marp markdown for slides), `speaker-notes.md` (detailed notes), and `README.md` (instructions and context). The slides cover the motivation, technical design, active working group discussions, and next steps for the ACME persistent DNS challenge draft. [[1]](diffhunk://#diff-6d7d95a587f98c57aadeff84b61599126521215b779555f7c59103fd4a2f07a6R1-R341) [[2]](diffhunk://#diff-7ad79fe5d63f601255bac93776a07a7c37128775d120fb4e6af428f2ba9cffeaR1-R139) [[3]](diffhunk://#diff-a5dc78d290ae8f636bff8d64e0f5c2419bf409a0d872219cecd97a2d2bb1aef9R1-R46)\r\n* Introduced a pre-commit hook in `.pre-commit-config.yaml` to automatically build `slides.pdf` from `slides.md` using Marp whenever the slides are updated, ensuring the PDF is always up-to-date and committed for submission.\r\n\r\n**Repository hygiene:**\r\n\r\n* Enabled standard pre-commit hooks for trailing whitespace, end-of-file fixes, YAML validation, large file checks, and line ending normalization, with markdown-specific exclusions to accommodate RFC formatting requirements.",
+      "createdAt": "2025-11-04T21:14:59Z",
+      "updatedAt": "2025-11-04T21:15:23Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "a75dc2c1b050ac0dee87f28c80aa7093591bd4b3",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "ietf-124-preso",
+      "headRefOid": "3846d7fdadc02982c7d2f5794ede640eec557d83",
+      "closedAt": "2025-11-04T21:15:21Z",
+      "mergedAt": "2025-11-04T21:15:21Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "e7231528b50f331c7e68db0fc4a91d506de29069"
+      },
+      "comments": [],
+      "reviews": []
     }
   ]
 }
