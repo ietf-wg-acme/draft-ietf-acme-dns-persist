@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2025-11-06T00:55:42.305777+00:00",
+  "timestamp": "2025-11-09T00:58:29.134248+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -668,6 +668,22 @@
           "updatedAt": "2025-08-11T21:51:22Z"
         }
       ]
+    },
+    {
+      "number": 32,
+      "id": "I_kwDOO4VY2c7WYD1f",
+      "title": "Support for IP validation",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/32",
+      "state": "OPEN",
+      "author": "aarongable",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "The CA/BF is [currently voting](https://groups.google.com/a/groups.cabforum.org/g/servercert-wg/c/eiwn6p3FLcU/m/cBBzuUFmBgAJ) on a [change](https://github.com/cabforum/servercert/pull/626) which will enshrine DNS Persist as a method for validation of IP addresses via use of the ARPA Reverse Address Zone (in-addr.arpa and ip6.arpa).\n\nThis method uses a different underscore-prefixed DNS label, specifically \"`_ip-validation-persist`\", which makes sense: using the same prefix would make it unclear whether a given DNS Persist TXT record is allowing issuance for that Reverse Zone Domain Name directly, or for the IP address which corresponds to that Reverse Zone Domain Name.\n\nHowever, this means that there's now a gap between what the CA/BF allows (or will allow, once the ballot passes) and what this draft specifies. This draft should probably grow a new subsection specifying how these same records can be used to confirm control over IP addresses via the Reverse Address Zone.",
+      "createdAt": "2025-11-06T16:41:49Z",
+      "updatedAt": "2025-11-06T16:41:49Z",
+      "closedAt": null,
+      "comments": []
     }
   ],
   "pulls": [
