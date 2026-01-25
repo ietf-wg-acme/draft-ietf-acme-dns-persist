@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-01-13T00:57:28.110557+00:00",
+  "timestamp": "2026-01-25T01:07:50.569384+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -1138,7 +1138,7 @@
       "labels": [],
       "body": "Added accounturi attribute to the challenge response object.\r\n\r\nChanges include:\r\n- Updated accounturi references to refer to the server provided accounturi rather than \"a valid account uri\"\r\n- Cleaned up accounturi references and examples.\r\n\r\n\r\n**Motivation**: This change eliminates ambiguity and improves interoperability of implementations. While ACME clients are aware of their account URI, explicitly providing this value in the challenge object removes any dependency on client-side URI construction or format assumptions. This approach makes the exact value the server expects in DNS explicit and ensures the challenge object is completely self-contained and driven by the server.",
       "createdAt": "2025-10-07T13:54:22Z",
-      "updatedAt": "2025-10-27T18:46:06Z",
+      "updatedAt": "2026-01-22T22:37:16Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "a75dc2c1b050ac0dee87f28c80aa7093591bd4b3",
@@ -1177,6 +1177,13 @@
           "body": "> However, if there are multiple potentially valid values for an accounturi, I don't know how the CA predicts which one to send.\r\n\r\nIn my implementations of `dns-account-01`, the value is determined by configuration.\r\n\r\n> Perhaps there is a more fundamental conversation going on here: is the client actually provisioning this record or is it just action under the authority of another entity that already provisioned the record prior to the client's new-order request?\r\n\r\nIn my experience the latter case would be the norm.",
           "createdAt": "2025-10-27T16:59:35Z",
           "updatedAt": "2025-10-27T16:59:35Z"
+        },
+        {
+          "author": "slghtr-says",
+          "authorAssociation": "NONE",
+          "body": "> Perhaps a middle ground could be to have the CA send one accounturi which the client knows it could use but put in some language about the CA possibly accepting other accounturi values so long as they appropriately authorize the requesting ACME account.\r\n\r\n@birgelee - Coming back to this conversation, I think I like this middle ground proposal more than my original proposal. The reason for that is that I feel this would provide the client some hinting with a default value (probably the ACME account unless configured by the CA to be something different) but at the same time add language that offers CAs some flexibility to accept other values to support other use cases such as External Account Binding scenarios or other enterprise use cases. Forcing all these values to be enumerated and sent back could be burdensome on both the server and the client and not really add much practical value. Especially if the provisioning of these persistent records would typically be handled by an entity other than the client as @sheurich alluded to. \r\n\r\nLet me know your thoughts and I'll be happy to update the language. ",
+          "createdAt": "2026-01-22T22:27:39Z",
+          "updatedAt": "2026-01-22T22:37:16Z"
         }
       ],
       "reviews": [
