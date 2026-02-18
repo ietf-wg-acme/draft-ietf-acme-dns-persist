@@ -131,7 +131,7 @@ The challenge object for "dns-persist-01" contains the following fields:
 - **type** (required, string): The string "dns-persist-01"
 - **url** (required, string): The URL to which a response can be posted
 - **status** (required, string): The status of this challenge
-- **accounturi** (required, string): A a unique URI identifying the account of the applicant which requested the validation. This value MAY be the ACME account URL, or any other URI as determined by the CA. The client MUST use this exact `accounturi` parameter when populating the DNS TXT record.
+- **accounturi** (optional, string): The ACME account URL for the account requesting validation, as defined in {{!RFC8657}}, Section 3. If present, the CA MUST populate this field with the account URL of the requesting account. Clients SHOULD verify this value matches their known account URL before using it to provision a DNS TXT record.
 - **issuer-domain-names** (required, array of strings): A list of one or more Issuer Domain Names. The client MUST choose one of these domain names to include in the DNS TXT record. The challenge is successful if a valid TXT record is found that uses any one of the provided domain names.
 
   Each string in the array MUST be a domain name that complies with the following normalization rules:
@@ -169,7 +169,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
 2.  The `issuer-domain-name` portion of the issue-value MUST be one of the Issuer Domain Names provided by the CA in the `issuer-domain-names` array of the challenge object.
 
-3.  The issue-value MUST contain an `accounturi` parameter. The value of this parameter MUST match the `accounturi` provided by the CA in the challenge object, which is constructed according to {{!RFC8657}}, Section 3.
+3.  The issue-value MUST contain an `accounturi` parameter. The value of this parameter MUST be the ACME account URL of the account requesting validation, as defined in {{!RFC8657}}, Section 3. The CA MUST verify that this URI identifies the ACME account making the request. When comparing `accounturi` values, implementations MUST use simple string comparison as defined in {{!RFC3986}}, Section 6.2.1, and MUST NOT perform URI normalization, percent-decoding, or case-folding before comparison.
 
 4.  The issue-value MAY contain a `policy` parameter. If present, this parameter modifies the validation scope. The `policy` parameter follows the 'tag=value' syntax from {{!RFC8659}}. The parameter's 'tag' and its defined values MUST be treated as case-insensitive.
 
@@ -183,7 +183,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
 5.  The issue-value MAY contain a `persistUntil` parameter. If present, the value MUST be a base-10 encoded integer representing a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds). CAs MUST NOT consider this validation record valid for new validation attempts after the specified timestamp. However, this does not affect the reuse of already-validated data.
 
-For example, if the ACME client is requesting validation for the FQDN "example.com" and receives a challenge object with `issuer-domain-names` containing "authority.example" and `accounturi` of "https://ca.example/acct/123", it would provision:
+For example, for validation of the FQDN "example.com" with issuer domain name "authority.example" and account URI "https://ca.example/acct/123", the DNS TXT record would contain:
 
 ~~~ dns
 _validation-persist.example.com. IN TXT ("authority.example;"
@@ -191,7 +191,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 ~~~
 {: #ex-basic-validation title="Basic Validation TXT Record"}
 
-The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Authorization Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its `issuer-domain-name` value MUST match one of the values provided in the `issuer-domain-names` array from the challenge object, and it MUST contain an `accounturi` parameter that matches the value provided in the challenge object. When comparing issuer domain names, the server MUST adhere to the normalization rules specified in {{challenge-object}}. The server also interprets any `policy` parameter values according to this specification.
+The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Authorization Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its `issuer-domain-name` value MUST match one of the values provided in the `issuer-domain-names` array from the challenge object, and it MUST contain an `accounturi` parameter that identifies the requesting account. When comparing issuer domain names, the server MUST adhere to the normalization rules specified in {{challenge-object}}. The server also interprets any `policy` parameter values according to this specification.
 
 ## Multiple Issuer Support {#multiple-issuer-support}
 
@@ -266,7 +266,20 @@ If one or more such records exist, the CA MUST evaluate them according to the re
 
 If no DNS TXT record meets the validation requirements, or if the records are absent, the CA MUST proceed with the standard authorization flow by returning a "pending" authorization with an associated `dns-persist-01` challenge object.
 
+CAs implementing Just-in-Time validation SHOULD apply the same rate-limiting to JIT DNS lookups as they apply to standard validation attempts. CAs MAY restrict JIT validation to accounts that have previously completed a successful `dns-persist-01` validation. CAs implementing Just-in-Time validation SHOULD provide account activity notifications or logging, as this path eliminates the challenge-response interaction that might otherwise provide a detection window for account compromise.
+
 This mechanism enables efficient reuse of persistent validation records while maintaining the security properties of the validation method.
+
+## Pre-Provisioning Records {#pre-provisioning-records}
+
+Domain owners MAY provision `_validation-persist` TXT records before any ACME interaction occurs. When constructing records without a challenge object, the following values MUST be used:
+
+- **accounturi**: The ACME account URL, as returned in the `Location` header of the account creation response ({{!RFC8555}}, Section 7.3).
+- **issuer-domain-name**: CAs SHOULD populate the `caaIdentities` field in their ACME directory metadata ({{!RFC8555}}, Section 9.7.6) with the same values they accept as `issuer-domain-name` in `dns-persist-01` records. Clients provisioning records without a challenge object SHOULD obtain the `issuer-domain-name` from the `caaIdentities` array in the ACME directory. If `caaIdentities` is unavailable, the `issuer-domain-name` MAY be obtained from the CA's Certificate Policy or Certification Practice Statement.
+
+Organizations pre-provisioning records SHOULD maintain an inventory of `_validation-persist` records and the ACME accounts they reference. Records SHOULD include a `persistUntil` parameter to bound their effective lifetime. Domain owners SHOULD audit `_validation-persist` records after any DNS infrastructure security incident, as pre-provisioned records persist beyond the window of compromise.
+
+If a CA changes its ACME server URL structure, pre-provisioned records containing the old account URL will no longer match. Domain owners should coordinate with their CA regarding account URL stability.
 
 ----
 
@@ -390,7 +403,7 @@ To enhance the security and integrity of the validation process, CAs and clients
 
 ### DNSSEC
 
-DNS Security Extensions (DNSSEC) provide cryptographic authentication of DNS data, ensuring that the validation records retrieved by a CA are authentic and have not been tampered with. To ensure the integrity of the validation process, DNSSEC signatures SHOULD be validated on `dns-persist-01` TXT records.
+DNS Security Extensions (DNSSEC) provide cryptographic authentication of DNS data, ensuring that the validation records retrieved by a CA are authentic and have not been tampered with. To ensure the integrity of the validation process, DNSSEC signatures SHOULD be validated on `dns-persist-01` TXT records. If DNSSEC validation fails (e.g., expired signatures, broken chain of trust), the CA MUST treat the failure as a validation failure and MUST NOT use the record for domain validation.
 
 ### Multi-Perspective Validation
 
@@ -420,7 +433,7 @@ The `persistUntil` parameter provides domain owners with direct control over the
 
 The persistent nature of `dns-persist-01` authorizations means that a valid DNS TXT record can grant control for an extended period, potentially even if the domain owner's intent changes or if the associated ACME account key is compromised. Therefore, explicit mechanisms for revoking or invalidating these persistent authorizations are critical.
 
-The primary method for an Applicant to invalidate a `dns-persist-01` authorization for a domain is to **remove the corresponding DNS TXT record** from the Authorization Domain Name. After the record is removed, new validation attempts for the domain will fail. This behavior represents a deliberate design trade-off: any existing authorization obtained via this method will remain valid until it expires as per the CA's Validation Data Reuse Period. This persistence underscores the importance of protecting the ACME account key.
+The primary method for an Applicant to invalidate a `dns-persist-01` authorization for a domain is to **remove the corresponding DNS TXT record** from the Authorization Domain Name. After the record is removed and resolver caches have expired, new validation attempts for the domain will fail. This behavior represents a deliberate design trade-off: any existing authorization obtained via this method will remain valid until it expires as per the CA's Validation Data Reuse Period. This persistence underscores the importance of protecting the ACME account key.
 
 For situations requiring immediate revocation of issuance capability, such as a suspected account key compromise, the primary and most effective mechanism is to **deactivate the ACME account** as specified in {{!RFC8555}}, Section 7.5.2. Deactivating the account immediately and irrevocably prevents it from being used for any further certificate issuance.
 
