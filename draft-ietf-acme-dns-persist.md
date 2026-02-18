@@ -131,7 +131,7 @@ The challenge object for "dns-persist-01" contains the following fields:
 - **type** (required, string): The string "dns-persist-01"
 - **url** (required, string): The URL to which a response can be posted
 - **status** (required, string): The status of this challenge
-- **accounturi** (optional, string): The ACME account URL for the account requesting validation, as defined in {{!RFC8657}}, Section 3. If present, the CA MUST populate this field with the account URL of the requesting account. Clients SHOULD verify this value matches their known account URL before using it to provision a DNS TXT record.
+- **accounturi** (required, string): The ACME account URL for the account requesting validation, as defined in {{!RFC8657}}, Section 3. Clients SHOULD verify this value matches their known account URL.
 - **issuer-domain-names** (required, array of strings): A list of one or more Issuer Domain Names. The client MUST choose one of these domain names to include in the DNS TXT record. The challenge is successful if a valid TXT record is found that uses any one of the provided domain names.
 
   Each string in the array MUST be a domain name that complies with the following normalization rules:
@@ -266,7 +266,7 @@ If one or more such records exist, the CA MUST evaluate them according to the re
 
 If no DNS TXT record meets the validation requirements, or if the records are absent, the CA MUST proceed with the standard authorization flow by returning a "pending" authorization with an associated `dns-persist-01` challenge object.
 
-CAs implementing Just-in-Time validation SHOULD apply the same rate-limiting to JIT DNS lookups as they apply to standard validation attempts. CAs MAY restrict JIT validation to accounts that have previously completed a successful `dns-persist-01` validation. CAs implementing Just-in-Time validation SHOULD provide account activity notifications or logging, as this path eliminates the challenge-response interaction that might otherwise provide a detection window for account compromise.
+CAs implementing Just-in-Time validation SHOULD rate-limit JIT DNS lookups per domain identifier, independent of the requesting account, to prevent amplification attacks where multiple accounts trigger excessive queries against a target domain. CAs SHOULD restrict JIT validation to accounts that have previously completed a successful `dns-persist-01` validation. CAs implementing Just-in-Time validation SHOULD provide account activity notifications or logging, as this path eliminates the challenge-response interaction that might otherwise provide a detection window for account compromise.
 
 This mechanism enables efficient reuse of persistent validation records while maintaining the security properties of the validation method.
 
@@ -275,11 +275,11 @@ This mechanism enables efficient reuse of persistent validation records while ma
 Domain owners MAY provision `_validation-persist` TXT records before any ACME interaction occurs. When constructing records without a challenge object, the following values MUST be used:
 
 - **accounturi**: The ACME account URL, as returned in the `Location` header of the account creation response ({{!RFC8555}}, Section 7.3).
-- **issuer-domain-name**: CAs SHOULD populate the `caaIdentities` field in their ACME directory metadata ({{!RFC8555}}, Section 9.7.6) with the same values they accept as `issuer-domain-name` in `dns-persist-01` records. Clients provisioning records without a challenge object SHOULD obtain the `issuer-domain-name` from the `caaIdentities` array in the ACME directory. If `caaIdentities` is unavailable, the `issuer-domain-name` MAY be obtained from the CA's Certificate Policy or Certification Practice Statement.
+- **issuer-domain-name**: Clients MAY use the `caaIdentities` array from the ACME directory metadata ({{!RFC8555}}, Section 9.7.6) as a hint for `issuer-domain-name` selection. CAs that populate `caaIdentities` SHOULD ensure these values are consistent with the `issuer-domain-name` values they accept in `dns-persist-01` records. If `caaIdentities` is unavailable, the `issuer-domain-name` MAY be obtained from the CA's Certificate Policy or Certification Practice Statement.
 
 Organizations pre-provisioning records SHOULD maintain an inventory of `_validation-persist` records and the ACME accounts they reference. Records SHOULD include a `persistUntil` parameter to bound their effective lifetime. Domain owners SHOULD audit `_validation-persist` records after any DNS infrastructure security incident, as pre-provisioned records persist beyond the window of compromise.
 
-If a CA changes its ACME server URL structure, pre-provisioned records containing the old account URL will no longer match. Domain owners should coordinate with their CA regarding account URL stability.
+CAs implementing `dns-persist-01` SHOULD maintain stable account URLs for the lifetime of the account and SHOULD document their account URL stability guarantees. If a CA must change its URL structure, it SHOULD provide a transition period during which both old and new account URLs are accepted for validation.
 
 ----
 
@@ -403,7 +403,7 @@ To enhance the security and integrity of the validation process, CAs and clients
 
 ### DNSSEC
 
-DNS Security Extensions (DNSSEC) provide cryptographic authentication of DNS data, ensuring that the validation records retrieved by a CA are authentic and have not been tampered with. To ensure the integrity of the validation process, DNSSEC signatures SHOULD be validated on `dns-persist-01` TXT records. If DNSSEC validation fails (e.g., expired signatures, broken chain of trust), the CA MUST treat the failure as a validation failure and MUST NOT use the record for domain validation.
+DNS Security Extensions (DNSSEC) provide cryptographic authentication of DNS data, ensuring that the validation records retrieved by a CA are authentic and have not been tampered with. To ensure the integrity of the validation process, DNSSEC signatures SHOULD be validated on `dns-persist-01` TXT records. If a CA performs DNSSEC validation, it MUST treat validation failure (e.g., expired signatures, broken chain of trust) as a challenge failure and MUST NOT use the record for domain validation. This requirement is stricter than the general DNSSEC guidance in {{!RFC8555}} because `dns-persist-01` records are long-lived and their compromise would persist for the record's lifetime.
 
 ### Multi-Perspective Validation
 
@@ -570,6 +570,7 @@ For validation of "example.com" by a CA using "authority.example" as its Issuer 
       "type": "dns-persist-01",
       "url": "https://ca.example/acme/authz/1234/0",
       "status": "pending",
+      "accounturi": "https://ca.example/acct/123",
       "issuer-domain-names": ["authority.example", "ca.example.net"]
     }
     ~~~
