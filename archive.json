@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-02-15T01:18:32.257806+00:00",
+  "timestamp": "2026-02-19T01:16:14.863897+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -1154,10 +1154,10 @@
       "labels": [],
       "body": "Added accounturi attribute to the challenge response object.\r\n\r\nChanges include:\r\n- Updated accounturi references to refer to the server provided accounturi rather than \"a valid account uri\"\r\n- Cleaned up accounturi references and examples.\r\n\r\n\r\n**Motivation**: This change eliminates ambiguity and improves interoperability of implementations. While ACME clients are aware of their account URI, explicitly providing this value in the challenge object removes any dependency on client-side URI construction or format assumptions. This approach makes the exact value the server expects in DNS explicit and ensures the challenge object is completely self-contained and driven by the server.",
       "createdAt": "2025-10-07T13:54:22Z",
-      "updatedAt": "2026-01-22T22:37:16Z",
+      "updatedAt": "2026-02-19T00:52:58Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
-      "baseRefOid": "a75dc2c1b050ac0dee87f28c80aa7093591bd4b3",
+      "baseRefOid": "3e531232f31c595068d8f4b3879cec5fff2ac20d",
       "headRepository": "slghtr-says/draft-sheurich-acme-dns-persist",
       "headRefName": "slghtr-dev",
       "headRefOid": "70f911b437f35f19d886a368b0867fdc8aa9a4fe",
@@ -1200,6 +1200,13 @@
           "body": "> Perhaps a middle ground could be to have the CA send one accounturi which the client knows it could use but put in some language about the CA possibly accepting other accounturi values so long as they appropriately authorize the requesting ACME account.\r\n\r\n@birgelee - Coming back to this conversation, I think I like this middle ground proposal more than my original proposal. The reason for that is that I feel this would provide the client some hinting with a default value (probably the ACME account unless configured by the CA to be something different) but at the same time add language that offers CAs some flexibility to accept other values to support other use cases such as External Account Binding scenarios or other enterprise use cases. Forcing all these values to be enumerated and sent back could be burdensome on both the server and the client and not really add much practical value. Especially if the provisioning of these persistent records would typically be handled by an entity other than the client as @sheurich alluded to. \r\n\r\nLet me know your thoughts and I'll be happy to update the language. ",
           "createdAt": "2026-01-22T22:27:39Z",
           "updatedAt": "2026-01-22T22:37:16Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@slghtr-says \u2014 I've opened #35 building on this work. It rebases onto main and addresses some coupling issues between the challenge object and DNS record validation. Details and rationale are in the PR description there.",
+          "createdAt": "2026-02-19T00:44:57Z",
+          "updatedAt": "2026-02-19T00:44:57Z"
         }
       ],
       "reviews": [
@@ -1271,6 +1278,40 @@
         "oid": "e7231528b50f331c7e68db0fc4a91d506de29069"
       },
       "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 35,
+      "id": "PR_kwDOO4VY2c7EwEef",
+      "title": "decouple accounturi validation from challenge object",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/35",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Builds on #30 by @slghtr-says. Rebased onto main with additional changes by @sheurich.\n\n### Summary\n\nPR #30 added `accounturi` to the challenge object. The changes here address a coupling issue: #30 defined `accounturi` validation in terms of the challenge object, but the challenge object does not exist in the JIT validation path or when records are pre-provisioned.\n\n### Changes\n\n**Decouple `accounturi` validation from the challenge object.** The DNS record requirement (\u00a74 item 3) now stands on its own: the `accounturi` MUST be the ACME account URL per RFC 8657 \u00a73, and the CA MUST verify it identifies the requesting account. No reference to the challenge object. Works for JIT, pre-provisioned, and standard challenge flows.\n\n**`accounturi` in the challenge object remains required.** The field provides the account URL for client convenience and consistency checks.\n\n**Pin `accounturi` to ACME account URL.** PR #30 included \"any other URI as determined by the CA\" as an alternative \u2014 this conflicts with RFC 8657 and breaks auditability, so it's removed.\n\n**Add `accounturi` comparison semantics.** Simple string comparison per RFC 3986 \u00a76.2.1, consistent with RFC 8657 \u00a73. Explicitly prohibit normalization, percent-decoding, and case-folding.\n\n**Add pre-provisioning guidance (new \u00a74.4).** How to construct records without a challenge object: use the ACME account URL from the `Location` header, obtain `issuer-domain-name` from `caaIdentities` as a hint (not normatively coupled). Operational guidance: maintain record inventory, use `persistUntil`, audit after DNS incidents. CAs SHOULD maintain stable account URLs and document their guarantees.\n\n**Add JIT rate-limiting and abuse guidance.** Per-domain rate limiting independent of requesting account. CAs SHOULD restrict JIT to accounts with prior successful `dns-persist-01` validation (trust-on-first-use). Account activity logging for the JIT path.\n\n**Fix DNSSEC failure semantics.** Resolved a SHOULD/MUST inconsistency: DNSSEC validation remains SHOULD, but if a CA performs it, failure MUST be treated as a challenge failure. Includes rationale for the stricter-than-RFC-8555 requirement.\n\n**Fix DNS caching caveat.** Revocation section previously said \"after the record is removed, new validation attempts will fail\" \u2014 misleading. Now says \"after the record is removed and resolver caches have expired.\"\n\n**Neutralize \u00a74 example prose.** Changed \"it might provision\" to \"the DNS TXT record would contain\" \u2014 removes assumption that the client provisions after receiving the challenge. Add `accounturi` to \u00a7Examples challenge objects for consistency.\n",
+      "createdAt": "2026-02-19T00:43:39Z",
+      "updatedAt": "2026-02-19T00:43:48Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "3e531232f31c595068d8f4b3879cec5fff2ac20d",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "sheurich/accounturi-review-v2",
+      "headRefOid": "7430c076e66f130fdbfbe54f8c027e451716cb92",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@slghtr-says @birgelee \u2014 This PR builds on Michael's #30 with changes from my review. Here's what I changed and why.\n\n### The main fix\n\nPR #30 defined DNS record validation in terms of the challenge object (\"MUST match the `accounturi` provided by the CA in the challenge object\"). This breaks for JIT validation (no challenge object exists) and pre-provisioned records. The DNS record requirement now stands on its own \u2014 the `accounturi` MUST be the ACME account URL, verified by the CA against the requesting account. The challenge object provides the same value for client convenience.\n\n### Other changes\n\n**Removed \"any other URI as determined by the CA.\"** This conflicts with RFC 8657 \u00a73, which defines `accounturi` specifically as the ACME account URL. If future use cases (EAB, sub-accounts) need alternative identifiers, they'll need normative definition in a separate section. @slghtr-says \u2014 this touches on the flexibility discussion from your earlier conversation with @birgelee. I think the right path is to handle those use cases explicitly if and when they materialize, rather than an open-ended escape hatch.\n\n**Added comparison semantics.** Simple string comparison per RFC 3986 \u00a76.2.1, matching RFC 8657's own comparison rule. No normalization, no percent-decoding.\n\n**New pre-provisioning section.** Documents how to construct records without a challenge object \u2014 account URL from the `Location` header, `issuer-domain-name` from `caaIdentities` (as a hint, not normatively coupled). Operational guidance on record inventory, `persistUntil`, post-incident audit.\n\n**JIT hardening.** Per-domain rate limiting (not just per-account), trust-on-first-use for JIT eligibility, account activity logging.\n\n**DNSSEC fix.** The draft says DNSSEC validation \"SHOULD\" be performed. Adding an unconditional MUST-on-failure created a contradiction. Now conditional: if a CA validates DNSSEC, failure MUST be treated as a challenge failure.\n\n**Account URL stability.** CAs SHOULD maintain stable account URLs and document their guarantees. If they must change URL structure, they SHOULD provide a transition period.\n",
+          "createdAt": "2026-02-19T00:43:48Z",
+          "updatedAt": "2026-02-19T00:43:48Z"
+        }
+      ],
       "reviews": []
     }
   ]
