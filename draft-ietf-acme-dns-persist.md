@@ -164,7 +164,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
     CAs MUST accept the URI of the ACME account object ({{!RFC8555}}, Section 7.3) as a valid `accounturi` value. CAs MAY also accept other URIs, provided each such URI uniquely and permanently identifies a single ACME account and satisfies the uniqueness requirements of {{!RFC8657}}, Section 5.4. CAs MUST NOT reassign a URI to a different account. When an ACME account is deactivated, CAs MUST treat all URIs associated with that account as invalid for validation purposes. The CA MUST verify that the URI in the DNS record identifies the ACME account making the request; if it does not, the CA MUST reject the record. In the absence of more specific comparison rules, implementations MUST use Simple String Comparison as defined in {{!RFC3986}}, Section 6.2.1.
 
-4.  The issue-value MAY contain a `policy` parameter. If present, this parameter modifies the validation scope. The `policy` parameter follows the 'tag=value' syntax from {{!RFC8659}}. Implementations MUST treat the parameter's 'tag' and its defined values as case-insensitive.
+4.  The issue-value MAY contain a `policy` parameter. If present, this parameter modifies the validation scope. The `policy` parameter follows the 'tag=value' syntax from {{!RFC8659}}. Comparison of the values defined for this parameter MUST be case-insensitive (e.g., "WILDCARD" and "wildcard" are equivalent).
 
     Note: The requirement to ignore unrecognized parameters (item 1) ensures forward compatibility, allowing future extensions without breaking existing implementations, consistent with ACME's extensibility model ({{!RFC8555}}). The explicit case-insensitivity requirement is necessary to ensure consistent behavior across implementations; without it, some CAs might reject unknown parameter values, preventing protocol evolution.
 
@@ -175,6 +175,12 @@ The RDATA of this TXT record MUST fulfill the following requirements:
     If the `policy` parameter is absent, or if its value is anything other than `wildcard`, the CA MUST proceed as if the `policy` parameter were not present (i.e., the validation applies only to the specific FQDN).
 
 5.  The issue-value MAY contain a `persistUntil` parameter. If present, the value MUST be a base-10 encoded integer representing a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds). If the value is not a valid base-10 integer, the CA MUST treat the record as malformed and reject it. CAs MUST NOT consider this validation record valid for new validation attempts after the specified timestamp. However, this does not affect the reuse of already-validated data.
+
+{{!RFC8659}}, Section 4.1, requires parameter tags to be matched case-insensitively but does not define case-handling rules for parameter values. This specification defines the following rules:
+
+- `accounturi`: The value is a URI. Implementations MUST compare `accounturi` values using Simple String Comparison per {{!RFC3986}}, Section 6.2.1. Because URI path components are case-sensitive ({{!RFC3986}}, Section 6.2.2.1), implementations MUST NOT case-fold `accounturi` values.
+- `policy`: The value is a keyword defined by this specification. Implementations MUST compare `policy` values case-insensitively, since DNS TXT records are often provisioned manually or by tools that may not preserve case.
+- `persistUntil`: The value is a base-10 integer. Case does not apply.
 
 For example, for validation of the FQDN "example.com" with issuer domain name "authority.example" and account URI "https://ca.example/acct/123", the DNS TXT record would contain:
 
