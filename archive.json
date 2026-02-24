@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-02-22T01:15:15.077873+00:00",
+  "timestamp": "2026-02-24T01:13:18.824736+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -716,6 +716,37 @@
       "updatedAt": "2026-02-13T20:41:30Z",
       "closedAt": null,
       "comments": []
+    },
+    {
+      "number": 37,
+      "id": "I_kwDOO4VY2c7s9-Zg",
+      "title": "Nested subdomain validation risks",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/37",
+      "state": "OPEN",
+      "author": "rmbolger",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "I've read through [section 7.3](https://www.ietf.org/archive/id/draft-ietf-acme-dns-persist-00.html#section-7.3) regarding the risks of subdomain validation particularly based on the example in [section 6.3](https://www.ietf.org/archive/id/draft-ietf-acme-dns-persist-00.html#section-6.3) where\n\n> For a persistent TXT record provisioned at _validation-persist.example.com with policy=wildcard: - Permitted: example.com, www.example.com, app.example.com, server.dept.example.com, *.example.com - Not permitted without additional validation: otherexample.com, example.net\n\nBut wouldn't this also technically apply at higher levels of the DNS hierarchy as well? For example, could TLD operators of `.com` (or even root nameservers) create a wildcard enabled `_validation-persist.com` and effectively be able to issue certificates for the entire TLD namespace assuming no CAA records further down prevent it?\n\nAnd now that I'm thinking about it, is there anything stopping a TLD operator today from creating `_acme-challenge.com` to get a `*.com` wildcard cert valid for any of the domains it has sold?\n\nI have to be forgetting something dumb and obvious about how DNS works such that this isn't possible, right? Or have TLDs and roots effectively been running on the honor system?",
+      "createdAt": "2026-02-22T23:25:27Z",
+      "updatedAt": "2026-02-23T15:45:23Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "kalfeher",
+          "authorAssociation": "NONE",
+          "body": "IANA, the root operator is limited by policy from inserting any records it wants. Generic TLDs are limited to delegation only zones by contract with ICANN. Country code TLDs do not have these restrictions. I don't think this draft makes the risk of a ccTLD operator inserting malicious DNS entries into its zone any greater than it currently is. Limiting the level at which a CA will allow a client to demonstrate control should probably be addressed by a CAB/Forum policy.",
+          "createdAt": "2026-02-23T09:24:03Z",
+          "updatedAt": "2026-02-23T09:24:03Z"
+        },
+        {
+          "author": "rmbolger",
+          "authorAssociation": "NONE",
+          "body": "> I don't think this draft makes the risk of a ccTLD operator inserting malicious DNS entries into its zone any greater than it currently is.\n\nNo, but the nested validation definitely increases the surface area of opportunity. And there's a much larger reward for malicious actors being able to MiTM something like `cdnjs.cloudflare.com` over just `cloudflare.com` or any of the many Linux distro mirrors that live in ccTLD subdomains. It might even be hard to recognize a problem via CT if the original cert and the malicious cert are obtained from the same CA.\n\nDon't get me wrong, I love the idea from a technical standpoint. I just worry about the surveillance and supply-chain risks from current/future governments and well-funded malicious actors with an increased reward payoff. It feels like a \"this is why we can't have nice things\" sort of situation.\n\n> Limiting the level at which a CA will allow a client to demonstrate control should probably be addressed by a CAB/Forum policy.\n\nThat seems like a good idea.",
+          "createdAt": "2026-02-23T15:45:22Z",
+          "updatedAt": "2026-02-23T15:45:22Z"
+        }
+      ]
     }
   ],
   "pulls": [
