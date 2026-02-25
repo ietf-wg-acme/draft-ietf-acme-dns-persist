@@ -176,10 +176,10 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
 5.  The issue-value MAY contain a `persistUntil` parameter. If present, the value MUST be a base-10 encoded integer representing a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds). If the value is not a valid base-10 integer, the CA MUST treat the record as malformed and reject it. CAs MUST NOT consider this validation record valid for new validation attempts after the specified timestamp. However, this does not affect the reuse of already-validated data.
 
-{{!RFC8659}}, Section 4.1, requires parameter tags to be matched case-insensitively but does not define case-handling rules for parameter values. This specification defines the following rules:
+This specification defines the following case-handling rules for parameter values in dns-persist-01 records:
 
-- `accounturi`: The value is a URI. Implementations MUST compare `accounturi` values using Simple String Comparison per {{!RFC3986}}, Section 6.2.1. Because URI path components are case-sensitive ({{!RFC3986}}, Section 6.2.2.1), implementations MUST NOT case-fold `accounturi` values.
-- `policy`: The value is a keyword defined by this specification. Implementations MUST compare `policy` values case-insensitively, since DNS TXT records are often provisioned manually or by tools that may not preserve case.
+- `accounturi`: The value is a URI. Implementations MUST compare `accounturi` values using Simple String Comparison per {{!RFC3986}}, Section 6.2.1, with no case-folding or other normalization.
+- `policy`: Case-insensitive, as specified in item 4 above.
 - `persistUntil`: The value is a base-10 integer. Case does not apply.
 
 For example, for validation of the FQDN "example.com" with issuer domain name "authority.example" and account URI "https://ca.example/acct/123", the DNS TXT record would contain:
