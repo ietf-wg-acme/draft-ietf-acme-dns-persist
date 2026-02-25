@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 23 August 2026                            Crosslayer Labs, Inc.
+Expires: 29 August 2026                            Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                        19 February 2026
+                                                        25 February 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -63,7 +63,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 23 August 2026.
+   This Internet-Draft will expire on 29 August 2026.
 
 Copyright Notice
 
@@ -104,6 +104,7 @@ Table of Contents
      7.1.  Persistent Record Risks
      7.2.  Account Binding Security
        7.2.1.  Account Key Rotation
+       7.2.2.  Account URI Privacy
      7.3.  Subdomain Validation Risks
      7.4.  Cross-CA Validation Reuse
      7.5.  Record Tampering and Integrity
@@ -265,9 +266,13 @@ Table of Contents
 
    *  *status* (required, string): The status of this challenge
 
-   *  *accounturi* (required, string): The ACME account URL for the
+   *  *accounturi* (required, string): A URI identifying the ACME
       account requesting validation, as defined in [RFC8657], Section 3.
-      Clients SHOULD verify this value matches their known account URL.
+      This is the URI the CA expects in the DNS record; it is the sole
+      mechanism by which the CA communicates the expected value to the
+      client.  Clients that pre-provisioned a record using their ACME
+      account URL ([RFC8555], Section 7.3) SHOULD verify the value
+      identifies the same account.
 
    *  *issuer-domain-names* (required, array of strings): A list of one
       or more Issuer Domain Names.  The client MUST choose one of these
@@ -327,14 +332,19 @@ Table of Contents
        the Issuer Domain Names provided by the CA in the issuer-domain-
        names array of the challenge object.
 
-   3.  The issue-value MUST contain an accounturi parameter.  The value
-       of this parameter MUST be the ACME account URL of the account
-       requesting validation, as defined in [RFC8657], Section 3.  The
-       CA MUST verify that this URI identifies the ACME account making
-       the request.  When comparing accounturi values, implementations
-       MUST use simple string comparison as defined in [RFC3986],
-       Section 6.2.1, and MUST NOT perform URI normalization, percent-
-       decoding, or case-folding before comparison.
+   3.  The issue-value MUST contain an accounturi parameter whose value
+       is a URI that identifies the ACME account requesting validation.
+
+       CAs MUST accept the URI of the ACME account object ([RFC8555],
+       Section 7.3) as a valid accounturi value.  CAs MAY also accept
+       other URIs, provided each such URI uniquely and permanently
+       identifies a single ACME account and satisfies the uniqueness
+       requirements of [RFC8657], Section 5.4.  CAs MUST NOT reassign a
+       URI to a different account.  When an ACME account is deactivated,
+       CAs MUST treat all URIs associated with that account as invalid
+       for validation purposes.  The CA MUST verify that the URI in the
+       DNS record identifies the ACME account making the request.
+       Comparison rules for accounturi values are specified below.
 
    4.  The issue-value MAY contain a policy parameter.  If present, this
        parameter modifies the validation scope.  The policy parameter
@@ -555,11 +565,11 @@ Table of Contents
    records after any DNS infrastructure security incident, as pre-
    provisioned records persist beyond the window of compromise.
 
-   CAs implementing dns-persist-01 SHOULD maintain stable account URLs
-   for the lifetime of the account and SHOULD document their account URL
-   stability guarantees.  If a CA must change its URL structure, it
-   SHOULD provide a transition period during which both old and new
-   account URLs are accepted for validation.
+   CAs implementing dns-persist-01 SHOULD maintain stable account URIs
+   for the lifetime of the account and SHOULD document their URI
+   stability guarantees.  If a CA must change its URI structure, it
+   SHOULD provide a transition period during which both old and new URIs
+   are accepted for validation.
 
 
 5.  Wildcard and Subdomain Certificate Validation
@@ -703,6 +713,30 @@ Table of Contents
    Section 7.3.5, the accounturi remains unchanged.  Therefore, existing
    DNS TXT records containing the accounturi parameter do not require
    modification when performing account key rotations.
+
+7.2.2.  Account URI Privacy
+
+   Because _validation-persist TXT records are publicly queryable and
+   long-lived, the accounturi value is visible to any party that queries
+   DNS.  When the same URI appears in records for multiple domains,
+   third parties can infer that those domains share the same ACME
+   account and likely share infrastructure.  This correlation risk is
+   noted in [RFC8657], Section 5.9.
+
+   CAs that accept alternative URIs (see item 3 of Section 4) can
+   mitigate this risk by issuing distinct URIs for each domain or group
+   of domains.  Such URIs SHOULD be opaque and not easily enumerable.
+   CAs MUST protect the integrity of any URI-to-account mapping with the
+   same controls applied to other validation infrastructure.  CAs that
+   accept alternative URIs SHOULD document their URI issuance and
+   lifecycle policies in their Certificate Policy or Certification
+   Practice Statement.
+
+   Domain owners who require privacy without CA cooperation can use
+   separate ACME accounts for domains that should not be correlated.
+   Domain owners and auditors who require independent verifiability
+   SHOULD use the ACME account URL directly, since third parties cannot
+   independently determine which account is bound to an alternative URI.
 
 7.3.  Subdomain Validation Risks
 
@@ -1039,8 +1073,8 @@ Table of Contents
    *  CAs SHOULD return an unauthorized error (as defined in [RFC8555])
       when validation fails due to authorization issues, including:
 
-      -  The accounturi parameter in the DNS TXT record does not match
-         the URI of the ACME account making the request
+      -  The accounturi parameter in the DNS TXT record does not
+         identify the ACME account making the request
 
       -  The persistUntil timestamp has expired, indicating that the
          validation record is no longer considered valid for new
@@ -1220,11 +1254,6 @@ Table of Contents
               Applications (IDNA): Definitions and Document Framework",
               RFC 5890, DOI 10.17487/RFC5890, August 2010,
               <https://www.rfc-editor.org/info/rfc5890>.
-
-   [RFC3986]  Berners-Lee, T., Fielding, R., and L. Masinter, "Uniform
-              Resource Identifier (URI): Generic Syntax", STD 66,
-              RFC 3986, DOI 10.17487/RFC3986, January 2005,
-              <https://www.rfc-editor.org/info/rfc3986>.
 
    [RFC1035]  Mockapetris, P., "Domain names - implementation and
               specification", STD 13, RFC 1035, DOI 10.17487/RFC1035,
