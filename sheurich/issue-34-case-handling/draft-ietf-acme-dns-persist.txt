@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 23 August 2026                            Crosslayer Labs, Inc.
+Expires: 29 August 2026                            Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                        19 February 2026
+                                                        25 February 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -63,7 +63,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 23 August 2026.
+   This Internet-Draft will expire on 29 August 2026.
 
 Copyright Notice
 
@@ -362,28 +362,21 @@ Table of Contents
        after the specified timestamp.  However, this does not affect the
        reuse of already-validated data.
 
-   [RFC8659], Section 4.1, requires parameter tags to be matched case-
-   insensitively but does not define case-handling rules for parameter
-   values.  This specification defines the following rules:
+   This specification defines the following case-handling rules for
+   parameter values in dns-persist-01 records:
 
    *  accounturi: The value is a URI.  Implementations MUST compare
       accounturi values using Simple String Comparison per [RFC3986],
-      Section 6.2.1.  Because URI path components are case-sensitive
-      ([RFC3986], Section 6.2.2.1), implementations MUST NOT case-fold
-      accounturi values.
+      Section 6.2.1, with no case-folding or other normalization.
 
-   *  policy: The value is a keyword defined by this specification.
-      Implementations MUST compare policy values case-insensitively,
-      since DNS TXT records are often provisioned manually or by tools
-      that may not preserve case.
+   *  policy: Case-insensitive, as specified in item 4 above.
 
    *  persistUntil: The value is a base-10 integer.  Case does not
       apply.
 
-   For example, if the ACME client is requesting validation for the FQDN
-   "example.com" from a CA that uses "authority.example" as its Issuer
-   Domain Name, and the client's account URI is "https://ca.example/
-   acct/123", it might provision:
+   For example, for validation of the FQDN "example.com" with issuer
+   domain name "authority.example" and account URI "https://ca.example/
+   acct/123", the DNS TXT record would contain:
 
    _validation-persist.example.com. IN TXT ("authority.example;"
    " accounturi=https://ca.example/acct/123")
