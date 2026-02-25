@@ -131,7 +131,7 @@ The challenge object for "dns-persist-01" contains the following fields:
 - **type** (required, string): The string "dns-persist-01"
 - **url** (required, string): The URL to which a response can be posted
 - **status** (required, string): The status of this challenge
-- **accounturi** (required, string): A URI identifying the ACME account requesting validation, as defined in {{!RFC8657}}, Section 3. This is the URI the CA expects in the DNS record; it is the sole mechanism by which the CA communicates the expected value to the client. Clients that pre-provisioned a record using their ACME account URL ({{!RFC8555}}, Section 7.3) SHOULD verify the value identifies the same account.
+- **accounturi** (required, string): A URI identifying the ACME account requesting validation, as defined in {{!RFC8657}}, Section 3. This is the URI the CA expects in the DNS record and the mechanism by which the CA communicates alternative URIs to the client. Clients that pre-provisioned a record using their ACME account URL ({{!RFC8555}}, Section 7.3) SHOULD verify the value identifies the same account.
 - **issuer-domain-names** (required, array of strings): A list of one or more Issuer Domain Names. The client MUST choose one of these domain names to include in the DNS TXT record. The challenge is successful if a valid TXT record is found that uses any one of the provided domain names.
 
   Each string in the array MUST be a domain name that complies with the following normalization rules:
@@ -171,7 +171,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
 3.  The issue-value MUST contain an `accounturi` parameter whose value is a URI that identifies the ACME account requesting validation.
 
-    CAs MUST accept the URI of the ACME account object ({{!RFC8555}}, Section 7.3) as a valid `accounturi` value. CAs MAY also accept other URIs, provided each such URI uniquely and permanently identifies a single ACME account and satisfies the uniqueness requirements of {{!RFC8657}}, Section 5.4. CAs MUST NOT reassign a URI to a different account. When an ACME account is deactivated, CAs MUST treat all URIs associated with that account as invalid for validation purposes. The CA MUST verify that the URI in the DNS record identifies the ACME account making the request. Comparison rules for `accounturi` values are specified below.
+    CAs MUST accept the URI of the ACME account object ({{!RFC8555}}, Section 7.3) as a valid `accounturi` value. CAs MAY also accept other URIs, provided each such URI uniquely and permanently identifies a single ACME account and satisfies the uniqueness requirements of {{!RFC8657}}, Section 5.4. CAs MUST NOT reassign a URI to a different account. When an ACME account is deactivated, CAs MUST treat all URIs associated with that account as invalid for validation purposes. The CA MUST verify that the URI in the DNS record identifies the ACME account making the request. In the absence of more specific comparison rules, implementations MUST use Simple String Comparison as defined in {{!RFC3986}}, Section 6.2.1.
 
 4.  The issue-value MAY contain a `policy` parameter. If present, this parameter modifies the validation scope. The `policy` parameter follows the 'tag=value' syntax from {{!RFC8659}}. The parameter's 'tag' and its defined values MUST be treated as case-insensitive.
 
