@@ -268,11 +268,11 @@ Table of Contents
 
    *  *accounturi* (required, string): A URI identifying the ACME
       account requesting validation, as defined in [RFC8657], Section 3.
-      This is the URI the CA expects in the DNS record; it is the sole
-      mechanism by which the CA communicates the expected value to the
-      client.  Clients that pre-provisioned a record using their ACME
-      account URL ([RFC8555], Section 7.3) SHOULD verify the value
-      identifies the same account.
+      This is the URI the CA expects in the DNS record and the mechanism
+      by which the CA communicates alternative URIs to the client.
+      Clients that pre-provisioned a record using their ACME account URL
+      ([RFC8555], Section 7.3) SHOULD verify the value identifies the
+      same account.
 
    *  *issuer-domain-names* (required, array of strings): A list of one
       or more Issuer Domain Names.  The client MUST choose one of these
@@ -343,8 +343,10 @@ Table of Contents
        URI to a different account.  When an ACME account is deactivated,
        CAs MUST treat all URIs associated with that account as invalid
        for validation purposes.  The CA MUST verify that the URI in the
-       DNS record identifies the ACME account making the request.
-       Comparison rules for accounturi values are specified below.
+       DNS record identifies the ACME account making the request.  In
+       the absence of more specific comparison rules, implementations
+       MUST use Simple String Comparison as defined in [RFC3986],
+       Section 6.2.1.
 
    4.  The issue-value MAY contain a policy parameter.  If present, this
        parameter modifies the validation scope.  The policy parameter
@@ -1254,6 +1256,11 @@ Table of Contents
               Applications (IDNA): Definitions and Document Framework",
               RFC 5890, DOI 10.17487/RFC5890, August 2010,
               <https://www.rfc-editor.org/info/rfc5890>.
+
+   [RFC3986]  Berners-Lee, T., Fielding, R., and L. Masinter, "Uniform
+              Resource Identifier (URI): Generic Syntax", STD 66,
+              RFC 3986, DOI 10.17487/RFC3986, January 2005,
+              <https://www.rfc-editor.org/info/rfc3986>.
 
    [RFC1035]  Mockapetris, P., "Domain names - implementation and
               specification", STD 13, RFC 1035, DOI 10.17487/RFC1035,
