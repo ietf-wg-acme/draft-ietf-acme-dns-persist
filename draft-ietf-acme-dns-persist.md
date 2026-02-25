@@ -131,7 +131,7 @@ The challenge object for "dns-persist-01" contains the following fields:
 - **type** (required, string): The string "dns-persist-01"
 - **url** (required, string): The URL to which a response can be posted
 - **status** (required, string): The status of this challenge
-- **accounturi** (required, string): The ACME account URL for the account requesting validation, as defined in {{!RFC8657}}, Section 3. Clients SHOULD verify this value matches their known account URL.
+- **accounturi** (required, string): A URI identifying the ACME account requesting validation, as defined in {{!RFC8657}}, Section 3. This is the URI the CA expects in the DNS record; it is the sole mechanism by which the CA communicates the expected value to the client. Clients that pre-provisioned a record using their ACME account URL ({{!RFC8555}}, Section 7.3) SHOULD verify the value identifies the same account.
 - **issuer-domain-names** (required, array of strings): A list of one or more Issuer Domain Names. The client MUST choose one of these domain names to include in the DNS TXT record. The challenge is successful if a valid TXT record is found that uses any one of the provided domain names.
 
   Each string in the array MUST be a domain name that complies with the following normalization rules:
@@ -169,7 +169,9 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
 2.  The `issuer-domain-name` portion of the issue-value MUST be one of the Issuer Domain Names provided by the CA in the `issuer-domain-names` array of the challenge object.
 
-3.  The issue-value MUST contain an `accounturi` parameter. The value of this parameter MUST be the ACME account URL of the account requesting validation, as defined in {{!RFC8657}}, Section 3. The CA MUST verify that this URI identifies the ACME account making the request. When comparing `accounturi` values, implementations MUST use simple string comparison as defined in {{!RFC3986}}, Section 6.2.1, and MUST NOT perform URI normalization, percent-decoding, or case-folding before comparison.
+3.  The issue-value MUST contain an `accounturi` parameter whose value is a URI that identifies the ACME account requesting validation.
+
+    CAs MUST accept the URI of the ACME account object ({{!RFC8555}}, Section 7.3) as a valid `accounturi` value. CAs MAY also accept other URIs, provided each such URI uniquely and permanently identifies a single ACME account and satisfies the uniqueness requirements of {{!RFC8657}}, Section 5.4. CAs MUST NOT reassign a URI to a different account. When an ACME account is deactivated, CAs MUST treat all URIs associated with that account as invalid for validation purposes. The CA MUST verify that the URI in the DNS record identifies the ACME account making the request. Comparison rules for `accounturi` values are specified below.
 
 4.  The issue-value MAY contain a `policy` parameter. If present, this parameter modifies the validation scope. The `policy` parameter follows the 'tag=value' syntax from {{!RFC8659}}. The parameter's 'tag' and its defined values MUST be treated as case-insensitive.
 
@@ -279,7 +281,7 @@ Domain owners MAY provision `_validation-persist` TXT records before any ACME in
 
 Organizations pre-provisioning records SHOULD maintain an inventory of `_validation-persist` records and the ACME accounts they reference. Records SHOULD include a `persistUntil` parameter to bound their effective lifetime. Domain owners SHOULD audit `_validation-persist` records after any DNS infrastructure security incident, as pre-provisioned records persist beyond the window of compromise.
 
-CAs implementing `dns-persist-01` SHOULD maintain stable account URLs for the lifetime of the account and SHOULD document their account URL stability guarantees. If a CA must change its URL structure, it SHOULD provide a transition period during which both old and new account URLs are accepted for validation.
+CAs implementing `dns-persist-01` SHOULD maintain stable account URIs for the lifetime of the account and SHOULD document their URI stability guarantees. If a CA must change its URI structure, it SHOULD provide a transition period during which both old and new URIs are accepted for validation.
 
 ----
 
@@ -361,6 +363,14 @@ Clients SHOULD protect their ACME account keys with the same level of security a
 ### Account Key Rotation
 
 The `accounturi` parameter is a stable identifier for the ACME account that persists across key rotations. When a client rotates their account key following the procedures defined in {{!RFC8555}}, Section 7.3.5, the `accounturi` remains unchanged. Therefore, existing DNS TXT records containing the `accounturi` parameter do not require modification when performing account key rotations.
+
+### Account URI Privacy {#account-uri-privacy}
+
+Because `_validation-persist` TXT records are publicly queryable and long-lived, the `accounturi` value is visible to any party that queries DNS. When the same URI appears in records for multiple domains, third parties can infer that those domains share the same ACME account and likely share infrastructure. This correlation risk is noted in {{!RFC8657}}, Section 5.9.
+
+CAs that accept alternative URIs (see item 3 of {{challenge-response-and-verification}}) can mitigate this risk by issuing distinct URIs for each domain or group of domains. Such URIs SHOULD be opaque and not easily enumerable. CAs MUST protect the integrity of any URI-to-account mapping with the same controls applied to other validation infrastructure. CAs that accept alternative URIs SHOULD document their URI issuance and lifecycle policies in their Certificate Policy or Certification Practice Statement.
+
+Domain owners who require privacy without CA cooperation can use separate ACME accounts for domains that should not be correlated. Domain owners and auditors who require independent verifiability SHOULD use the ACME account URL directly, since third parties cannot independently determine which account is bound to an alternative URI.
 
 ## Subdomain Validation Risks {#subdomain-validation-risks}
 
@@ -528,7 +538,7 @@ When implementing the "dns-persist-01" validation method, Certificate Authoritie
 - CAs SHOULD return a `malformed` error (as defined in {{!RFC8555}}) when the TXT record has invalid syntax, such as duplicate parameters, invalid timestamp format in the `persistUntil` parameter, missing mandatory `accounturi` parameter, or other syntactic violations of the record format specified in this document.
 
 - CAs SHOULD return an `unauthorized` error (as defined in {{!RFC8555}}) when validation fails due to authorization issues, including:
-   - The `accounturi` parameter in the DNS TXT record does not match the URI of the ACME account making the request
+   - The `accounturi` parameter in the DNS TXT record does not identify the ACME account making the request
    - The `persistUntil` timestamp has expired, indicating that the validation record is no longer considered valid for new validation attempts
    - The `issuer-domain-name` in the DNS TXT record does not match any of the values provided in the `issuer-domain-names` array of the challenge object
 
