@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-02-24T01:13:18.824736+00:00",
+  "timestamp": "2026-02-26T01:11:49.361869+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -697,9 +697,17 @@
       "labels": [],
       "body": "Subdomain Validation is a cool concept, and one that I'm happy dns-persist is supporting. In the terms of the Baseline Requirements, this is equivalent to selecting an Authorization Domain Name by pruning labels from the left-hand side of the FQDN, and then performing validation at that ADN.\n\nHowever, ACME does not have good support for selecting ADNs. Traditional CAs, or CAs which use External Account Binding, might have ways for Applicants to indicate to the Server that they want to use a particular ADN for all of their validation. But plain ACME CAs without EAB would have no way to know whether the Applicant wants to validate at `server.dept.example.com`, at `dept.example.com`, or at `example.com`. I'm not a fan of the server having to fan out a bunch of prospective queries to see what layer of the DNS hierarchy the Applicant has placed their dns-persist record at.\n\nSo it would be great if there was a way for the Applicant to proactively indicate to the CA that they want to take advantage of Subdomain Validation. My proposal would be that the ACME client can include an ADN in their POST request to the Challenge URL. The CA would then check that the supplied URL is a valid ADN for the Authorization, and if it is, perform validation at that URL instead. And of course, as already described by the document, ensure that `policy=wildcard` is set.\n\n-----\n\ni.e. if we have an authorization that looks like this:\n```\n   HTTP/1.1 200 OK\n   Content-Type: application/json\n   Link: <https://acme.ca/directory>;rel=\"index\"\n\n   {\n     \"status\": \"pending\",\n     \"expires\": \"2026-02-01T14:09:30Z\",\n\n     \"identifier\": {\n       \"type\": \"dns\",\n       \"value\": \"admin.blog.example.com\"\n     },\n\n     \"challenges\": [\n       {\n         \"type\": \"http-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/http-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n       {\n         \"type\": \"tls-alpn-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/tls-alpn-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n       {\n         \"type\": \"dns-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/dns-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n       {\n         \"type\": \"dns-persist-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/dns-persist-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n     ]\n   }\n```\n\nThen a client might post this to the challenge url:\n```\n   POST /chall/PAniVnsZcis/dns-persist-01\n   Host: acme.ca\n   Content-Type: application/jose+json\n\n   {\n     \"protected\": base64url({\n       \"alg\": \"ES256\",\n       \"kid\": \"https://acme.ca/acct/evOfKhNU60wg\",\n       \"nonce\": \"UQI1PoRi5OuXzxuX7V7wL0\",\n       \"url\": \"https://acme.ca/chall/PAniVnsZcis/dns-persist-01\"\n     }),\n     \"payload\": base64url({\n       \"adn\": \"example.com\"\n     }),\n     \"signature\": \"Q1bURgJoEslbD1c5...3pYdSMLio57mQNN4\"\n   }\n```\n\nWhere the `\"adn\": \"example.com\"` is the important/new part. The CA would confirm that `example.com` is a valid ADN for `admin.blog.example.com`, and then conduct the dns-persist-01 validation at `example.com` and ensure that the record contains the `policy=wildcard` modifier.",
       "createdAt": "2026-01-12T20:04:36Z",
-      "updatedAt": "2026-01-12T20:05:43Z",
+      "updatedAt": "2026-02-24T23:31:12Z",
       "closedAt": null,
-      "comments": []
+      "comments": [
+        {
+          "author": "aarongable",
+          "authorAssociation": "NONE",
+          "body": "We've got someone on the Let's Encrypt community forum [asking about this](https://community.letsencrypt.org/t/dns-persist-01-wildcard-authorisation-depth/245526), so we should definitely make a decision on whether and how to tackle it.",
+          "createdAt": "2026-02-24T23:31:12Z",
+          "updatedAt": "2026-02-24T23:31:12Z"
+        }
+      ]
     },
     {
       "number": 34,
@@ -729,7 +737,7 @@
       "labels": [],
       "body": "I've read through [section 7.3](https://www.ietf.org/archive/id/draft-ietf-acme-dns-persist-00.html#section-7.3) regarding the risks of subdomain validation particularly based on the example in [section 6.3](https://www.ietf.org/archive/id/draft-ietf-acme-dns-persist-00.html#section-6.3) where\n\n> For a persistent TXT record provisioned at _validation-persist.example.com with policy=wildcard: - Permitted: example.com, www.example.com, app.example.com, server.dept.example.com, *.example.com - Not permitted without additional validation: otherexample.com, example.net\n\nBut wouldn't this also technically apply at higher levels of the DNS hierarchy as well? For example, could TLD operators of `.com` (or even root nameservers) create a wildcard enabled `_validation-persist.com` and effectively be able to issue certificates for the entire TLD namespace assuming no CAA records further down prevent it?\n\nAnd now that I'm thinking about it, is there anything stopping a TLD operator today from creating `_acme-challenge.com` to get a `*.com` wildcard cert valid for any of the domains it has sold?\n\nI have to be forgetting something dumb and obvious about how DNS works such that this isn't possible, right? Or have TLDs and roots effectively been running on the honor system?",
       "createdAt": "2026-02-22T23:25:27Z",
-      "updatedAt": "2026-02-23T15:45:23Z",
+      "updatedAt": "2026-02-25T19:03:53Z",
       "closedAt": null,
       "comments": [
         {
@@ -745,6 +753,27 @@
           "body": "> I don't think this draft makes the risk of a ccTLD operator inserting malicious DNS entries into its zone any greater than it currently is.\n\nNo, but the nested validation definitely increases the surface area of opportunity. And there's a much larger reward for malicious actors being able to MiTM something like `cdnjs.cloudflare.com` over just `cloudflare.com` or any of the many Linux distro mirrors that live in ccTLD subdomains. It might even be hard to recognize a problem via CT if the original cert and the malicious cert are obtained from the same CA.\n\nDon't get me wrong, I love the idea from a technical standpoint. I just worry about the surveillance and supply-chain risks from current/future governments and well-funded malicious actors with an increased reward payoff. It feels like a \"this is why we can't have nice things\" sort of situation.\n\n> Limiting the level at which a CA will allow a client to demonstrate control should probably be addressed by a CAB/Forum policy.\n\nThat seems like a good idea.",
           "createdAt": "2026-02-23T15:45:22Z",
           "updatedAt": "2026-02-23T15:45:22Z"
+        },
+        {
+          "author": "aarongable",
+          "authorAssociation": "NONE",
+          "body": "> But wouldn't this also technically apply at higher levels of the DNS hierarchy as well? For example, could TLD operators of `.com` (or even root nameservers) create a wildcard enabled `_validation-persist.com` and effectively be able to issue certificates for the entire TLD namespace assuming no CAA records further down prevent it?\n\nNote that the Baseline Requirements do not allow issuing certs for or performing validation at `.com`. When deriving an ADN, you can only prune labels up to the Base Domain Name, which is an eTLD+1 like `example.com`.\n\nThat said, the rest of this hypothetical is already possible today, just with the BRs definition of an Authorization Domain Name and validation method 3.2.2.4.7 DNS Change. The operator of `myhost.com` can absolutely get certs for literally any subdomain, no matter how deeply nested, simply by negotiating with their CA to use `myhost.com` as the ADN for such issuance. And this is appropriate, because they _do_ control that zone. No matter how much they've delegated, they can undo that delegation at any time, so they do in fact control the DNS for all of those deeply-nested subdomains. This new validation method does not introduce new attack surface in that regard.",
+          "createdAt": "2026-02-25T01:14:08Z",
+          "updatedAt": "2026-02-25T01:14:08Z"
+        },
+        {
+          "author": "rmbolger",
+          "authorAssociation": "NONE",
+          "body": "> Note that the Baseline Requirements do not allow issuing certs for or performing validation at .com. When deriving an ADN, you can only prune labels up to the Base Domain Name, which is an eTLD+1 like example.com.\n\nExcellent. I was hoping there was a policy based solution either in place or in progress. I assume that policy is for all TLDs and not just .com specifically, right? And does it apply to ccTLDs as well? Or does something like `co.uk` count as an eTLD+1?",
+          "createdAt": "2026-02-25T07:08:05Z",
+          "updatedAt": "2026-02-25T07:08:05Z"
+        },
+        {
+          "author": "aarongable",
+          "authorAssociation": "NONE",
+          "body": "> **Base Domain Name:** The portion of an applied-for FQDN that is the first Domain Name node left of a registry-controlled or public suffix plus the registry-controlled or public suffix (e.g. \"example.co.uk\" or \"example.com\"). For FQDNs where the right-most Domain Name node is a gTLD having ICANN Specification 13 in its registry agreement, the gTLD itself may be used as the Base Domain Name.",
+          "createdAt": "2026-02-25T19:03:52Z",
+          "updatedAt": "2026-02-25T19:03:52Z"
         }
       ]
     }
@@ -1321,15 +1350,15 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "Builds on #30 by @slghtr-says. Rebased onto main with additional changes by @sheurich.\n\n### Summary\n\nPR #30 added `accounturi` to the challenge object. The changes here address a coupling issue: #30 defined `accounturi` validation in terms of the challenge object, but the challenge object does not exist in the JIT validation path or when records are pre-provisioned.\n\n### Changes\n\n**Decouple `accounturi` validation from the challenge object.** The DNS record requirement (\u00a74 item 3) now stands on its own: the `accounturi` MUST be the ACME account URL per RFC 8657 \u00a73, and the CA MUST verify it identifies the requesting account. No reference to the challenge object. Works for JIT, pre-provisioned, and standard challenge flows.\n\n**`accounturi` in the challenge object remains required.** The field provides the account URL for client convenience and consistency checks.\n\n**Pin `accounturi` to ACME account URL.** PR #30 included \"any other URI as determined by the CA\" as an alternative \u2014 this conflicts with RFC 8657 and breaks auditability, so it's removed.\n\n**Add `accounturi` comparison semantics.** Simple string comparison per RFC 3986 \u00a76.2.1, consistent with RFC 8657 \u00a73. Explicitly prohibit normalization, percent-decoding, and case-folding.\n\n**Add pre-provisioning guidance (new \u00a74.4).** How to construct records without a challenge object: use the ACME account URL from the `Location` header, obtain `issuer-domain-name` from `caaIdentities` as a hint (not normatively coupled). Operational guidance: maintain record inventory, use `persistUntil`, audit after DNS incidents. CAs SHOULD maintain stable account URLs and document their guarantees.\n\n**Add JIT rate-limiting and abuse guidance.** Per-domain rate limiting independent of requesting account. CAs SHOULD restrict JIT to accounts with prior successful `dns-persist-01` validation (trust-on-first-use). Account activity logging for the JIT path.\n\n**Fix DNSSEC failure semantics.** Resolved a SHOULD/MUST inconsistency: DNSSEC validation remains SHOULD, but if a CA performs it, failure MUST be treated as a challenge failure. Includes rationale for the stricter-than-RFC-8555 requirement.\n\n**Fix DNS caching caveat.** Revocation section previously said \"after the record is removed, new validation attempts will fail\" \u2014 misleading. Now says \"after the record is removed and resolver caches have expired.\"\n\n**Neutralize \u00a74 example prose.** Changed \"it might provision\" to \"the DNS TXT record would contain\" \u2014 removes assumption that the client provisions after receiving the challenge. Add `accounturi` to \u00a7Examples challenge objects for consistency.\n",
+      "body": "Builds on #30 by @slghtr-says. Rebased onto main with additional changes by @sheurich.\n\n### Summary\n\nPR #30 added `accounturi` to the challenge object. The changes here address a coupling issue: #30 defined `accounturi` validation in terms of the challenge object, but the challenge object does not exist in the JIT validation path or when records are pre-provisioned.\n\n### Changes\n\n**Decouple `accounturi` validation from the challenge object.** The DNS record requirement (\u00a74 item 3) now stands on its own: the `accounturi` MUST be a URI identifying the requesting ACME account, and the CA MUST verify it. No reference to the challenge object. Works for JIT, pre-provisioned, and standard challenge flows.\n\n**Many-to-one `accounturi` model.** CAs MUST accept the ACME account URL (RFC 8555 \u00a77.3). CAs MAY also accept alternative URIs, provided each uniquely and permanently identifies a single account (RFC 8657 \u00a75.4). Non-reassignment and deactivation lifecycle requirements included. This addresses the privacy concern raised by @birgelee \u2014 publicly visible `accounturi` values in long-lived DNS records create a correlation channel (RFC 8657 \u00a75.9). See the new Account URI Privacy subsection in Security Considerations.\n\n**`accounturi` in the challenge object remains required.** The field is the mechanism by which the CA communicates the expected URI (including alternative URIs) to the client.\n\n**Add `accounturi` comparison semantics.** Simple String Comparison per RFC 3986 \u00a76.2.1. PR #36 adds a consolidated comparison paragraph for all parameter values; the inline rule here serves as a standalone fallback.\n\n**Add pre-provisioning guidance (new \u00a74.4).** How to construct records without a challenge object: use the ACME account URL from the `Location` header, obtain `issuer-domain-name` from `caaIdentities` as a hint (not normatively coupled). Operational guidance: maintain record inventory, use `persistUntil`, audit after DNS incidents. CAs SHOULD maintain stable account URIs and document their guarantees.\n\n**Add JIT rate-limiting and abuse guidance.** Per-domain rate limiting independent of requesting account. CAs SHOULD restrict JIT to accounts with prior successful `dns-persist-01` validation (trust-on-first-use). Account activity logging for the JIT path.\n\n**Fix DNSSEC failure semantics.** Resolved a SHOULD/MUST inconsistency: DNSSEC validation remains SHOULD, but if a CA performs it, failure MUST be treated as a challenge failure. Includes rationale for the stricter-than-RFC-8555 requirement.\n\n**Fix DNS caching caveat.** Revocation section previously said \"after the record is removed, new validation attempts will fail\" \u2014 misleading. Now says \"after the record is removed and resolver caches have expired.\"\n\n**Neutralize \u00a74 example prose.** Changed \"it might provision\" to \"the DNS TXT record would contain\" \u2014 removes assumption that the client provisions after receiving the challenge. Add `accounturi` to \u00a7Examples challenge objects for consistency.\n\n**Error handling.** Changed \"does not match the URI\" to \"does not identify the ACME account\" \u2014 covers both account URL comparison and alternative URI resolution.\n\n**Terminology.** Use \"URI\" consistently (matching the parameter name and RFC 8657), \"ACME account URL\" only for the RFC 8555 \u00a77.3 concept.",
       "createdAt": "2026-02-19T00:43:39Z",
-      "updatedAt": "2026-02-20T00:47:24Z",
+      "updatedAt": "2026-02-25T18:04:35Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "3e531232f31c595068d8f4b3879cec5fff2ac20d",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "sheurich/accounturi-review-v2",
-      "headRefOid": "7430c076e66f130fdbfbe54f8c027e451716cb92",
+      "headRefOid": "db1efc9e63ff17e70c2ff017ea646ea39d656af9",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -1348,6 +1377,13 @@
           "body": "So my high level thoughts on this is I like the better support for JIT and pre-provisioned records. Both of these are things to lean into.\r\n\r\nI don't really like forcing the accounturi to be the one-to-one mapping with the ACME account. I think it should be many-to-one so subscribers validating multiple domains with the same ACME account and hide that these domains share the same ACME account (today there is no way of deducing this so we are introducing a new information channel to adversaries).\r\n\r\nMaybe we could just add a clause saying you MUST accept the \"URI of the ACME account object\" but you MAY also accept other \"URI values such that each URI uniquely identifies a single ACME account in perpetuity\". I think this would support both sides because a user could still pre-provision records using only their true ACME account URI but they could also use a system put in place by the CA to obfuscate ACME account bindings.",
           "createdAt": "2026-02-20T00:47:24Z",
           "updatedAt": "2026-02-20T00:47:24Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> So my high level thoughts on this is I like the better support for JIT and pre-provisioned records. Both of these are things to lean into.\n>\n> I don't really like forcing the accounturi to be the one-to-one mapping with the ACME account. I think it should be many-to-one [...]\n>\n> Maybe we could just add a clause saying you MUST accept the \"URI of the ACME account object\" but you MAY also accept other \"URI values such that each URI uniquely identifies a single ACME account in perpetuity\".\n\nAgreed with this framing. The revision implements what you describe: MUST accept the URI of the ACME account object, MAY accept other URIs where each uniquely identifies a single ACME account permanently. Normative constraints (non-reassignment, deactivation invalidation, RFC 8657 \u00a75.4 uniqueness) bound the flexibility that PR #30's original language lacked.\n\nThis also aligns with how BR 3.2.2.4.22 references RFC 8657 \u2014 only \u00a73 is normatively relevant, and \u00a73 permits the many-to-one model. Section 5.3's multi-system consistency requirement is about CAA processing, not dns-persist-01 validation.",
+          "createdAt": "2026-02-25T01:22:16Z",
+          "updatedAt": "2026-02-25T01:22:16Z"
         }
       ],
       "reviews": [
@@ -1370,6 +1406,170 @@
               "updatedAt": "2026-02-20T00:33:33Z"
             }
           ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7ljhbh",
+          "commit": {
+            "abbreviatedOid": "0def169"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "## Pull request overview\n\nThis PR updates the `dns-persist-01` draft to make `accounturi` validation independent of the challenge object so it works consistently across standard challenge, Just-in-Time (JIT), and pre-provisioned record flows.\n\n**Changes:**\n- Adds `accounturi` to the challenge object and updates examples accordingly.\n- Refactors DNS TXT record requirements and adds new guidance for JIT validation and pre-provisioning records.\n- Clarifies security/operational text (DNSSEC failure handling, caching caveat) and expands privacy considerations around `accounturi`.\n\n### Reviewed changes\n\nCopilot reviewed 1 out of 2 changed files in this pull request and generated 5 comments.\n\n| File | Description |\n| ---- | ----------- |\n| draft-ietf-acme-dns-persist.md | Updates the spec text, requirements, and guidance around `accounturi`, JIT validation, pre-provisioning, DNSSEC semantics, and examples. |\n| .gitignore | Ignores `.worktrees`. |\n\n\n\n\n\n---\n\n\ud83d\udca1 <a href=\"/ietf-wg-acme/draft-ietf-acme-dns-persist/new/main?filename=.github/instructions/*.instructions.md\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Add Copilot custom instructions</a> for smarter, more guided reviews. <a href=\"https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Learn how to get started</a>.",
+          "createdAt": "2026-02-25T01:05:25Z",
+          "updatedAt": "2026-02-25T01:05:26Z",
+          "comments": [
+            {
+              "originalPosition": 13,
+              "body": "The `accounturi` field description says it is \u201cthe sole mechanism by which the CA communicates the expected value to the client\u201d, but this isn\u2019t true for the pre-provisioning / JIT paths described later (where there is no challenge object). Consider scoping this statement to the normal challenge flow (e.g., \u201cwhen a challenge object is used\u2026\u201d) or rephrasing to avoid implying that challenges are always available.\n```suggestion\n- **accounturi** (required, string): A URI identifying the ACME account requesting validation, as defined in {{!RFC8657}}, Section 3. This is the URI the CA expects in the DNS record; when a challenge object is used, this field communicates the expected value to the client. Clients that pre-provisioned a record using their ACME account URL ({{!RFC8555}}, Section 7.3) SHOULD verify the value identifies the same account.\n```",
+              "createdAt": "2026-02-25T01:05:25Z",
+              "updatedAt": "2026-02-25T01:05:27Z"
+            },
+            {
+              "originalPosition": 32,
+              "body": "Item 3 states \u201cComparison rules for `accounturi` values are specified below\u201d, but there is no subsequent section defining those comparison rules (and the document doesn\u2019t reference RFC 3986). Either add the promised comparison semantics section or remove/adjust this sentence to avoid leaving implementers without a deterministic comparison algorithm.\n```suggestion\n    CAs MUST accept the URI of the ACME account object ({{!RFC8555}}, Section 7.3) as a valid `accounturi` value. CAs MAY also accept other URIs, provided each such URI uniquely and permanently identifies a single ACME account and satisfies the uniqueness requirements of {{!RFC8657}}, Section 5.4. CAs MUST NOT reassign a URI to a different account. When an ACME account is deactivated, CAs MUST treat all URIs associated with that account as invalid for validation purposes. The CA MUST verify that the URI in the DNS record identifies the ACME account making the request. Comparison of `accounturi` values MUST follow the URI comparison rules in {{!RFC3986}}, Section 6.\n```",
+              "createdAt": "2026-02-25T01:05:25Z",
+              "updatedAt": "2026-02-25T01:05:27Z"
+            },
+            {
+              "originalPosition": 32,
+              "body": "This paragraph still allows non-account-URL identifiers (\"CAs MAY also accept other URIs\"), which conflicts with the PR description\u2019s \u201cPin `accounturi` to ACME account URL\u201d / removal of alternative URIs. Please align the spec text with the intended behavior (either remove the alternative-URI allowance, or update the PR description and any related text to reflect that alternatives remain supported).",
+              "createdAt": "2026-02-25T01:05:26Z",
+              "updatedAt": "2026-02-25T01:05:28Z"
+            },
+            {
+              "originalPosition": 89,
+              "body": "The pre-provisioning guidance requires using the ACME account URL from the `Location` header, but earlier item 3 allows CAs to accept alternative `accounturi` values. If alternatives are supported, this section likely needs to describe how a domain owner can obtain/provision those alternative URIs without a challenge object, or clarify that pre-provisioning is limited to the ACME account URL form.\n```suggestion\n- **accounturi**: The ACME account URL, as returned in the `Location` header of the account creation response ({{!RFC8555}}, Section 7.3). This specification defines pre-provisioning only for this ACME account URL form. If a CA wishes to support alternative `accounturi` formats for use in pre-provisioned records, it MUST provide a mechanism, described in its documentation, for domain owners to obtain those alternative values without requiring a prior challenge object; such mechanisms are out of scope for this document.\n- **issuer-domain-name**: Clients MAY use the `caaIdentities` array from the ACME directory metadata ({{!RFC8555}}, Section 9.7.6) as a hint for `issuer-domain-name` selection. CAs that populate `caaIdentities` SHOULD ensure these values are consistent with the `issuer-domain-name` values they accept in `dns-persist-01` records. If `caaIdentities` is unavailable, the `issuer-domain-name` MAY be obtained from the CA's Certificate Policy or Certification Practice Statement.\n\nOrganizations pre-provisioning records SHOULD maintain an inventory of `_validation-persist` records and the ACME accounts they reference. Records SHOULD include a `persistUntil` parameter to bound their effective lifetime. Domain owners SHOULD audit `_validation-persist` records after any DNS infrastructure security incident, as pre-provisioned records persist beyond the window of compromise.\n\nCAs implementing `dns-persist-01` SHOULD maintain stable account URIs used in `dns-persist-01` records, including the ACME account URL form used for pre-provisioning, for the lifetime of the account and SHOULD document their URI stability guarantees. If a CA must change its URI structure, it SHOULD provide a transition period during which both old and new URIs are accepted for validation.\n```",
+              "createdAt": "2026-02-25T01:05:26Z",
+              "updatedAt": "2026-02-25T01:05:28Z"
+            },
+            {
+              "originalPosition": 13,
+              "body": "The last sentence suggests clients who pre-provisioned using their ACME account URL \u201cSHOULD verify the value identifies the same account,\u201d but if the CA uses an alternative `accounturi` scheme (allowed later), a client generally can\u2019t determine whether an arbitrary URI maps to its account without an explicit CA-provided linkage. Consider clarifying how a client can perform this check (or weakening/removing the SHOULD in cases where the CA\u2019s `accounturi` is not the account-object URL).\n```suggestion\n- **accounturi** (required, string): A URI identifying the ACME account requesting validation, as defined in {{!RFC8657}}, Section 3. This is the URI the CA expects in the DNS record; it is the sole mechanism by which the CA communicates the expected value to the client. Clients that pre-provisioned a record using their ACME account URL ({{!RFC8555}}, Section 7.3) SHOULD verify that the `accounturi` value exactly matches that URL. If the CA uses a different form of `accounturi` that is not the account-object URL, the client is not expected to determine equivalence and MUST rely on the `accounturi` value provided by the CA.\n```",
+              "createdAt": "2026-02-25T01:05:26Z",
+              "updatedAt": "2026-02-25T01:05:26Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7ljr-1",
+          "commit": {
+            "abbreviatedOid": "7430c07"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-02-25T01:24:43Z",
+          "updatedAt": "2026-02-25T01:24:43Z",
+          "comments": [
+            {
+              "originalPosition": 30,
+              "body": "Agreed on all three. Here's how I addressed them:\r\n\r\n**Many-to-one mapping:** My concern with PR #30's \"any other URI as\r\ndetermined by the CA\" was the absence of constraints, not the\r\nflexibility itself. Your formulation (F(URI) \u2192 exactly 1 account)\r\nprovides the right bound, and RFC 8657 \u00a75.9 makes the privacy\r\nmotivation concrete for dns-persist-01's long-lived public records.\r\n\r\nRevised item 3: CAs MUST accept the URI of the ACME account object\r\n(RFC 8555 \u00a77.3) as baseline. CAs MAY also accept other URIs, provided\r\neach uniquely and permanently identifies a single account (citing\r\nRFC 8657 \u00a75.4 for uniqueness). CAs MUST NOT reassign URIs, and\r\ndeactivated accounts' URIs MUST be treated as invalid. This preserves\r\npre-provisioning (clients use their account URL when no challenge\r\nobject exists) while letting CAs offer per-domain virtual URIs. The\r\nchallenge object's `accounturi` field becomes the delivery mechanism \u2014\r\nstated explicitly as the sole mechanism by which the CA communicates\r\nthe expected value.\r\n\r\nI also revised the SHOULD-verify text in the challenge object\r\ndescription \u2014 clients can't match against their account URL when the\r\nCA provides a virtual URI.\r\n\r\n**Terminology:** Using \"URI\" in normative text and \"ACME account URL\"\r\nonly when referring specifically to the RFC 8555 \u00a77.3 concept.\r\n\r\n**Reference:** Keeping RFC 8657 \u00a73 as the normative reference for\r\naccounturi semantics in the challenge object definition. Item 3 cites\r\nRFC 8555 \u00a77.3 for the account URL and RFC 8657 \u00a75.4 for uniqueness.\r\nDropped the \u00a73 citation from the MAY clause to avoid tension with \u00a73's\r\nlanguage.\r\n\r\nI added an Account URI Privacy subsection to Security Considerations\r\ncovering the correlation risk, opacity and mapping integrity\r\nrequirements, CP/CPS disclosure, and the auditability trade-off.\r\n\r\nOne coordination note: PR #36 consolidates comparison semantics for\r\nall parameter values (accounturi, policy, persistUntil) in a single\r\nparagraph after item 5. I trimmed the comparison sentence from item 3\r\nhere to avoid redundancy \u2014 item 3 ends with a forward reference to\r\nthe comparison rules below.",
+              "createdAt": "2026-02-25T01:24:43Z",
+              "updatedAt": "2026-02-25T01:24:43Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7l1I_A",
+          "commit": {
+            "abbreviatedOid": "db1efc9"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-02-25T18:02:35Z",
+          "updatedAt": "2026-02-25T18:02:35Z",
+          "comments": [
+            {
+              "originalPosition": 13,
+              "body": "Fixed in db1efc9 \u2014 dropped \"sole mechanism,\" now reads \"the mechanism by which the CA communicates alternative URIs to the client.\"",
+              "createdAt": "2026-02-25T18:02:35Z",
+              "updatedAt": "2026-02-25T18:02:35Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7l1JJP",
+          "commit": {
+            "abbreviatedOid": "db1efc9"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-02-25T18:02:43Z",
+          "updatedAt": "2026-02-25T18:02:44Z",
+          "comments": [
+            {
+              "originalPosition": 32,
+              "body": "Fixed in db1efc9 \u2014 replaced the dangling forward reference with an inline rule: \"In the absence of more specific comparison rules, implementations MUST use Simple String Comparison as defined in RFC 3986, Section 6.2.1.\" PR #36 adds the consolidated comparison paragraph that elaborates; this inline rule is a standalone fallback that works regardless of merge order.",
+              "createdAt": "2026-02-25T18:02:44Z",
+              "updatedAt": "2026-02-25T18:02:44Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7l1JWg",
+          "commit": {
+            "abbreviatedOid": "db1efc9"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-02-25T18:02:51Z",
+          "updatedAt": "2026-02-25T18:02:52Z",
+          "comments": [
+            {
+              "originalPosition": 32,
+              "body": "PR description updated. The many-to-one model is intentional \u2014 see the discussion thread with @birgelee above. The original \"Pin accounturi to ACME account URL\" language was from the first iteration; the spec was revised to MUST accept the account URL, MAY accept alternatives with constraints.",
+              "createdAt": "2026-02-25T18:02:52Z",
+              "updatedAt": "2026-02-25T18:02:52Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7l1Jik",
+          "commit": {
+            "abbreviatedOid": "db1efc9"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-02-25T18:03:00Z",
+          "updatedAt": "2026-02-25T18:03:00Z",
+          "comments": [
+            {
+              "originalPosition": 89,
+              "body": "The asymmetry is intentional. Pre-provisioning happens before any challenge object exists, so the only URI the client has is the account URL from the `Location` header. Alternative URIs require the CA to generate and deliver them via the challenge object. No change needed \u2014 \u00a74.4 already scopes itself to \"When constructing records without a challenge object.\"",
+              "createdAt": "2026-02-25T18:03:00Z",
+              "updatedAt": "2026-02-25T18:03:00Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7l1JuL",
+          "commit": {
+            "abbreviatedOid": "db1efc9"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-02-25T18:03:09Z",
+          "updatedAt": "2026-02-25T18:03:09Z",
+          "comments": [
+            {
+              "originalPosition": 13,
+              "body": "The SHOULD is scoped to clients that pre-provisioned using their account URL, so when the CA returns that same URL, they can string-compare. The question is what happens when the CA returns a virtual URI instead \u2014 the client cannot verify equivalence independently.\n\nTwo options:\n\n**(a)** Leave as-is. SHOULD already permits not verifying when you cannot (RFC 2119). A client that receives a URI different from their account URL knows they did not pre-provision with it and moves on.\n\n**(b)** Make explicit:\n\n```\nClients that pre-provisioned a record using their ACME account URL\n(RFC 8555, \u00a77.3) SHOULD verify the value matches that URL; if the\nCA provides a different URI, the client SHOULD use the CA-provided\nvalue for subsequent DNS record updates.\n```\n\nThis tells implementers what to do in both cases without over-specifying.\n\n@birgelee @slghtr-says \u2014 preference?",
+              "createdAt": "2026-02-25T18:03:09Z",
+              "updatedAt": "2026-02-25T18:03:09Z"
+            }
+          ]
         }
       ]
     },
@@ -1383,21 +1583,109 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "Addresses #34.\n\n## Problem\n\nThe draft requires case-insensitive comparison for `policy` values but says nothing about the case-handling of `accounturi` or `persistUntil` values. An implementer (beautifulentropy, working on [Pebble support](https://github.com/letsencrypt/pebble/pull/536)) asked: what makes `policy` special?\n\nThe asymmetry is correct, but the draft doesn't explain it:\n- `accounturi` values are URIs \u2014 case-sensitive per RFC 3986\n- `persistUntil` values are integers \u2014 case is inapplicable\n- `policy` values are protocol keywords \u2014 case-insensitivity is a deliberate usability choice\n\nRFC 8659 \u00a74.1 makes parameter *tags* case-insensitive but defines no rules for parameter *values*, leaving that to whichever specification defines the parameter.\n\n## Changes\n\n**Item 4 (policy parameter):** Replace the ambiguous sentence *\"The parameter's 'tag' and its defined values MUST be treated as case-insensitive\"* with a statement scoped to `policy` values only. The tag clause was redundant (already covered by RFC 8659 \u00a74.1).\n\n**New paragraph after item 5:** State the case-handling rules for all parameter values in one place:\n- `accounturi`: Simple String Comparison per RFC 3986 \u00a76.2.1; MUST NOT case-fold\n- `policy`: case-insensitive (protocol keywords, often manually provisioned)\n- `persistUntil`: base-10 integer; case does not apply\n\n## Compatibility with #35\n\nPR #35 adds `accounturi` comparison semantics to item 3 (simple string comparison, no normalization/case-folding). The new paragraph here reinforces that without conflicting. Both PRs can merge in either order.",
+      "body": "Addresses #34.\r\n\r\n## Problem\r\n\r\nThe draft requires case-insensitive comparison for `policy` values but says nothing about the case-handling of `accounturi` or `persistUntil` values. An implementer (@beautifulentropy, working on [Pebble support](https://github.com/letsencrypt/pebble/pull/536)) asked: what makes `policy` special?\r\n\r\nThe asymmetry is correct, but the draft doesn't explain it:\r\n- `accounturi` values are URIs \u2014 case-sensitive per RFC 3986\r\n- `persistUntil` values are integers \u2014 case is inapplicable\r\n- `policy` values are protocol keywords \u2014 case-insensitivity is a deliberate usability choice\r\n\r\nRFC 8659 \u00a74.1 makes parameter *tags* case-insensitive but defines no rules for parameter *values*, leaving that to whichever specification defines the parameter.\r\n\r\n## Changes\r\n\r\n**Item 4 (policy parameter):** Replace the ambiguous sentence *\"The parameter's 'tag' and its defined values MUST be treated as case-insensitive\"* with a statement scoped to `policy` values only. The tag clause was redundant (already covered by RFC 8659 \u00a74.1).\r\n\r\n**New paragraph after item 5:** State the case-handling rules for all parameter values in one place:\r\n- `accounturi`: Simple String Comparison per RFC 3986 \u00a76.2.1; MUST NOT case-fold\r\n- `policy`: case-insensitive (protocol keywords, often manually provisioned)\r\n- `persistUntil`: base-10 integer; case does not apply\r\n\r\n## Compatibility with #35\r\n\r\nPR #35 adds `accounturi` comparison semantics to item 3 (simple string comparison, no normalization/case-folding). The new paragraph here reinforces that without conflicting. Both PRs can merge in either order.",
       "createdAt": "2026-02-19T14:22:32Z",
-      "updatedAt": "2026-02-19T14:22:33Z",
+      "updatedAt": "2026-02-25T19:30:01Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "3e531232f31c595068d8f4b3879cec5fff2ac20d",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "sheurich/issue-34-case-handling",
-      "headRefOid": "3f0db5388f4820638a8d72819b809eba5b6bf70e",
+      "headRefOid": "f50182533114d439edf64e4ec13c6bd4dc161144",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
-      "comments": [],
-      "reviews": []
+      "comments": [
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Nice work. I think this helps the document. I had a nit but nothing really major with this.",
+          "createdAt": "2026-02-24T04:22:24Z",
+          "updatedAt": "2026-02-24T04:22:24Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Pushed f501825 addressing @birgelee's review plus three additional cleanups:\r\n\r\n- Opening sentence: Removed RFC 8659 \u00a74.1 paraphrase per review feedback. Now states rules directly.\r\n- accounturi bullet: Removed redundant MUST NOT case-fold (entailed by Simple String Comparison) and incorrect \u00a76.2.2.1 citation. Replaced with \"with no case-folding or other normalization\" as a subordinate clause.\r\n- policy bullet: Now cross-references item 4 instead of restating the MUST. Consolidated list is a quick-reference, not a second normative source.\r\n- Example sentence: Adopted PR #35's rewording to reduce merge conflict surface. Whichever PR merges second will see a one-side insertion conflict (the case-handling block) rather than a text conflict on two overlapping edits.",
+          "createdAt": "2026-02-25T19:26:34Z",
+          "updatedAt": "2026-02-25T19:26:34Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c7lLXCN",
+          "commit": {
+            "abbreviatedOid": "3f0db53"
+          },
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-02-24T04:21:35Z",
+          "updatedAt": "2026-02-24T04:21:40Z",
+          "comments": [
+            {
+              "originalPosition": 13,
+              "body": "minor comment: in my experience its usually not good to say (again) what another standard \"does.\"  I think there is some benefit in explaining this but the first sentence with the RFC 8659 reference also introduces some risk. If somehow there is errata or a new RFC comes along that contradicts this, this line could create confusion. Unless its needed we may just want to start with \" we define the following case rules for case processing in dns persist 01 records\" or something along those lines.",
+              "createdAt": "2026-02-24T04:21:35Z",
+              "updatedAt": "2026-02-24T04:21:40Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7l24YT",
+          "commit": {
+            "abbreviatedOid": "3f0db53"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-02-25T19:24:00Z",
+          "updatedAt": "2026-02-25T19:24:00Z",
+          "comments": [
+            {
+              "originalPosition": 13,
+              "body": "Removed the RFC 8659 \u00a74.1 paraphrase \u2014 it was a maintenance liability as you described. The paragraph now opens with:\r\n\r\n ```\r\nThis specification defines the following case-handling\r\nrules for parameter values in dns-persist-01 records:\r\n ```\r\n\r\nI also tightened the accounturi bullet (the MUST NOT was redundant with Simple String Comparison and cited the wrong RFC 3986 section) and made the policy bullet a cross-reference to item 4 instead of restating the rule.",
+              "createdAt": "2026-02-25T19:24:00Z",
+              "updatedAt": "2026-02-25T19:24:00Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7l3Cre",
+          "commit": {
+            "abbreviatedOid": "f501825"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "## Pull request overview\n\nThis PR clarifies case-handling semantics for dns-persist-01 parameter *values* in the IETF draft, explaining why `policy` is compared case-insensitively while other parameters are not.\n\n**Changes:**\n- Refines the `policy` parameter text to scope case-insensitive comparison to `policy` values (not tags).\n- Adds a consolidated paragraph describing case-handling rules for `accounturi`, `policy`, and `persistUntil`.\n- Updates example prose to be less implementation-assumptive.\n\n\n\n\n\n---\n\n\ud83d\udca1 <a href=\"/ietf-wg-acme/draft-ietf-acme-dns-persist/new/main?filename=.github/instructions/*.instructions.md\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Add Copilot custom instructions</a> for smarter, more guided reviews. <a href=\"https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Learn how to get started</a>.",
+          "createdAt": "2026-02-25T19:30:00Z",
+          "updatedAt": "2026-02-25T19:30:01Z",
+          "comments": [
+            {
+              "originalPosition": 6,
+              "body": "Item 4 now defines case-insensitive comparison for `policy` values, but the later rule \"if its value is anything other than `wildcard`\" (outside this hunk) could be misread as only matching the lowercase literal. Consider explicitly tying that later check to this case-insensitive comparison rule (e.g., by saying the comparison to `wildcard` is case-insensitive per item 4).",
+              "createdAt": "2026-02-25T19:30:00Z",
+              "updatedAt": "2026-02-25T19:30:02Z"
+            },
+            {
+              "originalPosition": 7,
+              "body": "The note following item 4 appears to justify forward compatibility by saying some CAs might reject unknown *parameters*, but item 4 is now about case-insensitive comparison of `policy` *values* (and unknown-tag handling is already covered in item 1). Consider updating this note to refer to unknown `policy` values (or moving/removing it) so the rationale matches the requirement being stated.\n```suggestion\n    Note: This requirement ensures consistent, interoperable handling of the `policy` parameter. By requiring case-insensitive comparison of `policy` values, future extensions (for example, additional policy names) can be introduced without risking mismatches between clients and CAs that differ only in the letter case they use, consistent with ACME's extensibility model (RFC 8555, Section 7.3).\n```",
+              "createdAt": "2026-02-25T19:30:00Z",
+              "updatedAt": "2026-02-25T19:30:02Z"
+            },
+            {
+              "originalPosition": 16,
+              "body": "This is the only place in the document that uses the normative subject \"Implementations MUST\". Elsewhere requirements are scoped to specific actors (e.g., \"CAs MUST\", \"Clients MUST\"). For clarity and conformance testing, consider scoping this requirement explicitly (e.g., what CAs MUST do when verifying `accounturi`, and whether any requirements apply to clients).\n```suggestion\n- `accounturi`: The value is a URI. When verifying a `dns-persist-01` challenge, CAs MUST compare `accounturi` values using Simple String Comparison per {{!RFC3986}}, Section 6.2.1, with no case-folding or other normalization.\n```",
+              "createdAt": "2026-02-25T19:30:01Z",
+              "updatedAt": "2026-02-25T19:30:01Z"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
