@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-02-26T01:11:49.361869+00:00",
+  "timestamp": "2026-03-01T01:20:57.647236+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -730,15 +730,15 @@
       "id": "I_kwDOO4VY2c7s9-Zg",
       "title": "Nested subdomain validation risks",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/37",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "rmbolger",
       "authorAssociation": "NONE",
       "assignees": [],
       "labels": [],
       "body": "I've read through [section 7.3](https://www.ietf.org/archive/id/draft-ietf-acme-dns-persist-00.html#section-7.3) regarding the risks of subdomain validation particularly based on the example in [section 6.3](https://www.ietf.org/archive/id/draft-ietf-acme-dns-persist-00.html#section-6.3) where\n\n> For a persistent TXT record provisioned at _validation-persist.example.com with policy=wildcard: - Permitted: example.com, www.example.com, app.example.com, server.dept.example.com, *.example.com - Not permitted without additional validation: otherexample.com, example.net\n\nBut wouldn't this also technically apply at higher levels of the DNS hierarchy as well? For example, could TLD operators of `.com` (or even root nameservers) create a wildcard enabled `_validation-persist.com` and effectively be able to issue certificates for the entire TLD namespace assuming no CAA records further down prevent it?\n\nAnd now that I'm thinking about it, is there anything stopping a TLD operator today from creating `_acme-challenge.com` to get a `*.com` wildcard cert valid for any of the domains it has sold?\n\nI have to be forgetting something dumb and obvious about how DNS works such that this isn't possible, right? Or have TLDs and roots effectively been running on the honor system?",
       "createdAt": "2026-02-22T23:25:27Z",
-      "updatedAt": "2026-02-25T19:03:53Z",
-      "closedAt": null,
+      "updatedAt": "2026-02-26T05:56:24Z",
+      "closedAt": "2026-02-26T05:56:24Z",
       "comments": [
         {
           "author": "kalfeher",
@@ -776,6 +776,46 @@
           "updatedAt": "2026-02-25T19:03:52Z"
         }
       ]
+    },
+    {
+      "number": 38,
+      "id": "I_kwDOO4VY2c7uShva",
+      "title": "Add client-side persistUntil check guidance",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/38",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "## Problem\n\nThe draft places `persistUntil` enforcement entirely on CAs (\u00a74.1 item 5: \"CAs MUST NOT consider this validation record valid for new validation attempts after the specified timestamp\"). \u00a79.3.1 says CAs SHOULD return `unauthorized` when the timestamp has passed. Nothing tells clients to check `persistUntil` before initiating validation.\n\nA client that manages or provisions `_validation-persist` records knows (or can query) the `persistUntil` value. Without guidance to check it, the client POSTs `{}` to the challenge URL, gets back an `unauthorized` error, and must infer the cause. The remediation (reprovision the record with an updated timestamp) is clear if the client checks locally, but not obvious from the server error alone.\n\n## Proposed change\n\nAdd a SHOULD-level recommendation in \u00a79.4 (Client Implementation Guidelines):\n\n> Clients that provision or manage `_validation-persist` records containing a `persistUntil` parameter SHOULD verify that the current time is before the `persistUntil` timestamp prior to responding to a challenge. If the timestamp has passed, the client SHOULD report an actionable error (e.g., \"the _validation-persist record for example.com expired on 2026-01-15; reprovision it\") rather than initiating a validation attempt that will fail.\n\nAdd a forward reference in \u00a74.1 item 5: \"See also {{client-implementation-guidelines}} for client-side handling of this parameter.\"\n\n## Context\n\nIdentified by a client implementer working from the draft. The change is SHOULD-level implementation guidance \u2014 it doesn't affect the protocol or interoperability. The CA enforces the constraint regardless.\n\nDepends on: #35, #36 (targets main after both merge).",
+      "createdAt": "2026-02-26T21:27:13Z",
+      "updatedAt": "2026-02-26T22:50:20Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "rmbolger",
+          "authorAssociation": "NONE",
+          "body": "If the validation record was created out of band, the client may not be able to know the persistUntil value, particularly in an enterprise environment where DNS resolution for the associated domain returns an internal-only view that may not contain the validation record.\n\nThere have been numerous posts in the LE forums over the years from people who are using ACME clients that try to verify DNS propagation of the dns-01 record data, but can't because from the client's perspective it never exists. These same environments are also often locked down such that you can't explicitly query an external public resolver for an internet-facing DNS view.",
+          "createdAt": "2026-02-26T22:50:20Z",
+          "updatedAt": "2026-02-26T22:50:20Z"
+        }
+      ]
+    },
+    {
+      "number": 39,
+      "id": "I_kwDOO4VY2c7uSiCz",
+      "title": "Consider dedicated ACME error types for dns-persist-01 failure modes",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/39",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "## Problem\n\n\u00a79.3.1 maps three distinct failure modes to the same `unauthorized` error type:\n\n| Failure | Remediation |\n|---------|-------------|\n| `accounturi` does not identify the requesting account | Reprovision with correct URI |\n| `persistUntil` timestamp has expired | Reprovision with updated timestamp |\n| `issuer-domain-name` does not match challenge | Reprovision with correct issuer |\n\nClients receiving `unauthorized` cannot programmatically distinguish these cases. The `detail` field may contain a human-readable description, but this is not machine-parseable and not all CAs will populate it consistently.\n\n## Design question\n\nShould this draft register its own error types in the ACME Error Types registry (RFC 8555 \u00a79.6)?\n\nFor example:\n- `urn:ietf:params:acme:error:persistExpired` \u2014 the `persistUntil` timestamp has passed\n- Potentially: `accountMismatch`, `issuerMismatch`\n\n### Arguments for\n\n- Expiration is the failure mode most likely in steady-state operations (records that were valid last month silently become invalid). The remediation is clear and automatable.\n- RFC 8555 registers purpose-specific error types (`caa`, `dns`, `rateLimited`, etc.) for the same reason: different failures need different responses.\n- Pairs well with #38 \u2014 if the client didn't check locally, the CA error still tells it exactly what happened.\n\n### Arguments against\n\n- No ACME extension has registered its own error types yet. This draft would establish the precedent.\n- Registering only `persistExpired` invites the question of why not the other two. Registering all three expands scope.\n- If #33 (subdomain validation prompting) adds an `adn` field, new error cases (invalid ADN, ADN not a suffix) would also need types. Better to design the error type space once.\n- \u00a79.3.1 already encourages descriptive `detail` text. The incremental value of machine-readable types over descriptive strings is modest.\n\n## Recommendation\n\nDiscuss scope and timing as a WG. This is a design question, not a bug fix. Filing for visibility and to capture the analysis before it's lost.",
+      "createdAt": "2026-02-26T21:27:34Z",
+      "updatedAt": "2026-02-26T21:27:34Z",
+      "closedAt": null,
+      "comments": []
     }
   ],
   "pulls": [
@@ -1352,13 +1392,13 @@
       "labels": [],
       "body": "Builds on #30 by @slghtr-says. Rebased onto main with additional changes by @sheurich.\n\n### Summary\n\nPR #30 added `accounturi` to the challenge object. The changes here address a coupling issue: #30 defined `accounturi` validation in terms of the challenge object, but the challenge object does not exist in the JIT validation path or when records are pre-provisioned.\n\n### Changes\n\n**Decouple `accounturi` validation from the challenge object.** The DNS record requirement (\u00a74 item 3) now stands on its own: the `accounturi` MUST be a URI identifying the requesting ACME account, and the CA MUST verify it. No reference to the challenge object. Works for JIT, pre-provisioned, and standard challenge flows.\n\n**Many-to-one `accounturi` model.** CAs MUST accept the ACME account URL (RFC 8555 \u00a77.3). CAs MAY also accept alternative URIs, provided each uniquely and permanently identifies a single account (RFC 8657 \u00a75.4). Non-reassignment and deactivation lifecycle requirements included. This addresses the privacy concern raised by @birgelee \u2014 publicly visible `accounturi` values in long-lived DNS records create a correlation channel (RFC 8657 \u00a75.9). See the new Account URI Privacy subsection in Security Considerations.\n\n**`accounturi` in the challenge object remains required.** The field is the mechanism by which the CA communicates the expected URI (including alternative URIs) to the client.\n\n**Add `accounturi` comparison semantics.** Simple String Comparison per RFC 3986 \u00a76.2.1. PR #36 adds a consolidated comparison paragraph for all parameter values; the inline rule here serves as a standalone fallback.\n\n**Add pre-provisioning guidance (new \u00a74.4).** How to construct records without a challenge object: use the ACME account URL from the `Location` header, obtain `issuer-domain-name` from `caaIdentities` as a hint (not normatively coupled). Operational guidance: maintain record inventory, use `persistUntil`, audit after DNS incidents. CAs SHOULD maintain stable account URIs and document their guarantees.\n\n**Add JIT rate-limiting and abuse guidance.** Per-domain rate limiting independent of requesting account. CAs SHOULD restrict JIT to accounts with prior successful `dns-persist-01` validation (trust-on-first-use). Account activity logging for the JIT path.\n\n**Fix DNSSEC failure semantics.** Resolved a SHOULD/MUST inconsistency: DNSSEC validation remains SHOULD, but if a CA performs it, failure MUST be treated as a challenge failure. Includes rationale for the stricter-than-RFC-8555 requirement.\n\n**Fix DNS caching caveat.** Revocation section previously said \"after the record is removed, new validation attempts will fail\" \u2014 misleading. Now says \"after the record is removed and resolver caches have expired.\"\n\n**Neutralize \u00a74 example prose.** Changed \"it might provision\" to \"the DNS TXT record would contain\" \u2014 removes assumption that the client provisions after receiving the challenge. Add `accounturi` to \u00a7Examples challenge objects for consistency.\n\n**Error handling.** Changed \"does not match the URI\" to \"does not identify the ACME account\" \u2014 covers both account URL comparison and alternative URI resolution.\n\n**Terminology.** Use \"URI\" consistently (matching the parameter name and RFC 8657), \"ACME account URL\" only for the RFC 8555 \u00a77.3 concept.",
       "createdAt": "2026-02-19T00:43:39Z",
-      "updatedAt": "2026-02-25T18:04:35Z",
+      "updatedAt": "2026-02-26T21:26:59Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "3e531232f31c595068d8f4b3879cec5fff2ac20d",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "sheurich/accounturi-review-v2",
-      "headRefOid": "db1efc9e63ff17e70c2ff017ea646ea39d656af9",
+      "headRefOid": "c5a2cde5a77fa41971631a5829fcce5e522f8c21",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
