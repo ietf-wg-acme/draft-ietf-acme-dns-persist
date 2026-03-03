@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-03-01T01:20:57.647236+00:00",
+  "timestamp": "2026-03-03T01:15:29.953262+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -816,6 +816,22 @@
       "updatedAt": "2026-02-26T21:27:34Z",
       "closedAt": null,
       "comments": []
+    },
+    {
+      "number": 40,
+      "id": "I_kwDOO4VY2c7vMgIZ",
+      "title": "Use of \"Authorization Domain Name\" defined term",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/40",
+      "state": "OPEN",
+      "author": "aarongable",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "This draft defines \"Authorization Domain Name (ADN)\" as:\n\n> The domain name at which the validation TXT record is provisioned. It is formed by prepending the DNS TXT Record Persistent DCV Domain Label to the FQDN being validated.\n\nIn contrast, the Baseline Requirements define \"Authorization Domain Name (ADN)\" as:\n\n> The FQDN used to obtain authorization for a given FQDN to be included in a Certificate. The CA may use the FQDN returned from a DNS CNAME lookup as the FQDN for the purposes of domain validation. If a Wildcard Domain Name is to be included in a Certificate, then the CA MUST remove \"*.\" from the left-most portion of the Wildcard Domain Name to yield the corresponding FQDN. The CA may prune zero or more Domain Labels of the FQDN from left to right until encountering a Base Domain Name and may use any one of the values that were yielded by pruning (including the Base Domain Name itself) for the purpose of domain validation.\n\nAccompanying this definition, Section 3.2.2.4.22 DNS TXT Record with Persistent Value says:\n\n> The record MUST be placed at the \"_validation-persist\" label prepended to the Authorization Domain Name being validated (i.e., \"_validation-persist.[Authorization Domain Name]\").\n\nIn other words, per the BRs, `example.com` might be the ADN, while `_validation-persist.example.com` is a nameless thing scoped solely to Section 3.2.2.4.22. The fact that this draft calls `_validation-persist.example.com` the ADN leads to confusion when reading and implementing this spec, and we should probably use a different term.",
+      "createdAt": "2026-03-02T19:56:57Z",
+      "updatedAt": "2026-03-02T19:56:57Z",
+      "closedAt": null,
+      "comments": []
     }
   ],
   "pulls": [
@@ -1392,7 +1408,7 @@
       "labels": [],
       "body": "Builds on #30 by @slghtr-says. Rebased onto main with additional changes by @sheurich.\n\n### Summary\n\nPR #30 added `accounturi` to the challenge object. The changes here address a coupling issue: #30 defined `accounturi` validation in terms of the challenge object, but the challenge object does not exist in the JIT validation path or when records are pre-provisioned.\n\n### Changes\n\n**Decouple `accounturi` validation from the challenge object.** The DNS record requirement (\u00a74 item 3) now stands on its own: the `accounturi` MUST be a URI identifying the requesting ACME account, and the CA MUST verify it. No reference to the challenge object. Works for JIT, pre-provisioned, and standard challenge flows.\n\n**Many-to-one `accounturi` model.** CAs MUST accept the ACME account URL (RFC 8555 \u00a77.3). CAs MAY also accept alternative URIs, provided each uniquely and permanently identifies a single account (RFC 8657 \u00a75.4). Non-reassignment and deactivation lifecycle requirements included. This addresses the privacy concern raised by @birgelee \u2014 publicly visible `accounturi` values in long-lived DNS records create a correlation channel (RFC 8657 \u00a75.9). See the new Account URI Privacy subsection in Security Considerations.\n\n**`accounturi` in the challenge object remains required.** The field is the mechanism by which the CA communicates the expected URI (including alternative URIs) to the client.\n\n**Add `accounturi` comparison semantics.** Simple String Comparison per RFC 3986 \u00a76.2.1. PR #36 adds a consolidated comparison paragraph for all parameter values; the inline rule here serves as a standalone fallback.\n\n**Add pre-provisioning guidance (new \u00a74.4).** How to construct records without a challenge object: use the ACME account URL from the `Location` header, obtain `issuer-domain-name` from `caaIdentities` as a hint (not normatively coupled). Operational guidance: maintain record inventory, use `persistUntil`, audit after DNS incidents. CAs SHOULD maintain stable account URIs and document their guarantees.\n\n**Add JIT rate-limiting and abuse guidance.** Per-domain rate limiting independent of requesting account. CAs SHOULD restrict JIT to accounts with prior successful `dns-persist-01` validation (trust-on-first-use). Account activity logging for the JIT path.\n\n**Fix DNSSEC failure semantics.** Resolved a SHOULD/MUST inconsistency: DNSSEC validation remains SHOULD, but if a CA performs it, failure MUST be treated as a challenge failure. Includes rationale for the stricter-than-RFC-8555 requirement.\n\n**Fix DNS caching caveat.** Revocation section previously said \"after the record is removed, new validation attempts will fail\" \u2014 misleading. Now says \"after the record is removed and resolver caches have expired.\"\n\n**Neutralize \u00a74 example prose.** Changed \"it might provision\" to \"the DNS TXT record would contain\" \u2014 removes assumption that the client provisions after receiving the challenge. Add `accounturi` to \u00a7Examples challenge objects for consistency.\n\n**Error handling.** Changed \"does not match the URI\" to \"does not identify the ACME account\" \u2014 covers both account URL comparison and alternative URI resolution.\n\n**Terminology.** Use \"URI\" consistently (matching the parameter name and RFC 8657), \"ACME account URL\" only for the RFC 8555 \u00a77.3 concept.",
       "createdAt": "2026-02-19T00:43:39Z",
-      "updatedAt": "2026-02-26T21:26:59Z",
+      "updatedAt": "2026-03-02T09:19:30Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "3e531232f31c595068d8f4b3879cec5fff2ac20d",
@@ -1608,6 +1624,26 @@
               "body": "The SHOULD is scoped to clients that pre-provisioned using their account URL, so when the CA returns that same URL, they can string-compare. The question is what happens when the CA returns a virtual URI instead \u2014 the client cannot verify equivalence independently.\n\nTwo options:\n\n**(a)** Leave as-is. SHOULD already permits not verifying when you cannot (RFC 2119). A client that receives a URI different from their account URL knows they did not pre-provision with it and moves on.\n\n**(b)** Make explicit:\n\n```\nClients that pre-provisioned a record using their ACME account URL\n(RFC 8555, \u00a77.3) SHOULD verify the value matches that URL; if the\nCA provides a different URI, the client SHOULD use the CA-provided\nvalue for subsequent DNS record updates.\n```\n\nThis tells implementers what to do in both cases without over-specifying.\n\n@birgelee @slghtr-says \u2014 preference?",
               "createdAt": "2026-02-25T18:03:09Z",
               "updatedAt": "2026-02-25T18:03:09Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7m9we5",
+          "commit": {
+            "abbreviatedOid": "c5a2cde"
+          },
+          "author": "kanashimia",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-03-02T09:19:29Z",
+          "updatedAt": "2026-03-02T09:19:30Z",
+          "comments": [
+            {
+              "originalPosition": 155,
+              "body": "> Records SHOULD include a `persistUntil` parameter to bound their effective lifetime. \r\n\r\nWhy? Can you explain how you see this being used? For out of band provisioning it would be possible to automate persistUntil update out of band, to update it in a loop constantly, but it seems very useless as it is an automation of an unnecessary work. If organizations maintain inventory of DNS records like mentioned (for example if they use IoC tools for setting DNS), then DNS records / account keys can just be tracked and removed. \r\n\r\nOr maybe you meant MAY here instead of SHOULD?",
+              "createdAt": "2026-03-02T09:19:29Z",
+              "updatedAt": "2026-03-02T09:23:10Z"
             }
           ]
         }
