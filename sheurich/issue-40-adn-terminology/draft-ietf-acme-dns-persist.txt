@@ -211,13 +211,14 @@ Table of Contents
       persist" as specified in this document.  This label is consistent
       with industry practices for persistent domain validation.
 
-   *Validation Record Name*  The DNS domain name at which the validation
-      TXT record is provisioned.  It is formed by prepending the DNS TXT
+   *Validation Record Name*  The domain name at which the validation TXT
+      record is provisioned.  It is formed by prepending the DNS TXT
       Record Persistent DCV Domain Label to the FQDN being validated.
+
       This document uses "Validation Record Name" to avoid confusion
       with "Authorization Domain Name" as defined in the CA/Browser
-      Forum Baseline Requirements [cabf-br], where it refers to the bare
-      FQDN used to obtain authorization before any label is prepended.
+      Forum Baseline Requirements [cabf-br], where it refers to the FQDN
+      used to obtain authorization, without any label prepended.
 
    *Issuer Domain Name*  A domain name disclosed by the CA in
       Section 4.2 of the CA's Certificate Policy and/or Certification
@@ -307,7 +308,7 @@ Table of Contents
 4.  Challenge Response and Verification
 
    To respond to the challenge, the ACME client provisions a DNS TXT
-   record at the Validation Record Name for the domain being validated.
+   record at the Validation Record Name of the domain being validated.
    The Validation Record Name is formed by prepending the label
    "_validation-persist" to the domain name being validated.
 
@@ -822,13 +823,12 @@ Table of Contents
 
    The primary method for an Applicant to invalidate a dns-persist-01
    authorization for a domain is to *remove the corresponding DNS TXT
-   record* from the Validation Record Name.  After the record is
-   removed, new validation attempts for the domain will fail.  This
-   behavior represents a deliberate design trade-off: any existing
-   authorization obtained via this method will remain valid until it
-   expires as per the CA's Validation Data Reuse Period.  This
-   persistence underscores the importance of protecting the ACME account
-   key.
+   record* at the Validation Record Name.  After the record is removed,
+   new validation attempts for the domain will fail.  This behavior
+   represents a deliberate design trade-off: any existing authorization
+   obtained via this method will remain valid until it expires as per
+   the CA's Validation Data Reuse Period.  This persistence underscores
+   the importance of protecting the ACME account key.
 
    For situations requiring immediate revocation of issuance capability,
    such as a suspected account key compromise, the primary and most
