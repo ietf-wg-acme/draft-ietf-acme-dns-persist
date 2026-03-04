@@ -178,7 +178,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
 This specification defines the following case-handling rules for parameter values in dns-persist-01 records:
 
-- `accounturi`: The value is a URI. Implementations MUST compare `accounturi` values using Simple String Comparison per {{!RFC3986}}, Section 6.2.1, with no case-folding or other normalization.
+- `accounturi`: The value is a URI. CAs MUST compare `accounturi` values using Simple String Comparison per {{!RFC3986}}, Section 6.2.1, with no case-folding or other normalization.
 - `policy`: Case-insensitive, as specified in item 4 above.
 - `persistUntil`: The value is a base-10 integer. Case does not apply.
 
