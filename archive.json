@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-03-03T01:15:29.953262+00:00",
+  "timestamp": "2026-03-05T01:13:37.753529+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -697,7 +697,7 @@
       "labels": [],
       "body": "Subdomain Validation is a cool concept, and one that I'm happy dns-persist is supporting. In the terms of the Baseline Requirements, this is equivalent to selecting an Authorization Domain Name by pruning labels from the left-hand side of the FQDN, and then performing validation at that ADN.\n\nHowever, ACME does not have good support for selecting ADNs. Traditional CAs, or CAs which use External Account Binding, might have ways for Applicants to indicate to the Server that they want to use a particular ADN for all of their validation. But plain ACME CAs without EAB would have no way to know whether the Applicant wants to validate at `server.dept.example.com`, at `dept.example.com`, or at `example.com`. I'm not a fan of the server having to fan out a bunch of prospective queries to see what layer of the DNS hierarchy the Applicant has placed their dns-persist record at.\n\nSo it would be great if there was a way for the Applicant to proactively indicate to the CA that they want to take advantage of Subdomain Validation. My proposal would be that the ACME client can include an ADN in their POST request to the Challenge URL. The CA would then check that the supplied URL is a valid ADN for the Authorization, and if it is, perform validation at that URL instead. And of course, as already described by the document, ensure that `policy=wildcard` is set.\n\n-----\n\ni.e. if we have an authorization that looks like this:\n```\n   HTTP/1.1 200 OK\n   Content-Type: application/json\n   Link: <https://acme.ca/directory>;rel=\"index\"\n\n   {\n     \"status\": \"pending\",\n     \"expires\": \"2026-02-01T14:09:30Z\",\n\n     \"identifier\": {\n       \"type\": \"dns\",\n       \"value\": \"admin.blog.example.com\"\n     },\n\n     \"challenges\": [\n       {\n         \"type\": \"http-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/http-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n       {\n         \"type\": \"tls-alpn-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/tls-alpn-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n       {\n         \"type\": \"dns-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/dns-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n       {\n         \"type\": \"dns-persist-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/dns-persist-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n     ]\n   }\n```\n\nThen a client might post this to the challenge url:\n```\n   POST /chall/PAniVnsZcis/dns-persist-01\n   Host: acme.ca\n   Content-Type: application/jose+json\n\n   {\n     \"protected\": base64url({\n       \"alg\": \"ES256\",\n       \"kid\": \"https://acme.ca/acct/evOfKhNU60wg\",\n       \"nonce\": \"UQI1PoRi5OuXzxuX7V7wL0\",\n       \"url\": \"https://acme.ca/chall/PAniVnsZcis/dns-persist-01\"\n     }),\n     \"payload\": base64url({\n       \"adn\": \"example.com\"\n     }),\n     \"signature\": \"Q1bURgJoEslbD1c5...3pYdSMLio57mQNN4\"\n   }\n```\n\nWhere the `\"adn\": \"example.com\"` is the important/new part. The CA would confirm that `example.com` is a valid ADN for `admin.blog.example.com`, and then conduct the dns-persist-01 validation at `example.com` and ensure that the record contains the `policy=wildcard` modifier.",
       "createdAt": "2026-01-12T20:04:36Z",
-      "updatedAt": "2026-02-24T23:31:12Z",
+      "updatedAt": "2026-03-05T00:54:15Z",
       "closedAt": null,
       "comments": [
         {
@@ -706,6 +706,20 @@
           "body": "We've got someone on the Let's Encrypt community forum [asking about this](https://community.letsencrypt.org/t/dns-persist-01-wildcard-authorisation-depth/245526), so we should definitely make a decision on whether and how to tackle it.",
           "createdAt": "2026-02-24T23:31:12Z",
           "updatedAt": "2026-02-24T23:31:12Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Agreed, the client needs a way to direct the CA to the right point in the hierarchy. Without it, the CA either fans out (expensive, ambiguous when records exist at multiple levels, amplification risk with MPIC) or is limited to exact-FQDN validation only.\n\nPutting `adn` in the challenge response payload make sense: **RFC 8555 \u00a77.5.1** designed this extension point (\"future specifications might define [response fields]\") and the MUST-ignore semantics give backward compatibility for free.\n\nJIT validation (\u00a74.3) would check the exact FQDN only; subdomain validation via a parent record requires the challenge round-trip with `adn`.\n\nPR #41 resolves the terminology conflict (#40) as a prerequisite \u2014 \"Authorization Domain Name\" is freed up for BR-aligned use, so `\"adn\": \"example.com\"` means the right thing. Will follow with spec text for the `adn` response field after #41 and #35 land.",
+          "createdAt": "2026-03-04T18:25:53Z",
+          "updatedAt": "2026-03-04T18:25:53Z"
+        },
+        {
+          "author": "aarongable",
+          "authorAssociation": "NONE",
+          "body": "Perfect, and totally agreed that stacking this on top of #41 and #35 makes sense.",
+          "createdAt": "2026-03-05T00:54:15Z",
+          "updatedAt": "2026-03-05T00:54:15Z"
         }
       ]
     },
@@ -829,7 +843,31 @@
       "labels": [],
       "body": "This draft defines \"Authorization Domain Name (ADN)\" as:\n\n> The domain name at which the validation TXT record is provisioned. It is formed by prepending the DNS TXT Record Persistent DCV Domain Label to the FQDN being validated.\n\nIn contrast, the Baseline Requirements define \"Authorization Domain Name (ADN)\" as:\n\n> The FQDN used to obtain authorization for a given FQDN to be included in a Certificate. The CA may use the FQDN returned from a DNS CNAME lookup as the FQDN for the purposes of domain validation. If a Wildcard Domain Name is to be included in a Certificate, then the CA MUST remove \"*.\" from the left-most portion of the Wildcard Domain Name to yield the corresponding FQDN. The CA may prune zero or more Domain Labels of the FQDN from left to right until encountering a Base Domain Name and may use any one of the values that were yielded by pruning (including the Base Domain Name itself) for the purpose of domain validation.\n\nAccompanying this definition, Section 3.2.2.4.22 DNS TXT Record with Persistent Value says:\n\n> The record MUST be placed at the \"_validation-persist\" label prepended to the Authorization Domain Name being validated (i.e., \"_validation-persist.[Authorization Domain Name]\").\n\nIn other words, per the BRs, `example.com` might be the ADN, while `_validation-persist.example.com` is a nameless thing scoped solely to Section 3.2.2.4.22. The fact that this draft calls `_validation-persist.example.com` the ADN leads to confusion when reading and implementing this spec, and we should probably use a different term.",
       "createdAt": "2026-03-02T19:56:57Z",
-      "updatedAt": "2026-03-02T19:56:57Z",
+      "updatedAt": "2026-03-04T18:21:03Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "PR #41 addresses this. Renamed to \"Validation Record Name\" throughout the draft, with a disambiguation note in the glossary that cross-references the BR definition:\n\n> This document uses \"Validation Record Name\" to avoid confusion with \"Authorization Domain Name\" as defined in the CA/Browser Forum Baseline Requirements, where it refers to the bare FQDN used to obtain authorization before any label is prepended.\n\nThis also clears the way for #33 \u2014 `\"adn\"` in the challenge response can use \"Authorization Domain Name\" with its BR meaning unambiguously.",
+          "createdAt": "2026-03-04T18:21:03Z",
+          "updatedAt": "2026-03-04T18:21:03Z"
+        }
+      ]
+    },
+    {
+      "number": 42,
+      "id": "I_kwDOO4VY2c7v6OKu",
+      "title": "Don't limit validation reuse by TTL",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/42",
+      "state": "OPEN",
+      "author": "aarongable",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "The draft currently says\n\n> The period for which a CA may rely on validation data is its Validation Data Reuse Period (as defined in {{conventions-and-definitions}}). However, if the DNS TXT record's Time-to-Live (TTL) is shorter than this period, the CA MUST treat the record's TTL as the effective validation data reuse period for that specific validation.\n\nGiven the other reuse period limitations in play (limits set by the BRs; limits set by persistUntil), it's confusing and potentially problematic to use the DNS TTL as a separate reuse limitation. As one example, it's common for authoritative nameservers to set very low TTLs by default. If that TTL is too low, it could be lower than the amount of time that it takes a CA to complete a validation and issuance cycle, effectively blocking issuance until the user changes the settings in their authoritative DNS.\n\nIt would be better to let DNS be DNS: the TTL can be whatever the user wants it to be, and that affects caching at the DNS layer. It doesn't affect validation reuse, which happens at a different layer (the CA's business logic). There's a potentially tricky interaction if a CA is using a caching recursive resolver, but that's fundamental to all validation techniques using DNS: the CA must configure any cache in their recursive resolver to be short enough that they can be confident their validations were performed within the acceptable window.\n\nAlso, relatedly, the client of a recursive resolver never actually sees the TTL of the record (as configured on the authoritative nameserver). The DNS client sees the TTL of the cached data in the recursive resolver if there is any. This is potentially quite confusing, since the validation reuse period will depend on a value that is not directly controlled by either the CA or the subscriber.\n\nIt would be better to omit this TTL-based limitation and instead let the relevant PKI rules (root programs, BRs) govern the validation reuse period.",
+      "createdAt": "2026-03-05T00:56:52Z",
+      "updatedAt": "2026-03-05T00:56:52Z",
       "closedAt": null,
       "comments": []
     }
@@ -1270,7 +1308,7 @@
       "labels": [],
       "body": "Added accounturi attribute to the challenge response object.\r\n\r\nChanges include:\r\n- Updated accounturi references to refer to the server provided accounturi rather than \"a valid account uri\"\r\n- Cleaned up accounturi references and examples.\r\n\r\n\r\n**Motivation**: This change eliminates ambiguity and improves interoperability of implementations. While ACME clients are aware of their account URI, explicitly providing this value in the challenge object removes any dependency on client-side URI construction or format assumptions. This approach makes the exact value the server expects in DNS explicit and ensures the challenge object is completely self-contained and driven by the server.",
       "createdAt": "2025-10-07T13:54:22Z",
-      "updatedAt": "2026-02-19T00:52:58Z",
+      "updatedAt": "2026-03-04T22:54:16Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "3e531232f31c595068d8f4b3879cec5fff2ac20d",
@@ -1323,6 +1361,13 @@
           "body": "@slghtr-says \u2014 I've opened #35 building on this work. It rebases onto main and addresses some coupling issues between the challenge object and DNS record validation. Details and rationale are in the PR description there.",
           "createdAt": "2026-02-19T00:44:57Z",
           "updatedAt": "2026-02-19T00:44:57Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@sheurich is this deprecated now in favor of #35 ? If so can we close?",
+          "createdAt": "2026-03-04T22:54:16Z",
+          "updatedAt": "2026-03-04T22:54:16Z"
         }
       ],
       "reviews": [
@@ -1408,13 +1453,13 @@
       "labels": [],
       "body": "Builds on #30 by @slghtr-says. Rebased onto main with additional changes by @sheurich.\n\n### Summary\n\nPR #30 added `accounturi` to the challenge object. The changes here address a coupling issue: #30 defined `accounturi` validation in terms of the challenge object, but the challenge object does not exist in the JIT validation path or when records are pre-provisioned.\n\n### Changes\n\n**Decouple `accounturi` validation from the challenge object.** The DNS record requirement (\u00a74 item 3) now stands on its own: the `accounturi` MUST be a URI identifying the requesting ACME account, and the CA MUST verify it. No reference to the challenge object. Works for JIT, pre-provisioned, and standard challenge flows.\n\n**Many-to-one `accounturi` model.** CAs MUST accept the ACME account URL (RFC 8555 \u00a77.3). CAs MAY also accept alternative URIs, provided each uniquely and permanently identifies a single account (RFC 8657 \u00a75.4). Non-reassignment and deactivation lifecycle requirements included. This addresses the privacy concern raised by @birgelee \u2014 publicly visible `accounturi` values in long-lived DNS records create a correlation channel (RFC 8657 \u00a75.9). See the new Account URI Privacy subsection in Security Considerations.\n\n**`accounturi` in the challenge object remains required.** The field is the mechanism by which the CA communicates the expected URI (including alternative URIs) to the client.\n\n**Add `accounturi` comparison semantics.** Simple String Comparison per RFC 3986 \u00a76.2.1. PR #36 adds a consolidated comparison paragraph for all parameter values; the inline rule here serves as a standalone fallback.\n\n**Add pre-provisioning guidance (new \u00a74.4).** How to construct records without a challenge object: use the ACME account URL from the `Location` header, obtain `issuer-domain-name` from `caaIdentities` as a hint (not normatively coupled). Operational guidance: maintain record inventory, use `persistUntil`, audit after DNS incidents. CAs SHOULD maintain stable account URIs and document their guarantees.\n\n**Add JIT rate-limiting and abuse guidance.** Per-domain rate limiting independent of requesting account. CAs SHOULD restrict JIT to accounts with prior successful `dns-persist-01` validation (trust-on-first-use). Account activity logging for the JIT path.\n\n**Fix DNSSEC failure semantics.** Resolved a SHOULD/MUST inconsistency: DNSSEC validation remains SHOULD, but if a CA performs it, failure MUST be treated as a challenge failure. Includes rationale for the stricter-than-RFC-8555 requirement.\n\n**Fix DNS caching caveat.** Revocation section previously said \"after the record is removed, new validation attempts will fail\" \u2014 misleading. Now says \"after the record is removed and resolver caches have expired.\"\n\n**Neutralize \u00a74 example prose.** Changed \"it might provision\" to \"the DNS TXT record would contain\" \u2014 removes assumption that the client provisions after receiving the challenge. Add `accounturi` to \u00a7Examples challenge objects for consistency.\n\n**Error handling.** Changed \"does not match the URI\" to \"does not identify the ACME account\" \u2014 covers both account URL comparison and alternative URI resolution.\n\n**Terminology.** Use \"URI\" consistently (matching the parameter name and RFC 8657), \"ACME account URL\" only for the RFC 8555 \u00a77.3 concept.",
       "createdAt": "2026-02-19T00:43:39Z",
-      "updatedAt": "2026-03-02T09:19:30Z",
+      "updatedAt": "2026-03-05T00:44:19Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "3e531232f31c595068d8f4b3879cec5fff2ac20d",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "sheurich/accounturi-review-v2",
-      "headRefOid": "c5a2cde5a77fa41971631a5829fcce5e522f8c21",
+      "headRefOid": "4b735dc41c147d9c9fd7b9a19d3eb94abd1d78da",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -1646,6 +1691,71 @@
               "updatedAt": "2026-03-02T09:23:10Z"
             }
           ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7n7OTm",
+          "commit": {
+            "abbreviatedOid": "c5a2cde"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-03-04T18:00:32Z",
+          "updatedAt": "2026-03-04T18:00:32Z",
+          "comments": [
+            {
+              "originalPosition": 155,
+              "body": "Changed to MAY in 4b735dc. The parameter is already MAY in the record format (item 5), so SHOULD here was inconsistent. Organizations managing record lifecycle through IaC or inventory tooling don't need a second expiration mechanism. The persistUntil considerations section (\u00a78.3) already covers operational guidance for those who do use it.",
+              "createdAt": "2026-03-04T18:00:32Z",
+              "updatedAt": "2026-03-04T18:00:33Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7n76PB",
+          "commit": {
+            "abbreviatedOid": "4b735dc"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "## Pull request overview\n\nCopilot reviewed 1 out of 2 changed files in this pull request and generated 3 comments.\n\n\n\n\n\n---\n\n\ud83d\udca1 <a href=\"/ietf-wg-acme/draft-ietf-acme-dns-persist/new/main?filename=.github/instructions/*.instructions.md\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Add Copilot custom instructions</a> for smarter, more guided reviews. <a href=\"https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Learn how to get started</a>.",
+          "createdAt": "2026-03-04T18:37:12Z",
+          "updatedAt": "2026-03-04T18:37:13Z",
+          "comments": [
+            {
+              "originalPosition": 74,
+              "body": "Validation Record Format item 2 requires the `issuer-domain-name` to match one of the `issuer-domain-names` values from the challenge object. That coupling conflicts with the later \"Pre-Provisioning Records\" and JIT paths, which explicitly operate without a challenge object. Consider redefining this requirement in terms of the issuer-domain-names the CA accepts/configures for dns-persist-01 validation, and treat the challenge object's `issuer-domain-names` array as just the mechanism to convey those acceptable values when a challenge object is used.\n```suggestion\n2.  The `issuer-domain-name` portion of the issue-value MUST be one of the Issuer Domain Names that the CA accepts for `dns-persist-01` validation. When a challenge object is used, the CA-con\ufb01gured acceptable Issuer Domain Names MUST be conveyed in the `issuer-domain-names` array of the challenge object. If the `issuer-domain-name` does not match any of the values accepted by the CA, the CA MUST reject the record.\n```",
+              "createdAt": "2026-03-04T18:37:12Z",
+              "updatedAt": "2026-03-04T18:37:13Z"
+            },
+            {
+              "originalPosition": 110,
+              "body": "The Verification Procedure currently states that `issuer-domain-name` MUST match one of the values from the challenge object's `issuer-domain-names` array. This is incompatible with the Just-in-Time validation flow described later (where no challenge object is returned) and with pre-provisioned records. It would be clearer to specify matching against the CA's accepted issuer-domain-names for the validation attempt, with the challenge object's array being one way of communicating those accepted values.\n```suggestion\nThe ACME server verifies the challenge by performing a DNS lookup for TXT records at the Authorization Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its `issuer-domain-name` value MUST match one of the issuer-domain-names that the CA accepts for the current validation attempt (for example, values communicated via the challenge object's `issuer-domain-names` array, if a challenge object is used), and it MUST contain an `accounturi` parameter that identifies the requesting account. When comparing issuer domain names, the server MUST adhere to the normalization rules specified in {{challenge-object}}. The server also interprets any `policy` parameter values according to this specification. If no record meeting all requirements is found, the server MUST treat the challenge as failed.\n```",
+              "createdAt": "2026-03-04T18:37:12Z",
+              "updatedAt": "2026-03-04T18:37:13Z"
+            },
+            {
+              "originalPosition": 86,
+              "body": "The note explaining the `policy` case-insensitivity requirement says that without it \"some CAs might reject unknown parameter values\". But the surrounding normative text already requires treating any `policy` value other than `wildcard` as if the parameter were absent, so implementations should not reject unknown `policy` values. Consider rewording this note to focus on the actual risk (e.g., rejecting otherwise-valid `policy=wildcard` due to case differences) to avoid implying that unknown values should be rejected.\n```suggestion\n    Note: The requirement to ignore unrecognized parameters (item 1) ensures forward compatibility, allowing future extensions without breaking existing implementations, consistent with ACME's extensibility model ({{!RFC8555}}). The explicit case-insensitivity requirement is necessary to ensure consistent behavior across implementations; without it, some CAs might reject otherwise-valid `policy=wildcard` values or handle them inconsistently when the tag or value casing differs (e.g., `PoLiCy=WiLdCaRd`), undermining interoperability and protocol evolution.\n```",
+              "createdAt": "2026-03-04T18:37:13Z",
+              "updatedAt": "2026-03-04T18:37:13Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7oCKj7",
+          "commit": {
+            "abbreviatedOid": "4b735dc"
+          },
+          "author": "aarongable",
+          "authorAssociation": "NONE",
+          "state": "APPROVED",
+          "body": "LGTM, I think this set of edits is really good. As a representative of a CA that does not intend to implement just-in-time validation, that bit matters to me slightly less, but the separation of concerns here is well done. The new security considerations around account URI privacy are also a good call -- but also put pressure on CAs to figure out whether they want to do privacy-preserving account URLs in v0 of their dns-persist-01 implementation, lest they break existing records when they switch later on.",
+          "createdAt": "2026-03-05T00:44:19Z",
+          "updatedAt": "2026-03-05T00:44:19Z",
+          "comments": []
         }
       ]
     },
@@ -1661,13 +1771,13 @@
       "labels": [],
       "body": "Addresses #34.\r\n\r\n## Problem\r\n\r\nThe draft requires case-insensitive comparison for `policy` values but says nothing about the case-handling of `accounturi` or `persistUntil` values. An implementer (@beautifulentropy, working on [Pebble support](https://github.com/letsencrypt/pebble/pull/536)) asked: what makes `policy` special?\r\n\r\nThe asymmetry is correct, but the draft doesn't explain it:\r\n- `accounturi` values are URIs \u2014 case-sensitive per RFC 3986\r\n- `persistUntil` values are integers \u2014 case is inapplicable\r\n- `policy` values are protocol keywords \u2014 case-insensitivity is a deliberate usability choice\r\n\r\nRFC 8659 \u00a74.1 makes parameter *tags* case-insensitive but defines no rules for parameter *values*, leaving that to whichever specification defines the parameter.\r\n\r\n## Changes\r\n\r\n**Item 4 (policy parameter):** Replace the ambiguous sentence *\"The parameter's 'tag' and its defined values MUST be treated as case-insensitive\"* with a statement scoped to `policy` values only. The tag clause was redundant (already covered by RFC 8659 \u00a74.1).\r\n\r\n**New paragraph after item 5:** State the case-handling rules for all parameter values in one place:\r\n- `accounturi`: Simple String Comparison per RFC 3986 \u00a76.2.1; MUST NOT case-fold\r\n- `policy`: case-insensitive (protocol keywords, often manually provisioned)\r\n- `persistUntil`: base-10 integer; case does not apply\r\n\r\n## Compatibility with #35\r\n\r\nPR #35 adds `accounturi` comparison semantics to item 3 (simple string comparison, no normalization/case-folding). The new paragraph here reinforces that without conflicting. Both PRs can merge in either order.",
       "createdAt": "2026-02-19T14:22:32Z",
-      "updatedAt": "2026-02-25T19:30:01Z",
+      "updatedAt": "2026-03-04T22:53:21Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "3e531232f31c595068d8f4b3879cec5fff2ac20d",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "sheurich/issue-34-case-handling",
-      "headRefOid": "f50182533114d439edf64e4ec13c6bd4dc161144",
+      "headRefOid": "3da541050d8c7652753b8448ab2affd4dfffb1f2",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -1686,6 +1796,13 @@
           "body": "Pushed f501825 addressing @birgelee's review plus three additional cleanups:\r\n\r\n- Opening sentence: Removed RFC 8659 \u00a74.1 paraphrase per review feedback. Now states rules directly.\r\n- accounturi bullet: Removed redundant MUST NOT case-fold (entailed by Simple String Comparison) and incorrect \u00a76.2.2.1 citation. Replaced with \"with no case-folding or other normalization\" as a subordinate clause.\r\n- policy bullet: Now cross-references item 4 instead of restating the MUST. Consolidated list is a quick-reference, not a second normative source.\r\n- Example sentence: Adopted PR #35's rewording to reduce merge conflict surface. Whichever PR merges second will see a one-side insertion conflict (the case-handling block) rather than a text conflict on two overlapping edits.",
           "createdAt": "2026-02-25T19:26:34Z",
           "updatedAt": "2026-02-25T19:26:34Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "This looks great. @sheurich feel free to merge in as fit.",
+          "createdAt": "2026-03-04T22:53:21Z",
+          "updatedAt": "2026-03-04T22:53:21Z"
         }
       ],
       "reviews": [
@@ -1758,6 +1875,168 @@
               "body": "This is the only place in the document that uses the normative subject \"Implementations MUST\". Elsewhere requirements are scoped to specific actors (e.g., \"CAs MUST\", \"Clients MUST\"). For clarity and conformance testing, consider scoping this requirement explicitly (e.g., what CAs MUST do when verifying `accounturi`, and whether any requirements apply to clients).\n```suggestion\n- `accounturi`: The value is a URI. When verifying a `dns-persist-01` challenge, CAs MUST compare `accounturi` values using Simple String Comparison per {{!RFC3986}}, Section 6.2.1, with no case-folding or other normalization.\n```",
               "createdAt": "2026-02-25T19:30:01Z",
               "updatedAt": "2026-02-25T19:30:01Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7n760N",
+          "commit": {
+            "abbreviatedOid": "f501825"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-03-04T18:37:41Z",
+          "updatedAt": "2026-03-04T18:37:41Z",
+          "comments": [
+            {
+              "originalPosition": 7,
+              "body": "This Note predates this PR \u2014 it explains the forward-compatibility requirement in item 1 (\"the server MUST ignore any parameter within the issue-value that has an unrecognized tag\"), not the case-insensitivity rule in item 4. The Note is about unknown parameter *tags* being ignored; item 4 is about known parameter *values* being compared case-insensitively. Different requirements, different scopes. Leaving as-is.",
+              "createdAt": "2026-03-04T18:37:41Z",
+              "updatedAt": "2026-03-04T18:37:41Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7n767v",
+          "commit": {
+            "abbreviatedOid": "f501825"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-03-04T18:37:47Z",
+          "updatedAt": "2026-03-04T18:37:47Z",
+          "comments": [
+            {
+              "originalPosition": 16,
+              "body": "Good catch \u2014 scoped to \"CAs MUST compare\" since the comparison happens server-side during challenge verification. Clients write the value; CAs verify it.",
+              "createdAt": "2026-03-04T18:37:47Z",
+              "updatedAt": "2026-03-04T18:37:48Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7n78nE",
+          "commit": {
+            "abbreviatedOid": "f501825"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-03-04T18:39:17Z",
+          "updatedAt": "2026-03-04T18:39:17Z",
+          "comments": [
+            {
+              "originalPosition": 6,
+              "body": "The fallback clauses (\"if its value is anything other than `wildcard`\") define semantics \u2014 what happens when `policy` is not `wildcard` \u2014 not comparison mechanics. The comparison operation is governed by item 4's unconditional MUST: \"Comparison of the values defined for this parameter MUST be case-insensitive.\" That rule applies to all comparisons of `policy` values, including these fallback checks.\n\nThe fallback clause at line 180 is 8 lines below item 4's case rule and its worked example (`\"WILDCARD\" and \"wildcard\" are equivalent`). \u00a75 and \u00a76 both cross-reference \u00a74 via `{{wildcard-certificate-validation}}`. An implementer who reads item 4 (which they must, to understand `policy`) will see the case rule before reaching the fallback.\n\nAdding parenthetical cross-references to each fallback clause would conflate semantic definitions with comparison mechanics, and create 3 additional maintenance points for a rule already normatively defined in one place. Leaving as-is per IETF convention: define once, reference forward.",
+              "createdAt": "2026-03-04T18:39:17Z",
+              "updatedAt": "2026-03-04T18:39:17Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 41,
+      "id": "PR_kwDOO4VY2c7H8wzR",
+      "title": "fix(terminology): rename \"Authorization Domain Name\" to \"Validation Record Name\"",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/41",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Closes #40\n\n## Problem\n\nThe draft defines \"Authorization Domain Name\" as the full DNS label where the validation TXT record is provisioned (e.g., `_validation-persist.example.com`). The CA/Browser Forum Baseline Requirements define the same term as the bare FQDN used to obtain authorization (e.g., `example.com`). This conflict will cause implementer confusion \u2014 especially once issue #33 adds an `adn` (Authorization Domain Name) field that uses the BR definition.\n\n## Change\n\nRename the draft's concept to **\"Validation Record Name\"** \u2014 an unambiguous, draft-specific term for the `_validation-persist.<FQDN>` DNS label. All 10 occurrences across 9 locations are updated:\n\n| Section | Context |\n|---|---|\n| \u00a72 Conventions | Glossary heading + definition body |\n| \u00a73 Challenge | Overview paragraph |\n| \u00a74 Challenge Response | Provisioning instructions (\u00d72), example, server verification |\n| \u00a74.1 Multiple Issuer | CA verification step 1 |\n| \u00a74.3 JIT Validation | DNS lookup target |\n| \u00a76.8 Revocation | Record removal instructions |\n| \u00a78.2 Wildcard Example | Record provisioning step |\n\nThe glossary definition explains the motivation: _\"This document uses 'Validation Record Name' to avoid confusion with 'Authorization Domain Name' as defined in the CA/Browser Forum Baseline Requirements, where it refers to the bare FQDN used to obtain authorization before any label is prepended.\"_\n\n## What this does NOT change\n\n- No normative behavior changes \u2014 this is a pure terminology rename\n- No changes to record format, validation procedure, or security properties\n- The term \"Authorization Domain Name\" still appears once, in the disambiguation sentence\n\n## Relationship to other PRs\n\n- **Overlaps with PR #35** (accounturi-review-v2) \u2014 PR #35 rewrites two sentences (\u00a74 verification, \u00a76.8 revocation) that contain \"Authorization Domain Name\". Merging in either order produces two trivial conflicts: apply the rename on top of #35's wording changes. Four other unchanged occurrences in #35's branch will also need the rename during rebase.\n- **Independent of PR #36** (case-handling) \u2014 no overlap.\n- **Prerequisite for issue #33** \u2014 the `adn` field proposal uses \"Authorization Domain Name\" in the BR sense. This rename clears the way for that work.\n\n## Review notes\n\nThis is a mechanical rename. The diff is 10 insertions / 10 deletions in a single file. The only judgment call is the new term itself \u2014 \"Validation Record Name\" was chosen because it describes what the concept is (the DNS name of the validation record) without overloading existing BR or RFC terminology.",
+      "createdAt": "2026-03-04T18:13:54Z",
+      "updatedAt": "2026-03-05T00:53:17Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "3e531232f31c595068d8f4b3879cec5fff2ac20d",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "sheurich/issue-40-adn-terminology",
+      "headRefOid": "395bf2bd3bbd5e73c1dee3d1cffd848b8e3f7127",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "just checking, what is the alignment with the ACME RFC? does this provide closer alignment to the that?\r\n\r\nI sort of think of CAB/F and ACME as two parallel ecosystems with respect to validation and I think of this draft more on the ACME side so I would give priority into matching ACME RFC language.",
+          "createdAt": "2026-03-04T22:50:14Z",
+          "updatedAt": "2026-03-04T22:50:14Z"
+        },
+        {
+          "author": "aarongable",
+          "authorAssociation": "NONE",
+          "body": "RFC 8555 doesn't define a term for this concept, but it does call it a \"validation domain name\" in one sentence (emphasis added):\r\n\r\n> The record provisioned to the DNS contains the base64url encoding of\r\n> this digest.  The client constructs the **validation domain name** by\r\n> prepending the label \"_acme-challenge\" to the domain name being\r\n> validated, then provisions a TXT record with the digest value under\r\n> that name.\r\n\r\nI slightly prefer \"validation domain name\" over \"validation record name\", but am happy either way.",
+          "createdAt": "2026-03-05T00:53:16Z",
+          "updatedAt": "2026-03-05T00:53:16Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c7n7gOj",
+          "commit": {
+            "abbreviatedOid": "3e7eec5"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "## Pull request overview\n\nThis PR updates the ACME `dns-persist-01` draft terminology to avoid conflicting with the CA/Browser Forum Baseline Requirements\u2019 definition of \u201cAuthorization Domain Name,\u201d renaming the draft\u2019s `_validation-persist.<FQDN>` concept to \u201cValidation Record Name\u201d.\n\n**Changes:**\n- Rename the defined term \u201cAuthorization Domain Name\u201d to \u201cValidation Record Name\u201d throughout the document.\n- Add a glossary clarification explaining the disambiguation from the CA/Browser Forum BR term.\n\n\n\n\n\n---\n\n\ud83d\udca1 <a href=\"/ietf-wg-acme/draft-ietf-acme-dns-persist/new/main?filename=.github/instructions/*.instructions.md\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Add Copilot custom instructions</a> for smarter, more guided reviews. <a href=\"https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Learn how to get started</a>.",
+          "createdAt": "2026-03-04T18:15:57Z",
+          "updatedAt": "2026-03-04T18:15:57Z",
+          "comments": [
+            {
+              "originalPosition": 64,
+              "body": "The sentence 'After the record is removed, new validation attempts for the domain will fail' is not strictly correct operationally because recursive resolvers (including the CA's) may continue returning the TXT record until caches expire. Consider updating this to reflect that validation attempts may still succeed until TTL/caches expire (similar to the wording in PR #35).\n```suggestion\nThe primary method for an Applicant to invalidate a `dns-persist-01` authorization for a domain is to **remove the corresponding DNS TXT record** from the Validation Record Name. After the record is removed, new validation attempts for the domain will generally fail once recursive resolver caches and other cached DNS data reflecting the previous TXT record have expired; until that time, some validation attempts may still succeed based on cached responses. This behavior represents a deliberate design trade-off: any existing authorization obtained via this method will remain valid until it expires as per the CA's Validation Data Reuse Period. This persistence underscores the importance of protecting the ACME account key.\n```",
+              "createdAt": "2026-03-04T18:15:57Z",
+              "updatedAt": "2026-03-04T18:15:57Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7n73U7",
+          "commit": {
+            "abbreviatedOid": "395bf2b"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "## Pull request overview\n\nCopilot reviewed 1 out of 1 changed files in this pull request and generated 1 comment.\n\n\n\n\n\n---\n\n\ud83d\udca1 <a href=\"/ietf-wg-acme/draft-ietf-acme-dns-persist/new/main?filename=.github/instructions/*.instructions.md\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Add Copilot custom instructions</a> for smarter, more guided reviews. <a href=\"https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Learn how to get started</a>.",
+          "createdAt": "2026-03-04T18:34:40Z",
+          "updatedAt": "2026-03-04T18:34:41Z",
+          "comments": [
+            {
+              "originalPosition": 66,
+              "body": "The sentence \"After the record is removed, new validation attempts for the domain will fail\" is misleading because DNS resolvers may continue to return cached TXT answers until TTLs expire. Consider rewording to reflect cache/propagation effects (e.g., failure is expected after resolver caches have expired), and/or aligning the wording with PR #35 to avoid divergent text in this section.\n```suggestion\nThe primary method for an Applicant to invalidate a `dns-persist-01` authorization for a domain is to **remove the corresponding DNS TXT record** at the Validation Record Name. After the record is removed from authoritative DNS and relevant resolver caches have expired in accordance with their TTLs, new validation attempts for the domain are expected to fail. This behavior represents a deliberate design trade-off: any existing authorization obtained via this method will remain valid until it expires as per the CA's Validation Data Reuse Period. This persistence underscores the importance of protecting the ACME account key.\n```",
+              "createdAt": "2026-03-04T18:34:40Z",
+              "updatedAt": "2026-03-04T18:34:41Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7n7-ur",
+          "commit": {
+            "abbreviatedOid": "395bf2b"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-03-04T18:40:57Z",
+          "updatedAt": "2026-03-04T18:40:58Z",
+          "comments": [
+            {
+              "originalPosition": 66,
+              "body": "Valid observation, but this sentence is pre-existing text. This PR only changed the term name and preposition. PR #35 already addresses this exact point by adding \"and resolver caches have expired\" to this sentence. Taking it on here would expand scope and create a harder merge conflict with #35.",
+              "createdAt": "2026-03-04T18:40:57Z",
+              "updatedAt": "2026-03-04T18:40:58Z"
             }
           ]
         }
