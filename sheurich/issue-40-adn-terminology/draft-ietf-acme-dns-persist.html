@@ -1054,7 +1054,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Heurich, et al.</td>
-<td class="center">Expires 5 September 2026</td>
+<td class="center">Expires 6 September 2026</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1067,12 +1067,12 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <dd class="internet-draft">draft-ietf-acme-dns-persist-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-03-04" class="published">4 March 2026</time>
+<time datetime="2026-03-05" class="published">5 March 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2026-09-05">5 September 2026</time></dd>
+<dd class="expires"><time datetime="2026-09-06">6 September 2026</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -1129,7 +1129,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 5 September 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 6 September 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1409,10 +1409,10 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
           <p id="section-2-2.2.1">The label "_validation-persist" as specified in this document. This label is consistent with industry practices for persistent domain validation.<a href="#section-2-2.2.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="section-2-2.3"><strong>Validation Record Name</strong></dt>
+<dt id="section-2-2.3"><strong>Validation Domain Name</strong></dt>
         <dd style="margin-left: 1.5em" id="section-2-2.4">
           <p id="section-2-2.4.1">The domain name at which the validation TXT record is provisioned. It is formed by prepending the DNS TXT Record Persistent DCV Domain Label to the FQDN being validated.<a href="#section-2-2.4.1" class="pilcrow">¶</a></p>
-<p id="section-2-2.4.2">This document uses "Validation Record Name" to avoid confusion with "Authorization Domain Name" as defined in the CA/Browser Forum Baseline Requirements <span>[<a href="#cabf-br" class="cite xref">cabf-br</a>]</span>, where it refers to the FQDN used to obtain authorization, without any label prepended.<a href="#section-2-2.4.2" class="pilcrow">¶</a></p>
+<p id="section-2-2.4.2">This term follows the precedent set by <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 8.4, which uses "validation domain name" for the analogous <code>_acme-challenge.&lt;FQDN&gt;</code> label in the dns-01 challenge. This document avoids the term "Authorization Domain Name" because the CA/Browser Forum Baseline Requirements <span>[<a href="#cabf-br" class="cite xref">cabf-br</a>]</span> define it as the FQDN used to obtain authorization, without any label prepended.<a href="#section-2-2.4.2" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 <dt id="section-2-2.5"><strong>Issuer Domain Name</strong></dt>
@@ -1441,7 +1441,7 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
 <a href="#section-3" class="section-number selfRef">3. </a><a href="#name-the-dns-persist-01-challeng" class="section-name selfRef">The "dns-persist-01" Challenge</a>
       </h2>
 <p id="section-3-1">The "dns-persist-01" challenge allows an ACME client to demonstrate control over an FQDN by proving it can provision a DNS TXT record containing specific, persistent validation information. The validation information links the FQDN to both the Certificate Authority performing the validation and the specific ACME account requesting the validation.<a href="#section-3-1" class="pilcrow">¶</a></p>
-<p id="section-3-2">When an ACME client accepts a "dns-persist-01" challenge, it proves control by provisioning a DNS TXT record at the Validation Record Name. Unlike the existing "dns-01" challenge, this record is designed to persist and may be reused for multiple certificate issuances over an extended period.<a href="#section-3-2" class="pilcrow">¶</a></p>
+<p id="section-3-2">When an ACME client accepts a "dns-persist-01" challenge, it proves control by provisioning a DNS TXT record at the Validation Domain Name. Unlike the existing "dns-01" challenge, this record is designed to persist and may be reused for multiple certificate issuances over an extended period.<a href="#section-3-2" class="pilcrow">¶</a></p>
 <div id="challenge-object">
 <section id="section-3.1">
         <h3 id="name-challenge-object">
@@ -1504,8 +1504,8 @@ The server <span class="bcp14">MUST</span> ensure the array is not empty. Server
       <h2 id="name-challenge-response-and-veri">
 <a href="#section-4" class="section-number selfRef">4. </a><a href="#name-challenge-response-and-veri" class="section-name selfRef">Challenge Response and Verification</a>
       </h2>
-<p id="section-4-1">To respond to the challenge, the ACME client provisions a DNS TXT record at the Validation Record Name of the domain being validated. The Validation Record Name is formed by prepending the label "_validation-persist" to the domain name being validated.<a href="#section-4-1" class="pilcrow">¶</a></p>
-<p id="section-4-2">For example, if the domain being validated is "example.com", the Validation Record Name would be "_validation-persist.example.com".<a href="#section-4-2" class="pilcrow">¶</a></p>
+<p id="section-4-1">To respond to the challenge, the ACME client provisions a DNS TXT record at the Validation Domain Name of the domain being validated. The Validation Domain Name is formed by prepending the label "_validation-persist" to the domain name being validated.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<p id="section-4-2">For example, if the domain being validated is "example.com", the Validation Domain Name would be "_validation-persist.example.com".<a href="#section-4-2" class="pilcrow">¶</a></p>
 <p id="section-4-3">The RDATA of this TXT record <span class="bcp14">MUST</span> fulfill the following requirements:<a href="#section-4-3" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-4-4">
 <li id="section-4-4.1">
@@ -1548,7 +1548,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 <a href="#name-basic-validation-txt-record" class="selfRef">Basic Validation TXT Record</a>
         </figcaption></figure>
 </div>
-<p id="section-4-7">The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Validation Record Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its <code>issuer-domain-name</code> value <span class="bcp14">MUST</span> match one of the values provided in the <code>issuer-domain-names</code> array from the challenge object, and it must contain a valid <code>accounturi</code> for the requesting account. When comparing issuer domain names, the server <span class="bcp14">MUST</span> adhere to the normalization rules specified in <a href="#challenge-object" class="auto internal xref">Section 3.1</a>. The server also interprets any <code>policy</code> parameter values according to this specification.<a href="#section-4-7" class="pilcrow">¶</a></p>
+<p id="section-4-7">The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Validation Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its <code>issuer-domain-name</code> value <span class="bcp14">MUST</span> match one of the values provided in the <code>issuer-domain-names</code> array from the challenge object, and it must contain a valid <code>accounturi</code> for the requesting account. When comparing issuer domain names, the server <span class="bcp14">MUST</span> adhere to the normalization rules specified in <a href="#challenge-object" class="auto internal xref">Section 3.1</a>. The server also interprets any <code>policy</code> parameter values according to this specification.<a href="#section-4-7" class="pilcrow">¶</a></p>
 <div id="multiple-issuer-support">
 <section id="section-4.1">
         <h3 id="name-multiple-issuer-support">
@@ -1571,7 +1571,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 <p id="section-4.1.2-1">When a CA performs validation for a domain with multiple <code>_validation-persist</code> TXT records, it <span class="bcp14">MUST</span> follow these steps:<a href="#section-4.1.2-1" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-4.1.2-2">
 <li id="section-4.1.2-2.1">
-              <p id="section-4.1.2-2.1.1"><strong>Query DNS</strong>: Retrieve all TXT records at the Validation Record Name.<a href="#section-4.1.2-2.1.1" class="pilcrow">¶</a></p>
+              <p id="section-4.1.2-2.1.1"><strong>Query DNS</strong>: Retrieve all TXT records at the Validation Domain Name.<a href="#section-4.1.2-2.1.1" class="pilcrow">¶</a></p>
 </li>
             <li id="section-4.1.2-2.2">
               <p id="section-4.1.2-2.2.1"><strong>Filter Records</strong>: Iterate through the returned records to find one where the <code>issuer-domain-name</code> value matches one of the Issuer Domain Names the CA is configured to use for this validation. The CA <span class="bcp14">MUST</span> ignore all other records.<a href="#section-4.1.2-2.2.1" class="pilcrow">¶</a></p>
@@ -1683,7 +1683,7 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
         <h3 id="name-just-in-time-validation">
 <a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-just-in-time-validation" class="section-name selfRef">Just-in-Time Validation</a>
         </h3>
-<p id="section-4.2-1">When processing a new authorization request, a CA <span class="bcp14">MAY</span> perform an immediate DNS lookup for <code>_validation-persist</code> TXT records at the Validation Record Name corresponding to the requested domain identifier.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.2-1">When processing a new authorization request, a CA <span class="bcp14">MAY</span> perform an immediate DNS lookup for <code>_validation-persist</code> TXT records at the Validation Domain Name corresponding to the requested domain identifier.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
 <p id="section-4.2-2">If one or more such records exist, the CA <span class="bcp14">MUST</span> evaluate them according to the requirements specified in <a href="#multiple-issuer-support" class="auto internal xref">Section 4.1</a>. If at least one record meets all validation requirements, the CA <span class="bcp14">MAY</span> transition the authorization to the "valid" status without returning a "pending" challenge to the client. This mechanism is an optimization and does not alter the ACME state machine defined in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>. The server internally transitions the authorization from "pending" through "processing" to "valid" instantaneously. From the client's perspective, it receives a "valid" authorization object directly in response to its creation request.<a href="#section-4.2-2" class="pilcrow">¶</a></p>
 <p id="section-4.2-3">If no DNS TXT record meets the validation requirements, or if the records are absent, the CA <span class="bcp14">MUST</span> proceed with the standard authorization flow by returning a "pending" authorization with an associated <code>dns-persist-01</code> challenge object.<a href="#section-4.2-3" class="pilcrow">¶</a></p>
 <p id="section-4.2-4">This mechanism enables efficient reuse of persistent validation records while maintaining the security properties of the validation method.<a href="#section-4.2-4" class="pilcrow">¶</a></p>
@@ -1969,7 +1969,7 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
 <a href="#section-7.10" class="section-number selfRef">7.10. </a><a href="#name-revocation-and-invalidation" class="section-name selfRef">Revocation and Invalidation of Persistent Authorizations</a>
         </h3>
 <p id="section-7.10-1">The persistent nature of <code>dns-persist-01</code> authorizations means that a valid DNS TXT record can grant control for an extended period, potentially even if the domain owner's intent changes or if the associated ACME account key is compromised. Therefore, explicit mechanisms for revoking or invalidating these persistent authorizations are critical.<a href="#section-7.10-1" class="pilcrow">¶</a></p>
-<p id="section-7.10-2">The primary method for an Applicant to invalidate a <code>dns-persist-01</code> authorization for a domain is to <strong>remove the corresponding DNS TXT record</strong> at the Validation Record Name. After the record is removed, new validation attempts for the domain will fail. This behavior represents a deliberate design trade-off: any existing authorization obtained via this method will remain valid until it expires as per the CA's Validation Data Reuse Period. This persistence underscores the importance of protecting the ACME account key.<a href="#section-7.10-2" class="pilcrow">¶</a></p>
+<p id="section-7.10-2">The primary method for an Applicant to invalidate a <code>dns-persist-01</code> authorization for a domain is to <strong>remove the corresponding DNS TXT record</strong> at the Validation Domain Name. After the record is removed, new validation attempts for the domain will fail. This behavior represents a deliberate design trade-off: any existing authorization obtained via this method will remain valid until it expires as per the CA's Validation Data Reuse Period. This persistence underscores the importance of protecting the ACME account key.<a href="#section-7.10-2" class="pilcrow">¶</a></p>
 <p id="section-7.10-3">For situations requiring immediate revocation of issuance capability, such as a suspected account key compromise, the primary and most effective mechanism is to <strong>deactivate the ACME account</strong> as specified in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.5.2. Deactivating the account immediately and irrevocably prevents it from being used for any further certificate issuance.<a href="#section-7.10-3" class="pilcrow">¶</a></p>
 <p id="section-7.10-4">ACME Clients <span class="bcp14">SHOULD</span> provide clear mechanisms for users to:<a href="#section-7.10-4" class="pilcrow">¶</a></p>
 <ul class="normal">
@@ -2241,7 +2241,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
             <p id="section-10.2-2.1.1">The CA provides a challenge object similar to the basic example, containing an <code>issuer-domain-names</code> array.<a href="#section-10.2-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-10.2-2.2">
-            <p id="section-10.2-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record at the base domain's Validation Record Name, including <code>policy=wildcard</code>:<a href="#section-10.2-2.2.1" class="pilcrow">¶</a></p>
+            <p id="section-10.2-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record at the base domain's Validation Domain Name, including <code>policy=wildcard</code>:<a href="#section-10.2-2.2.1" class="pilcrow">¶</a></p>
 <span id="name-wildcard-policy-validation-"></span><div id="ex-wildcard-validation">
 <figure id="figure-4">
               <div class="lang-dns sourcecode" id="section-10.2-2.2.2.1">

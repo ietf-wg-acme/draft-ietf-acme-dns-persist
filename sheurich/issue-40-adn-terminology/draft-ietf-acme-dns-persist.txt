@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 5 September 2026                          Crosslayer Labs, Inc.
+Expires: 6 September 2026                          Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                            4 March 2026
+                                                            5 March 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -63,7 +63,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 5 September 2026.
+   This Internet-Draft will expire on 6 September 2026.
 
 Copyright Notice
 
@@ -211,14 +211,16 @@ Table of Contents
       persist" as specified in this document.  This label is consistent
       with industry practices for persistent domain validation.
 
-   *Validation Record Name*  The domain name at which the validation TXT
+   *Validation Domain Name*  The domain name at which the validation TXT
       record is provisioned.  It is formed by prepending the DNS TXT
       Record Persistent DCV Domain Label to the FQDN being validated.
 
-      This document uses "Validation Record Name" to avoid confusion
-      with "Authorization Domain Name" as defined in the CA/Browser
-      Forum Baseline Requirements [cabf-br], where it refers to the FQDN
-      used to obtain authorization, without any label prepended.
+      This term follows the precedent set by [RFC8555], Section 8.4,
+      which uses "validation domain name" for the analogous _acme-
+      challenge.<FQDN> label in the dns-01 challenge.  This document
+      avoids the term "Authorization Domain Name" because the CA/Browser
+      Forum Baseline Requirements [cabf-br] define it as the FQDN used
+      to obtain authorization, without any label prepended.
 
    *Issuer Domain Name*  A domain name disclosed by the CA in
       Section 4.2 of the CA's Certificate Policy and/or Certification
@@ -252,7 +254,7 @@ Table of Contents
    requesting the validation.
 
    When an ACME client accepts a "dns-persist-01" challenge, it proves
-   control by provisioning a DNS TXT record at the Validation Record
+   control by provisioning a DNS TXT record at the Validation Domain
    Name.  Unlike the existing "dns-01" challenge, this record is
    designed to persist and may be reused for multiple certificate
    issuances over an extended period.
@@ -308,12 +310,12 @@ Table of Contents
 4.  Challenge Response and Verification
 
    To respond to the challenge, the ACME client provisions a DNS TXT
-   record at the Validation Record Name of the domain being validated.
-   The Validation Record Name is formed by prepending the label
+   record at the Validation Domain Name of the domain being validated.
+   The Validation Domain Name is formed by prepending the label
    "_validation-persist" to the domain name being validated.
 
    For example, if the domain being validated is "example.com", the
-   Validation Record Name would be "_validation-persist.example.com".
+   Validation Domain Name would be "_validation-persist.example.com".
 
    The RDATA of this TXT record MUST fulfill the following requirements:
 
@@ -377,7 +379,7 @@ Table of Contents
                    Figure 2: Basic Validation TXT Record
 
    The ACME server verifies the challenge by performing a DNS lookup for
-   TXT records at the Validation Record Name.  It then iterates through
+   TXT records at the Validation Domain Name.  It then iterates through
    the returned records to find one that conforms to the required
    structure.  For a record to be considered valid, its issuer-domain-
    name value MUST match one of the values provided in the issuer-
@@ -407,7 +409,7 @@ Table of Contents
    When a CA performs validation for a domain with multiple _validation-
    persist TXT records, it MUST follow these steps:
 
-   1.  *Query DNS*: Retrieve all TXT records at the Validation Record
+   1.  *Query DNS*: Retrieve all TXT records at the Validation Domain
        Name.
 
    2.  *Filter Records*: Iterate through the returned records to find
@@ -492,7 +494,7 @@ Table of Contents
 
    When processing a new authorization request, a CA MAY perform an
    immediate DNS lookup for _validation-persist TXT records at the
-   Validation Record Name corresponding to the requested domain
+   Validation Domain Name corresponding to the requested domain
    identifier.
 
    If one or more such records exist, the CA MUST evaluate them
@@ -823,7 +825,7 @@ Table of Contents
 
    The primary method for an Applicant to invalidate a dns-persist-01
    authorization for a domain is to *remove the corresponding DNS TXT
-   record* at the Validation Record Name.  After the record is removed,
+   record* at the Validation Domain Name.  After the record is removed,
    new validation attempts for the domain will fail.  This behavior
    represents a deliberate design trade-off: any existing authorization
    obtained via this method will remain valid until it expires as per
@@ -1077,7 +1079,7 @@ Table of Contents
 
    2.  Client chooses one of the provided Issuer Domain Names (e.g.,
        "authority.example") and provisions a DNS TXT record at the base
-       domain's Validation Record Name, including policy=wildcard:
+       domain's Validation Domain Name, including policy=wildcard:
 
        _validation-persist.example.com. IN TXT ("authority.example;"
        " accounturi=https://ca.example/acct/123;"
