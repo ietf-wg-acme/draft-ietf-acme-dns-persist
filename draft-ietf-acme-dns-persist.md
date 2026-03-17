@@ -426,7 +426,7 @@ This validation method is explicitly designed for persistence and reuse. The per
 
 CAs MAY reuse validation data obtained through this method for the duration of their validation data reuse period, subject to the TTL constraints described in this section. CAs MUST also respect any `persistUntil` constraint as specified in {{validation-record-format}}.
 
-## persistUntil Parameter Considerations
+## persistUntil Parameter Considerations {#persist-until-parameter-considerations}
 
 The `persistUntil` parameter provides domain owners with direct control over the validity period of their validation records. CAs and clients should be aware of the following considerations:
 
