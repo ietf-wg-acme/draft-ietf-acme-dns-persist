@@ -18,7 +18,7 @@ venue:
   type: "Working Group"
   mail: "acme@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/browse/acme/"
-  github: "sheurich/draft-sheurich-acme-dns-persist"
+  github: "ietf-wg-acme/draft-ietf-acme-dns-persist"
 
 author:
  -
