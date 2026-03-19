@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-03-08T01:14:25.832155+00:00",
+  "timestamp": "2026-03-19T01:17:48.077648+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -60,9 +60,9 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "The `draft-sheurich-acme-dns-persist.txt` currently states in Section 7.1, \"Persistent Record Risks,\" that clients \"SHOULD protect validation records through appropriate DNS security measures, including:... Implementing DNS security extensions (DNSSEC) where possible\".[1] This issue seeks to open a discussion on whether this \"SHOULD\" should be elevated to a \"MUST\" for the `dns-persist-01` challenge method.\n\n**Background:**\n\nThe `dns-persist-01` method is designed for persistent DNS TXT records for domain control validation, particularly for environments where traditional, ephemeral challenge methods are impractical.[1] The draft acknowledges the inherent risks of persistent records, noting that \"DNS records are generally not authenticated end-to-end, making them potentially vulnerable to tampering\".[1]\n\n**Arguments for Mandating DNSSEC (\"MUST\"):**\n\n1.  **Enhanced Security and Integrity:** Persistent DNS records introduce a longer window of vulnerability. Mandating DNSSEC would provide cryptographic authentication of DNS data, significantly mitigating risks of spoofing and tampering, ensuring that the CA receives authentic validation information.\n2.  **Alignment with Best Practices for Persistent Identifiers:** Other drafts, such as `draft-sheth-identifiers-dns/` (\"Best Practices for Persistent References in DNS\"), explicitly mandate DNSSEC for persistent DNS references to ensure global consistency and spoofing resistance. Given that `dns-persist-01` deals with persistent records, aligning with this stronger security posture seems appropriate.\n3.  **Mitigation of Record Tampering:** The draft's own \"Security Considerations\" section (7.5) highlights \"Record Tampering and Integrity\" as a concern. Mandating DNSSEC directly addresses this vulnerability by providing a verifiable chain of trust for the DNS records.[1]\n\n**Arguments Against Mandating DNSSEC (keeping \"SHOULD\"):**\n\n1.  **Deployability and Adoption:** DNSSEC is not yet universally deployed across all domains and DNS providers. Mandating it could limit the applicability and adoption of `dns-persist-01` in certain environments, such as some IoT deployments or multi-tenant platforms, where DNSSEC implementation might be complex or unavailable.[1]\n2.  **Operational Burden:** Requiring DNSSEC could introduce additional operational complexity for domain owners and DNS providers, potentially hindering the ease of use that ACME aims to provide.\n\n**Question for the Working Group:**\n\nConsidering the security benefits of DNSSEC for persistent records versus the potential impact on deployability, should Section 7.1 of `draft-sheurich-acme-dns-persist.txt` be updated to mandate (i.e., change \"SHOULD\" to \"MUST\") the use of DNSSEC for `dns-persist-01` validation records?\n\nWe invite discussion on the trade-offs and implications of such a change for both security and widespread adoption.\n",
+      "body": "The draft says CAs \"SHOULD\" protect validation records with DNSSEC (\u00a77.1).\nShould this be \"MUST\"?\n\ndns-persist records are long-lived, which means a longer window for spoofing\nor tampering compared to ephemeral challenges. DNSSEC would provide\ncryptographic authentication of the records a CA retrieves.\ndraft-sheth-identifiers-dns takes this position for persistent DNS references.\n\nOn the other hand, DNSSEC isn't universally deployed. Mandating it would\nlimit adoption in environments where DNSSEC isn't available \u2014 some hosting\nproviders, IoT deployments, multi-tenant platforms.\n\nOpening this for WG discussion.",
       "createdAt": "2025-06-17T19:40:31Z",
-      "updatedAt": "2025-07-30T23:16:57Z",
+      "updatedAt": "2026-03-18T20:46:31Z",
       "closedAt": "2025-07-30T23:16:57Z",
       "comments": [
         {
@@ -91,9 +91,9 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "This issue seeks to discuss the appropriateness and method of referencing `draft-sheth-identifiers-dns` (\"Best Practices for Persistent References in DNS\") within the `draft-sheurich-acme-dns-persist.txt` document. Both documents deal with aspects of persistent DNS records, but their scope and current maturity levels differ.\n\n**Background:**\n\n* **`draft-sheurich-acme-dns-persist.txt` (dns-persist-01):** Defines a specific ACME challenge method for persistent DNS TXT record validation. It aims to align with CA/Browser Forum Baseline Requirements for persistent DNS TXT record validation.\n* **`draft-sheth-identifiers-dns`:** Provides general best practices for establishing and maintaining persistent associations between a global DNS domain name and various use-case-specific references, with a strong emphasis on mandating DNSSEC for cryptographic verifiability.\n\n**Considerations for Referencing `draft-sheth-identifiers-dns`:**\n\n**Arguments for Incorporating/Referencing (e.g., Informatively):**\n\n1.  **Broader Context and Best Practices:** `draft-sheth-identifiers-dns` offers valuable insights into the general principles and best practices for persistent DNS records, which could provide useful context for implementers of `dns-persist-01`.\n2.  **Security Alignment:** Both drafts address the security of persistent DNS records. `draft-sheth-identifiers-dns`'s strong emphasis on DNSSEC for integrity aligns with the security goals of `dns-persist-01`, which acknowledges \"Record Tampering and Integrity\" as a risk (Section 7.5).\n\n**Arguments Against Normative Incorporation/Referencing at this Stage:**\n\n1.  **Maturity Level (Both are Internet-Drafts):** Both `draft-sheurich-acme-dns-persist.txt` and `draft-sheth-identifiers-dns` are Internet-Drafts. IETF policy generally states that it's inappropriate to use Internet-Drafts as stable reference material. Normatively referencing one draft from another is typically discouraged and can cause significant publication delays.\n2.  **Scope and Mandate Differences:** `draft-sheth-identifiers-dns` *mandates* DNSSEC for persistent references. In contrast, `dns-persist-01` currently *recommends* DNSSEC (\"SHOULD... where possible,\" Section 7.1). A normative reference would implicitly introduce a stronger DNSSEC requirement for `dns-persist-01`, which is a notable policy decision.\n3.  **Stability of Content:** As drafts, their content is subject to change, revision, or even abandonment. A normative reference would tie the stability of `dns-persist-01` to an evolving external document, potentially conflicting with IETF's requirements for stable, archivable normative references.\n\n**Proposed Question for the Working Group:**\n\nGiven the current status of both documents as Internet-Drafts, their differing scopes, and the IETF's referencing policies, should `draft-sheurich-acme-dns-persist.txt` include a reference to `draft-sheth-identifiers-dns`? If so, what type of reference (e.g., informative, with a note about its draft status) would be most appropriate, and what are the implications for the `dns-persist-01` specification, particularly regarding DNSSEC requirements?\n\nWe invite discussion on how best to acknowledge relevant external work while maintaining the stability and clarity of the `dns-persist-01` specification.",
+      "body": "draft-sheth-identifiers-dns covers persistent DNS references and mandates DNSSEC. Should dns-persist-01 reference it?\n\nIt's relevant background \u2014 the DNSSEC position overlaps with \u00a77.5 (Record Tampering). But both are I-Ds, so a normative reference is problematic: draft-sheth mandates DNSSEC, while dns-persist-01 uses SHOULD. Pointing at it normatively would drag in that stronger requirement.\n\nAn informative reference with a note about its draft status would work. Or we skip it and revisit if draft-sheth progresses.\n",
       "createdAt": "2025-06-17T19:48:44Z",
-      "updatedAt": "2025-08-07T15:59:22Z",
+      "updatedAt": "2026-03-18T21:15:03Z",
       "closedAt": "2025-08-07T15:59:22Z",
       "comments": [
         {
@@ -115,9 +115,9 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "**Evaluate Policy String Clarity for Persistent DNS Challenge Records**\n\nThe current policy values for persistent DNS challenge records are:  \n- `specific-subdomains-only`  \n- `wildcard-allowed`\n\nWe should assess whether these terms are clear and unambiguous for both technical and non-technical readers. Consider:\n\n- Are the terms self-explanatory?\n- Could shorter or more conventional wording improve clarity?\n- Are there established precedents in relevant standards or software?\n\nSuggestions for alternative wording and feedback on current terminology are welcome!",
+      "body": "The current policy values for persistent DNS challenge records are:\n\n- `specific-subdomains-only`\n- `wildcard-allowed`\n\nQuestions:\n\n- Are the terms self-explanatory?\n- Could shorter or more conventional wording improve clarity?\n- Are there established precedents in relevant standards or software?\n\nOpen for WG input on naming.\n",
       "createdAt": "2025-06-18T14:41:48Z",
-      "updatedAt": "2025-07-23T13:48:35Z",
+      "updatedAt": "2026-03-18T21:15:13Z",
       "closedAt": "2025-07-23T13:48:35Z",
       "comments": [
         {
@@ -139,9 +139,9 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "The draft should provide clearer guidance on several edge cases to ensure consistent implementation:\n\n- **Multiple TXT Records:** Specify how a CA should behave if multiple TXT records are found at the same Authorization Domain Name. The recommended behavior is to succeed if at least one record is valid.\n- **Malformed  Parameter:** Define the expected behavior if the  parameter is syntactically incorrect (e.g., ). Should the record be ignored, or should the entire validation fail?\n- **Interaction with CAA:** Add a non-normative note to clarify that this validation method does not bypass standard CAA checking requirements (RFC 8659).",
+      "body": "Duplicate of #6 (filed with broken formatting).\n",
       "createdAt": "2025-07-23T15:00:26Z",
-      "updatedAt": "2025-07-23T15:23:26Z",
+      "updatedAt": "2026-03-18T21:15:13Z",
       "closedAt": "2025-07-23T15:23:26Z",
       "comments": [
         {
@@ -163,9 +163,9 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "The draft should provide clearer guidance on several edge cases to ensure consistent implementation:\n\n- **Multiple TXT Records:** Specify how a CA should behave if multiple TXT records are found at the same Authorization Domain Name. The recommended behavior is to succeed if at least one record is valid.\n- **Malformed `policy` Parameter:** Define the expected behavior if the `policy` parameter is syntactically incorrect (e.g., `policy=subdomains;wildcard`). Should the record be ignored, or should the entire validation fail?\n- **Interaction with CAA:** Add a non-normative note to clarify that this validation method does not bypass standard CAA checking requirements (RFC 8659).",
+      "body": "Three edge cases need clarification:\n\n1. **Multiple TXT records.** If multiple TXT records exist at the same ADN, does the CA need all of them to be valid, or is one enough? Recommend: succeed if at least one record is valid.\n2. **Malformed `policy`.** What happens with `policy=subdomains;wildcard`? Ignore the record? Fail the whole validation?\n3. **CAA interaction.** Add a non-normative note that this method doesn't bypass CAA checking (RFC 8659).\n",
       "createdAt": "2025-07-23T15:01:06Z",
-      "updatedAt": "2025-08-07T15:37:05Z",
+      "updatedAt": "2026-03-18T21:15:13Z",
       "closedAt": "2025-08-07T15:37:05Z",
       "comments": [
         {
@@ -187,9 +187,9 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "The Security Considerations section could be enhanced with more specific guidance:\n\n- **Account Key Rotation:** Add a note clarifying the operational procedure for key rotation. Specifically, state that the `accounturi` is a stable identifier and does not need to be changed in DNS when the client rotates their account key with the CA.\n- **Certificate Transparency Log Monitoring:** Mention that CT logs can reveal the use of this persistent validation method, making those domains higher-value targets and reinforcing the need for diligent DNS monitoring.",
+      "body": "Two additions for Security Considerations:\n\n1. Account key rotation: clarify that `accounturi` is stable \u2014 clients don't need to update DNS records when they rotate their account key with the CA.\n2. CT log exposure: persistent validation makes domain usage visible in CT logs, which raises the value of those domains as targets. Worth noting alongside the DNS monitoring guidance.\n",
       "createdAt": "2025-07-23T15:02:10Z",
-      "updatedAt": "2025-08-07T15:01:11Z",
+      "updatedAt": "2026-03-18T21:15:13Z",
       "closedAt": "2025-08-07T15:01:11Z",
       "comments": [
         {
@@ -211,9 +211,9 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "The draft could provide more explicit guidance for implementers:\n\n- **Guidance on Choosing TTLs:** Add a non-normative note to the \"Client Implementation Guidelines\" suggesting a reasonable range for TTL values (e.g., 1 to 24 hours) to balance persistence with timely revocation.\n- **Error Reporting:** Suggest specific ACME error types (from RFC 8555) for common validation failures, such as `urn:ietf:params:acme:error:unauthorized` for a mismatched `accounturi` or `urn:ietf:params:acme:error:malformed` for an unparsable TXT record. This will help client developers provide better debugging feedback to users.",
+      "body": "Two gaps in implementation guidance:\n\n1. TTL selection: add a non-normative note to Client Implementation Guidelines suggesting 1-24 hours as a reasonable TTL range. Balances persistence with timely invalidation.\n2. Error types: suggest specific ACME error types for common failures \u2014 `unauthorized` for `accounturi` mismatch, `malformed` for unparseable TXT records. Helps client devs write useful error messages.\n",
       "createdAt": "2025-07-23T15:02:29Z",
-      "updatedAt": "2025-08-07T14:53:13Z",
+      "updatedAt": "2026-03-18T21:15:13Z",
       "closedAt": "2025-08-07T14:53:13Z",
       "comments": [
         {
@@ -251,9 +251,9 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "**Summary:**\nThe draft relies on RFC 8659's `issue-value` syntax but does not specify how to handle common parsing edge cases. This ambiguity could lead to interoperability issues between different CA and client implementations when validating the TXT record.\n\n**Details for Implementers:**\nA developer building a CA or client would need clear answers to the following questions to ensure their implementation is robust and interoperable:\n\n*   **Whitespace Handling:** Is whitespace significant? For example, are `policy=wildcard` and `policy = wildcard` equivalent? The specification should explicitly state whether implementations MUST trim leading/trailing whitespace from keys and values.\n*   **Duplicate Parameters:** How should a CA handle a record that contains the same parameter more than once (e.g., `...; policy=subdomains; policy=wildcard`)? Should the record be rejected as malformed, or does the first (or last) instance take precedence?\n*   **Parameter Casing:** The `policy` parameter is explicitly defined as case-insensitive. Does this rule apply to all parameter keys (e.g., is `persistUntil` equivalent to `persistuntil`)? This should be clarified for all current and future parameters.\n\n**Recommendation:**\nAdd a new subsection to \"Challenge Response and Verification\" that explicitly defines the parsing rules for the TXT record RDATA. This section should mandate the following:\n\n1.  Parameter keys MUST be compared in a case-insensitive manner.\n2.  Leading and trailing whitespace around parameter keys and values MUST be ignored.\n3.  The presence of duplicate parameter keys MUST cause the record to be rejected as malformed.\n",
+      "body": "The draft uses RFC 8659's issue-value syntax but doesn't cover three parsing edge cases:\n\n1. **Whitespace.** Is `policy=wildcard` the same as `policy = wildcard`? Should implementations trim whitespace around keys and values?\n2. **Duplicates.** What happens with `...; policy=subdomains; policy=wildcard`? Reject as malformed, or first/last wins?\n3. **Key casing.** `policy` is case-insensitive. Does that apply to all parameter keys? Is `persistUntil` the same as `persistuntil`?\n\nPropose adding a parsing rules subsection to \u00a74 that mandates: case-insensitive key comparison, whitespace trimming, and reject-on-duplicate.\n",
       "createdAt": "2025-07-24T18:31:08Z",
-      "updatedAt": "2025-08-07T14:43:20Z",
+      "updatedAt": "2026-03-18T21:15:03Z",
       "closedAt": "2025-08-07T14:43:20Z",
       "comments": [
         {
@@ -282,9 +282,9 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "**Summary:**\nThe draft now has three mechanisms that determine the lifetime of a validation authorization: the CA's internal `Validation Data Reuse Period`, the DNS record's TTL, and the `persistUntil` timestamp. The exact interaction and order of operations between these three is not perfectly clear, which could lead to different CAs calculating different expiration dates.\n\n**Details for Implementers:**\nAn implementer needs a precise formula for calculating an authorization's final validity to ensure consistent behavior.\n\n*   What is the exact order of operations? Is the final expiration timestamp `min(CA_reuse_period_end_date, persistUntil_timestamp)`?\n*   How does the TTL check relate to this final expiration? Is its role only to determine the *frequency* of re-validation, or can it shorten the absolute lifetime of the authorization itself?\n\n**Recommendation:**\nUpdate Section 4.2 (\"Validation Data Reuse and TTL Handling\") to clarify the order of precedence. The logic should be explicitly stated as follows:\n\n1.  The absolute expiration date of a validation authorization is the **earliest** of:\n    a. The date defined by the CA's internal `Validation Data Reuse Period`.\n    b. The timestamp specified in the `persistUntil` parameter, if present.\n2.  The DNS record's TTL is used to determine the *frequency* at which the CA MUST re-validate the record within its period of validity. This ensures that the record is checked for changes or removal in a timely manner, but does not override the absolute expiration date calculated above.",
+      "body": "Three mechanisms determine authorization lifetime: the CA's Validation Data Reuse Period, the DNS TTL, and `persistUntil`. The draft doesn't state the order of precedence. An implementer reading \u00a74.2 can't tell whether `min(reuse_period, persistUntil)` is correct, or whether the TTL can shorten the absolute lifetime vs. only affecting re-check frequency.\n\nPropose adding explicit precedence to \u00a74.2:\n\n1. Absolute expiration = earliest of (CA reuse period end, `persistUntil`)\n2. TTL governs re-check frequency within that period, not the expiration itself\n",
       "createdAt": "2025-07-24T18:32:24Z",
-      "updatedAt": "2025-08-07T14:37:15Z",
+      "updatedAt": "2026-03-18T21:15:03Z",
       "closedAt": "2025-08-07T14:37:14Z",
       "comments": [
         {
@@ -306,9 +306,9 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "**Summary:**\nSection 5.5 (\"Revocation and Invalidation\") contains conflicting guidance for CAs on how frequently they must re-check a persistent validation record, using both `SHOULD` and `MUST` in a way that creates ambiguity.\n\n**Details for Implementers:**\nThe text currently states:\n> \"The frequency of these re-checks **SHOULD** be at least as often as the effective Validation Data Reuse Period... and **MUST** occur no less frequently than every 8 hours\"\n\nThis creates a contradiction for an implementer. For example, if a record's TTL is 24 hours, its \"effective reuse period\" becomes 24 hours. The `SHOULD` clause implies a 24-hour re-check is acceptable, but the `MUST` clause requires an 8-hour re-check. Since `MUST` always takes precedence, the `SHOULD` clause is confusing and should be removed or rephrased to prevent misinterpretation.\n\n**Recommendation:**\nSimplify the sentence in Section 5.5 to remove the ambiguity. A clearer statement would be:\n\n> \"Certificate Authorities (CAs) implementing this method MUST periodically re-check active `dns-persist-01` authorizations to confirm the continued presence and validity of the DNS TXT record. These re-checks MUST occur at least as frequently as the record's TTL, but in no case less frequently than every 8 hours.\"",
+      "body": "\u00a75.5 has a SHOULD/MUST conflict for re-check frequency:\n\n> \"The frequency of these re-checks **SHOULD** be at least as often as the effective Validation Data Reuse Period... and **MUST** occur no less frequently than every 8 hours\"\n\nIf a record's TTL is 24 hours, the SHOULD says 24-hour re-checks are acceptable. The MUST says 8 hours. MUST wins, so the SHOULD clause is misleading.\n\nSimplify to: CAs MUST re-check at least as often as the TTL, and no less than every 8 hours.\n",
       "createdAt": "2025-07-24T18:33:16Z",
-      "updatedAt": "2025-08-01T15:54:51Z",
+      "updatedAt": "2026-03-18T21:15:03Z",
       "closedAt": "2025-08-01T15:54:51Z",
       "comments": [
         {
@@ -330,9 +330,9 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "**Summary:**\nThe draft provides guidance for CAs but lacks specific, non-normative advice for developers implementing ACME clients. This could lead to inconsistent client behavior, particularly around setting `persistUntil` values and handling errors.\n\n**Details for Implementers:**\nA client developer may have the following questions:\n\n*   **Choosing `persistUntil`:** What is a \"reasonable\" default value for the `persistUntil` parameter? Without guidance, some clients might create very long-lived authorizations by default, while others might require manual configuration.\n*   **Error Handling:** What specific ACME error type (e.g., `urn:ietf:params:acme:error:malformed`, `urn:ietf:params:acme:error:unauthorized`) should a client expect from a CA for failures related to this challenge? For instance, what error is returned for an expired `persistUntil` timestamp or a TXT record with duplicate parameters? Knowing the expected error type is crucial for providing useful feedback to the user.\n\n**Recommendation:**\n1.  Add a non-normative paragraph to the \"Client Implementation Guidelines\" (Section 7.2) suggesting reasonable defaults or configuration strategies for the `persistUntil` value (e.g., \"Clients may wish to default to a 90-day lifetime, aligning with common certificate lifetimes, while allowing users to configure longer periods.\").\n2.  Add a paragraph to \"Challenge Response and Verification\" (Section 4) specifying the ACME error types that CAs should return for the new failure modes (e.g., \"CAs should return a `malformed` error for invalid syntax and an `unauthorized` error if the validation fails due to an expired `persistUntil` timestamp.\").",
+      "body": "The draft tells CAs what to do but gives client implementers nothing. Two gaps:\n\n1. **`persistUntil` defaults.** What's a reasonable value? Without guidance, some clients will default to years, others will require manual config. A non-normative note suggesting 90 days (matching common cert lifetimes) with user-configurable override would help.\n2. **Error types.** What ACME error does a CA return for an expired `persistUntil`? A duplicate parameter? Clients need to know whether to expect `malformed` vs. `unauthorized` to give useful feedback.\n",
       "createdAt": "2025-07-24T18:34:18Z",
-      "updatedAt": "2025-08-07T14:28:05Z",
+      "updatedAt": "2026-03-18T21:15:03Z",
       "closedAt": "2025-08-07T14:28:05Z",
       "comments": [
         {
@@ -354,9 +354,9 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "## Summary:\nThe draft should clarify that a Certification Authority (CA) may check for a pre-existing dns-persist-01 record upon receiving a new authorization request. If a valid record is found that is already bound to the requesting ACME account, the CA may immediately grant the authorization, bypassing the standard pending challenge flow. This would significantly improve the user experience by providing \"instant validation\" in many cases.\n\n## Problem and Motivation:\nA key benefit of a persistent validation method is the ability to \"set it and forget it.\" An ACME client should be able to request a certificate for a domain that\nalready has a valid dns-persist-01 record in place and receive it without unnecessary delay.\n\nThe current draft does not explicitly describe this accelerated flow. An implementer might assume they must always return a pending challenge, even when sufficient information for validation is already available. Formally specifying this behavior would encourage CAs to implement a more efficient and user-friendly validation process.\n\n## Proposed Solution (A \"Just-in-Time\" Check):\nThe draft should be updated to permit the following optional CA behavior:\n\n1. An ACME client, associated with a specific accounturi, submits a newOrder request to the CA for a domain identifier.\n2. Upon receiving the request, the CA MAY perform a DNS lookup for the corresponding _validation-persist TXT record.\n3. The CA then validates the record's contents. This check MUST include ensuring that the accounturi parameter in the DNS record exactly matches the accounturi of the requesting client.\n4. If the record is present and fully valid (correct issuer, valid timestamp, matching account URI, etc.), the CA MAY immediately move the authorization to the valid state and return it to the client, forgoing the need to issue a pending challenge object.\n5. If no record is found, or if the record is invalid for any reason (including a mismatched accounturi), the CA MUST proceed with the standard flow by returning a pending authorization with a dns-persist-01 challenge.\n\nThis \"just-in-time\" approach provides the speed benefit of pre-validation without requiring CAs to perform impractical, wide-scale DNS scanning.\n\n## Recommendation:\nAdd a paragraph to the \"Challenge Response and Verification\" section (Section 4) to explicitly describe this behavior:\n\n> \"Upon receiving a request for a new authorization, a CA MAY check for the presence of a pre-existing, valid DNS TXT record for the requested domain identifier. If a record is found that meets all requirements of this specification, including that the accounturi parameter matches the ACME account making the request, the CA MAY consider the authorization immediately valid and move it to the valid state. If no such record is found, the CA MUST proceed with the standard challenge process by returning a pending authorization.\"\n",
+      "body": "The draft doesn't say what a CA should do when it gets a newOrder for a domain that already has a valid `_validation-persist` record. Without guidance, implementers will always return a pending challenge \u2014 even when the record is sitting right there.\n\nProposed: let CAs optionally check DNS at newOrder time. If the record exists, is valid, and the `accounturi` matches, move the authorization straight to `valid`. Otherwise, return a pending challenge as usual.\n\nThis isn't pre-scanning \u2014 the CA only looks when the client asks. Add a MAY-level paragraph to \u00a74.\n",
       "createdAt": "2025-07-24T19:24:18Z",
-      "updatedAt": "2025-08-07T14:06:51Z",
+      "updatedAt": "2026-03-18T21:15:03Z",
       "closedAt": "2025-08-07T14:06:51Z",
       "comments": [
         {
@@ -742,15 +742,15 @@
       "id": "I_kwDOO4VY2c7qyeEs",
       "title": "Specific case-Insensitivity carveout for the value of the policy tag",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/34",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "beautifulentropy",
       "authorAssociation": "NONE",
       "assignees": [],
       "labels": [],
       "body": "While implementing dns-persist-01 support in [Pebble](https://github.com/letsencrypt/pebble/pull/536), I noticed an inconsistency in how case-sensitivity is defined for issue-value parameters.\n\n```\nThe issue-value MAY contain a policy parameter. If present, this parameter modifies the validation scope. The policy parameter follows the \u2018tag=value\u2019 syntax from {{!RFC8659}}. The parameter\u2019s \u2018tag\u2019 and its defined values MUST be treated as case-insensitive.\n```\n\nRFC 8659 specifies that tags are compared case-insensitively, but it does not define case-handling rules for tag values. The dns-persist-01 draft, however, seems to explicitly require the value of the policy tag (for example, policy=wildcard) to be treated as case-insensitive.\n\nThe same requirement does not appear to apply to the values of the other tags defined by the draft. From an implementation perspective this raises a question: What is special about the value of the policy tag that warrants case-insensitive handling, while other tag values remain unspecified?",
       "createdAt": "2026-02-13T20:40:04Z",
-      "updatedAt": "2026-02-13T20:41:30Z",
-      "closedAt": null,
+      "updatedAt": "2026-03-17T15:22:35Z",
+      "closedAt": "2026-03-17T15:22:35Z",
       "comments": []
     },
     {
@@ -815,9 +815,9 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "## Problem\n\nThe draft places `persistUntil` enforcement entirely on CAs (\u00a74.1 item 5: \"CAs MUST NOT consider this validation record valid for new validation attempts after the specified timestamp\"). \u00a79.3.1 says CAs SHOULD return `unauthorized` when the timestamp has passed. Nothing tells clients to check `persistUntil` before initiating validation.\n\nA client that manages or provisions `_validation-persist` records knows (or can query) the `persistUntil` value. Without guidance to check it, the client POSTs `{}` to the challenge URL, gets back an `unauthorized` error, and must infer the cause. The remediation (reprovision the record with an updated timestamp) is clear if the client checks locally, but not obvious from the server error alone.\n\n## Proposed change\n\nAdd a SHOULD-level recommendation in \u00a79.4 (Client Implementation Guidelines):\n\n> Clients that provision or manage `_validation-persist` records containing a `persistUntil` parameter SHOULD verify that the current time is before the `persistUntil` timestamp prior to responding to a challenge. If the timestamp has passed, the client SHOULD report an actionable error (e.g., \"the _validation-persist record for example.com expired on 2026-01-15; reprovision it\") rather than initiating a validation attempt that will fail.\n\nAdd a forward reference in \u00a74.1 item 5: \"See also {{client-implementation-guidelines}} for client-side handling of this parameter.\"\n\n## Context\n\nIdentified by a client implementer working from the draft. The change is SHOULD-level implementation guidance \u2014 it doesn't affect the protocol or interoperability. The CA enforces the constraint regardless.\n\nDepends on: #35, #36 (targets main after both merge).",
+      "body": "## Problem\n\nThe draft places `persistUntil` enforcement entirely on CAs (\u00a74.1 item 5: \"CAs MUST NOT consider this validation record valid for new validation attempts after the specified timestamp\"). \u00a79.3.1 says CAs SHOULD return `unauthorized` when the timestamp has passed. Nothing tells clients to check `persistUntil` before initiating validation.\n\nA client that manages or provisions `_validation-persist` records knows (or can query) the `persistUntil` value. Without guidance to check it, the client POSTs `{}` to the challenge URL, gets back an `unauthorized` error, and must infer the cause. The remediation (reprovision the record with an updated timestamp) is clear if the client checks locally, but not obvious from the server error alone.\n\n## Proposed change\n\nAdd a SHOULD-level recommendation in \u00a79.4 (Client Implementation Guidelines):\n\n> Clients that provision or manage `_validation-persist` records containing a `persistUntil` parameter SHOULD verify that the current time is before the `persistUntil` timestamp prior to responding to a challenge. If the timestamp has passed, the client SHOULD report an actionable error (e.g., \"the _validation-persist record for example.com expired on 2026-01-15; reprovision it\") rather than initiating a validation attempt that will fail.\n\nAdd a forward reference in \u00a74.1 item 5: \"See also {{client-implementation-guidelines}} for client-side handling of this parameter.\"\n\n## Context\n\nIdentified by a client implementer working from the draft. The change is SHOULD-level implementation guidance \u2014 it doesn't affect the protocol or interoperability. The CA enforces the constraint regardless.\n\n## Open question\n\nSplit-horizon DNS complicates client-side checking \u2014 enterprise clients may not see the `_validation-persist` record from their network vantage point. Is a SHOULD that silently fails behind split-horizon DNS worth adding?",
       "createdAt": "2026-02-26T21:27:13Z",
-      "updatedAt": "2026-02-26T22:50:20Z",
+      "updatedAt": "2026-03-18T23:35:02Z",
       "closedAt": null,
       "comments": [
         {
@@ -850,15 +850,15 @@
       "id": "I_kwDOO4VY2c7vMgIZ",
       "title": "Use of \"Authorization Domain Name\" defined term",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/40",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "aarongable",
       "authorAssociation": "NONE",
       "assignees": [],
       "labels": [],
       "body": "This draft defines \"Authorization Domain Name (ADN)\" as:\n\n> The domain name at which the validation TXT record is provisioned. It is formed by prepending the DNS TXT Record Persistent DCV Domain Label to the FQDN being validated.\n\nIn contrast, the Baseline Requirements define \"Authorization Domain Name (ADN)\" as:\n\n> The FQDN used to obtain authorization for a given FQDN to be included in a Certificate. The CA may use the FQDN returned from a DNS CNAME lookup as the FQDN for the purposes of domain validation. If a Wildcard Domain Name is to be included in a Certificate, then the CA MUST remove \"*.\" from the left-most portion of the Wildcard Domain Name to yield the corresponding FQDN. The CA may prune zero or more Domain Labels of the FQDN from left to right until encountering a Base Domain Name and may use any one of the values that were yielded by pruning (including the Base Domain Name itself) for the purpose of domain validation.\n\nAccompanying this definition, Section 3.2.2.4.22 DNS TXT Record with Persistent Value says:\n\n> The record MUST be placed at the \"_validation-persist\" label prepended to the Authorization Domain Name being validated (i.e., \"_validation-persist.[Authorization Domain Name]\").\n\nIn other words, per the BRs, `example.com` might be the ADN, while `_validation-persist.example.com` is a nameless thing scoped solely to Section 3.2.2.4.22. The fact that this draft calls `_validation-persist.example.com` the ADN leads to confusion when reading and implementing this spec, and we should probably use a different term.",
       "createdAt": "2026-03-02T19:56:57Z",
-      "updatedAt": "2026-03-04T18:21:03Z",
-      "closedAt": null,
+      "updatedAt": "2026-03-17T19:34:01Z",
+      "closedAt": "2026-03-17T19:34:01Z",
       "comments": [
         {
           "author": "sheurich",
@@ -892,6 +892,38 @@
           "updatedAt": "2026-03-05T20:47:41Z"
         }
       ]
+    },
+    {
+      "number": 44,
+      "id": "I_kwDOO4VY2c70OoCy",
+      "title": "DNSSEC SHOULD needs conditions (RFC 2119)",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/44",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "RFC 2119 requires SHOULD to state when deviation is acceptable. The DNSSEC text in Security Considerations doesn't:\n\n> CAs SHOULD validate DNSSEC signatures on `dns-persist-01` TXT records.\n\nTwo problems. First, no conditions \u2014 the reader doesn't know what they're giving up by skipping this. Second, wrong verb \u2014 \"validate DNSSEC signatures\" describes implementation behavior when the actual requirement is to use a DNSSEC validating resolver (per SC-085 and the dnsop domain-verification-techniques BCP).\n\nProposed fix:\n\n> CAs SHOULD use a DNSSEC validating resolver when querying `dns-persist-01` TXT records. A CA that does not do so cannot detect DNSSEC failures and will silently accept forged responses for DNSSEC-signed zones.\n\nThe fail-closed requirement stays as-is:\n\n> If a CA performs DNSSEC validation, it MUST treat validation failure as a challenge failure and MUST NOT use the record for domain validation.\n\nWebPKI CAs have no discretion here regardless \u2014 SC-085 already requires DNSSEC validating resolvers for all DCV lookups.\n\nContext:\n- Raised during IETF 124 ACME WG session ([recording](https://www.youtube.com/watch?v=agFEJPXX1XU))\n- #1: resolved not to mandate DNSSEC deployment\n- #17: moved DNSSEC from normative requirements to security considerations\n- #28: simplified to bare SHOULD (created the gap)\n- SC-085 (cabforum/servercert#579): requires DNSSEC validating resolver for WebPKI CAs",
+      "createdAt": "2026-03-18T20:13:42Z",
+      "updatedAt": "2026-03-18T21:03:50Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 46,
+      "id": "I_kwDOO4VY2c70QqJx",
+      "title": "Reorder abstract use-case list to match adoption reality",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/46",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "The abstract lists use cases in this order:\n\n> particularly suited for environments where traditional challenge methods are impractical, such as IoT deployments, multi-tenant platforms, and scenarios requiring batch certificate operations\n\nThe actual adoption drivers are multi-tenant hosting platforms and enterprise domain management. These motivated WG adoption (see [adoption call discussion](https://mailarchive.ietf.org/arch/msg/acme/qQxnsSOBARv04PJEbAYHqsf_b28)) and are driving implementation (LE, Pebble, lego, cert-manager).\n\nReorder the example list in the abstract and \u00a71 Introduction to lead with the stronger use cases. IoT is valid but secondary.",
+      "createdAt": "2026-03-18T22:17:44Z",
+      "updatedAt": "2026-03-18T22:17:44Z",
+      "closedAt": null,
+      "comments": []
     }
   ],
   "pulls": [
@@ -1229,9 +1261,9 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "This pull request refines the `draft-sheurich-acme-dns-persist.md` document by simplifying the validation process, enhancing security recommendations, and reorganizing key sections for clarity. The changes primarily focus on removing mandatory multi-perspective validation, emphasizing DNSSEC usage, and improving the structure of DNS security measures and validation data reuse.\r\n\r\n### Simplification of Validation Requirements:\r\n* Removed the requirement for mandatory multi-perspective validation in favor of simpler DNS query-based validation. This applies to both general domain validation and wildcard certificate validation examples.\r\n\r\n### Enhanced Security Recommendations:\r\n* Introduced a new section on DNS security measures, including detailed guidance on DNSSEC and optional multi-perspective validation for specific scenarios.\r\n\r\n### Reorganization and Clarification:\r\n* Reintroduced and reorganized the \"Validation Data Reuse and TTL Handling\" section to clarify the rules for effective validation periods and the use of the `persistUntil` parameter.\r\n\r\n### Removal of Redundant Content:\r\n* Removed redundant references to multi-perspective validation from various sections, aligning with the updated validation approach.\r\n\r\nFixes #12\r\nFixes #17\r\nFixes #20",
+      "body": "Removes mandatory multi-perspective validation in favor of DNS query-based validation. MPIC becomes optional guidance in a new DNS security measures section alongside DNSSEC recommendations.\n\nAlso reorganizes \"Validation Data Reuse and TTL Handling\" to clarify how the reuse period and `persistUntil` interact, and removes MPIC references that were duplicated across sections.\n\nFixes #12\nFixes #17\nFixes #20\n",
       "createdAt": "2025-07-31T15:32:31Z",
-      "updatedAt": "2025-08-10T16:32:13Z",
+      "updatedAt": "2026-03-18T21:15:13Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "b58c44306c46aec1b670f0a900670022e7693a76",
@@ -1278,9 +1310,9 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "This PR addresses Issue #27 regarding the requirement that CAs MUST ignore any unknown parameter keys.\r\n\r\n## Key Rationale for Maintaining MUST Ignore Approach\r\n\r\n### 1. RFC 8555 Precedent\r\nThe ACME protocol (RFC 8555) establishes this pattern in multiple contexts, including:\r\n- Unknown fields in objects (Section 6.2)\r\n- Unknown challenge types\r\n- Unknown identifiers\r\nThis creates a consistent pattern across ACME specifications.\r\n\r\n### 2. Forward Compatibility\r\nThe MUST ignore requirement ensures:\r\n- Future extensions can add new parameters without breaking existing implementations\r\n- Graceful evolution of the protocol without version negotiation\r\n- Smooth deployment of new features\r\n\r\n### 3. Operational Simplicity\r\n- Avoids the complexity of a critical key system\r\n- Reduces implementation burden on CAs\r\n- Prevents unnecessary failures for harmless unknown parameters\r\n- Simplifies client-server interactions\r\n\r\n## Changes\r\n- The requirement to ignore unknown parameters is clarified to include the rationale (forward compatibility) and to specify \"the server\" as the actor.\r\n- The term \"parameter key(s)\" has been replaced with the more precise term \"tag(s)\" throughout the document, consistent with RFC 8659.\r\n- A direct reference to the `tag=value` syntax in RFC 8659 has been added to improve clarity at the point of first use.\r\n\r\nCloses #27",
+      "body": "Keeps the MUST-ignore-unknown-parameters rule from the current draft and explains why.\n\nRFC 8555 already does this for unknown fields, challenge types, and identifiers \u2014 following the same pattern here means extensions can add parameters without breaking existing CAs. A critical-key mechanism (as suggested in #27) adds complexity without clear benefit: unknown parameters from future extensions are harmless if the CA ignores them, and the current spec has no parameters where ignoring them would change safety properties.\n\nChanges: clarifies that \"the server\" is the actor, replaces \"parameter key(s)\" with \"tag(s)\" per RFC 8659 terminology.\n\nCloses #27\n",
       "createdAt": "2025-08-25T17:44:45Z",
-      "updatedAt": "2025-09-04T19:15:27Z",
+      "updatedAt": "2026-03-18T21:15:13Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "992e5abafed6316b3a8430b737b029b0a58033cd",
@@ -1323,21 +1355,21 @@
       "id": "PR_kwDOO4VY2c6sgFmz",
       "title": "feat: add accounturi attribute to the challenge object",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/30",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "slghtr-says",
-      "authorAssociation": "NONE",
+      "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
       "body": "Added accounturi attribute to the challenge response object.\r\n\r\nChanges include:\r\n- Updated accounturi references to refer to the server provided accounturi rather than \"a valid account uri\"\r\n- Cleaned up accounturi references and examples.\r\n\r\n\r\n**Motivation**: This change eliminates ambiguity and improves interoperability of implementations. While ACME clients are aware of their account URI, explicitly providing this value in the challenge object removes any dependency on client-side URI construction or format assumptions. This approach makes the exact value the server expects in DNS explicit and ensures the challenge object is completely self-contained and driven by the server.",
       "createdAt": "2025-10-07T13:54:22Z",
-      "updatedAt": "2026-03-04T22:54:16Z",
+      "updatedAt": "2026-03-17T15:07:31Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "3e531232f31c595068d8f4b3879cec5fff2ac20d",
       "headRepository": "slghtr-says/draft-sheurich-acme-dns-persist",
       "headRefName": "slghtr-dev",
       "headRefOid": "70f911b437f35f19d886a368b0867fdc8aa9a4fe",
-      "closedAt": null,
+      "closedAt": "2026-03-17T15:07:30Z",
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
@@ -1351,7 +1383,7 @@
         },
         {
           "author": "slghtr-says",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "> Hi all,\r\n> \r\n> I can probably clean up the build error on this.\r\n> \r\n> That said, I was wondering if there is any other language that could improve specificity while also permitting there to possibly be multiple account uris values that permit issuance by a single account. The motivation is twofold:\r\n> \r\n> 1. in the future allow for orgs to obfuscate the relationship of multiple domains using the same ACME account. This could make that ACME account a target for hijack or allow adversaries to discover organizational infrastructure that they otherwise would not be able to pin back to the host organization.\r\n> 2. allow more fine-grained access controls within an ACME account. I am not sure if any CAs have adopted this model, but particularly when EAB (external account binding) is used or rate limit exceptions are in play, there may be a desire for a single ACME account to be subdivided into different policy roles each one authorized for some subset of domains. In this nature, an account id could be used to refer to a specific policy role and apposed to mapping to a true ACME account. I can't tell if this really makes sense (as these roles need independent credentials, so they are sort of just ACME accounts themselves), but I sort of like the idea of this field being a more abstract notion of identity than a forced 1-to-1 binding with an ACME account.\r\n\r\nThank you @birgelee. Apologies for missing the build error!\r\n\r\nBoth use cases make sense and align with SC-088's intentional flexibility around how CAs construct and define accounts.\r\n\r\nI envision domain-specific obfuscation and/or deeper account sub-scoping settings being configured at the account level for each CA. These settings would influence account URI generation and be returned to clients within the challenge object. I haven't considered EAB which is another interesting angle. \r\n\r\nOne potential modification I can think of would be including a list of eligible accountURIs (similar to issuer-domain-names). However, I'm concerned this pushes business logic to the \r\nclient rather than having the CA make that determination and provide a single value. How does the client then determine which accountURI to add for example to achieve their desired security property?\r\n\r\n> I sort of like the idea of this field being a more abstract notion of identity than a forced 1-to-1 binding with an ACME account.\r\n\r\nAgreed!",
           "createdAt": "2025-10-24T18:20:06Z",
           "updatedAt": "2025-10-24T18:20:06Z"
@@ -1372,7 +1404,7 @@
         },
         {
           "author": "slghtr-says",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "> Perhaps a middle ground could be to have the CA send one accounturi which the client knows it could use but put in some language about the CA possibly accepting other accounturi values so long as they appropriately authorize the requesting ACME account.\r\n\r\n@birgelee - Coming back to this conversation, I think I like this middle ground proposal more than my original proposal. The reason for that is that I feel this would provide the client some hinting with a default value (probably the ACME account unless configured by the CA to be something different) but at the same time add language that offers CAs some flexibility to accept other values to support other use cases such as External Account Binding scenarios or other enterprise use cases. Forcing all these values to be enumerated and sent back could be burdensome on both the server and the client and not really add much practical value. Especially if the provisioning of these persistent records would typically be handled by an entity other than the client as @sheurich alluded to. \r\n\r\nLet me know your thoughts and I'll be happy to update the language. ",
           "createdAt": "2026-01-22T22:27:39Z",
           "updatedAt": "2026-01-22T22:37:16Z"
@@ -1390,6 +1422,13 @@
           "body": "@sheurich is this deprecated now in favor of #35 ? If so can we close?",
           "createdAt": "2026-03-04T22:54:16Z",
           "updatedAt": "2026-03-04T22:54:16Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Superseded by #35.",
+          "createdAt": "2026-03-17T15:07:30Z",
+          "updatedAt": "2026-03-17T15:07:30Z"
         }
       ],
       "reviews": [
@@ -1399,7 +1438,7 @@
             "abbreviatedOid": "5bac04b"
           },
           "author": "slghtr-says",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "state": "COMMENTED",
           "body": "",
           "createdAt": "2025-10-07T14:08:28Z",
@@ -1419,7 +1458,7 @@
             "abbreviatedOid": "5bac04b"
           },
           "author": "slghtr-says",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "state": "COMMENTED",
           "body": "",
           "createdAt": "2025-10-07T14:11:30Z",
@@ -1468,24 +1507,26 @@
       "id": "PR_kwDOO4VY2c7EwEef",
       "title": "decouple accounturi validation from challenge object",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/35",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "sheurich",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Builds on #30 by @slghtr-says. Rebased onto main with additional changes by @sheurich.\n\n### Summary\n\nPR #30 added `accounturi` to the challenge object. The changes here address a coupling issue: #30 defined `accounturi` validation in terms of the challenge object, but the challenge object does not exist in the JIT validation path or when records are pre-provisioned.\n\n### Changes\n\n**Decouple `accounturi` validation from the challenge object.** The DNS record requirement (\u00a74 item 3) now stands on its own: the `accounturi` MUST be a URI identifying the requesting ACME account, and the CA MUST verify it. No reference to the challenge object. Works for JIT, pre-provisioned, and standard challenge flows.\n\n**Many-to-one `accounturi` model.** CAs MUST accept the ACME account URL (RFC 8555 \u00a77.3). CAs MAY also accept alternative URIs, provided each uniquely and permanently identifies a single account (RFC 8657 \u00a75.4). Non-reassignment and deactivation lifecycle requirements included. This addresses the privacy concern raised by @birgelee \u2014 publicly visible `accounturi` values in long-lived DNS records create a correlation channel (RFC 8657 \u00a75.9). See the new Account URI Privacy subsection in Security Considerations.\n\n**`accounturi` in the challenge object remains required.** The field is the mechanism by which the CA communicates the expected URI (including alternative URIs) to the client.\n\n**Add `accounturi` comparison semantics.** Simple String Comparison per RFC 3986 \u00a76.2.1. PR #36 adds a consolidated comparison paragraph for all parameter values; the inline rule here serves as a standalone fallback.\n\n**Add pre-provisioning guidance (new \u00a74.4).** How to construct records without a challenge object: use the ACME account URL from the `Location` header, obtain `issuer-domain-name` from `caaIdentities` as a hint (not normatively coupled). Operational guidance: maintain record inventory, use `persistUntil`, audit after DNS incidents. CAs SHOULD maintain stable account URIs and document their guarantees.\n\n**Add JIT rate-limiting and abuse guidance.** Per-domain rate limiting independent of requesting account. CAs SHOULD restrict JIT to accounts with prior successful `dns-persist-01` validation (trust-on-first-use). Account activity logging for the JIT path.\n\n**Fix DNSSEC failure semantics.** Resolved a SHOULD/MUST inconsistency: DNSSEC validation remains SHOULD, but if a CA performs it, failure MUST be treated as a challenge failure. Includes rationale for the stricter-than-RFC-8555 requirement.\n\n**Fix DNS caching caveat.** Revocation section previously said \"after the record is removed, new validation attempts will fail\" \u2014 misleading. Now says \"after the record is removed and resolver caches have expired.\"\n\n**Neutralize \u00a74 example prose.** Changed \"it might provision\" to \"the DNS TXT record would contain\" \u2014 removes assumption that the client provisions after receiving the challenge. Add `accounturi` to \u00a7Examples challenge objects for consistency.\n\n**Error handling.** Changed \"does not match the URI\" to \"does not identify the ACME account\" \u2014 covers both account URL comparison and alternative URI resolution.\n\n**Terminology.** Use \"URI\" consistently (matching the parameter name and RFC 8657), \"ACME account URL\" only for the RFC 8555 \u00a77.3 concept.",
       "createdAt": "2026-02-19T00:43:39Z",
-      "updatedAt": "2026-03-05T19:21:05Z",
+      "updatedAt": "2026-03-17T15:07:13Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "3e531232f31c595068d8f4b3879cec5fff2ac20d",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "sheurich/accounturi-review-v2",
       "headRefOid": "4b735dc41c147d9c9fd7b9a19d3eb94abd1d78da",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2026-03-17T15:07:10Z",
+      "mergedAt": "2026-03-17T15:07:10Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "6011467943b21517ab778bc49cc6095030e39f1c"
+      },
       "comments": [
         {
           "author": "sheurich",
@@ -1805,7 +1846,7 @@
             "abbreviatedOid": "4b735dc"
           },
           "author": "slghtr-says",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "state": "COMMENTED",
           "body": "",
           "createdAt": "2026-03-05T15:31:26Z",
@@ -1825,7 +1866,7 @@
             "abbreviatedOid": "7430c07"
           },
           "author": "slghtr-says",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "state": "COMMENTED",
           "body": "",
           "createdAt": "2026-03-05T15:57:02Z",
@@ -1845,7 +1886,7 @@
             "abbreviatedOid": "4b735dc"
           },
           "author": "slghtr-says",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "state": "COMMENTED",
           "body": "",
           "createdAt": "2026-03-05T15:58:30Z",
@@ -1926,24 +1967,26 @@
       "id": "PR_kwDOO4VY2c7E5LjS",
       "title": "Clarify case-handling rules for parameter values",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/36",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "sheurich",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Addresses #34.\r\n\r\n## Problem\r\n\r\nThe draft requires case-insensitive comparison for `policy` values but says nothing about the case-handling of `accounturi` or `persistUntil` values. An implementer (@beautifulentropy, working on [Pebble support](https://github.com/letsencrypt/pebble/pull/536)) asked: what makes `policy` special?\r\n\r\nThe asymmetry is correct, but the draft doesn't explain it:\r\n- `accounturi` values are URIs \u2014 case-sensitive per RFC 3986\r\n- `persistUntil` values are integers \u2014 case is inapplicable\r\n- `policy` values are protocol keywords \u2014 case-insensitivity is a deliberate usability choice\r\n\r\nRFC 8659 \u00a74.1 makes parameter *tags* case-insensitive but defines no rules for parameter *values*, leaving that to whichever specification defines the parameter.\r\n\r\n## Changes\r\n\r\n**Item 4 (policy parameter):** Replace the ambiguous sentence *\"The parameter's 'tag' and its defined values MUST be treated as case-insensitive\"* with a statement scoped to `policy` values only. The tag clause was redundant (already covered by RFC 8659 \u00a74.1).\r\n\r\n**New paragraph after item 5:** State the case-handling rules for all parameter values in one place:\r\n- `accounturi`: Simple String Comparison per RFC 3986 \u00a76.2.1; MUST NOT case-fold\r\n- `policy`: case-insensitive (protocol keywords, often manually provisioned)\r\n- `persistUntil`: base-10 integer; case does not apply\r\n\r\n## Compatibility with #35\r\n\r\nPR #35 adds `accounturi` comparison semantics to item 3 (simple string comparison, no normalization/case-folding). The new paragraph here reinforces that without conflicting. Both PRs can merge in either order.",
       "createdAt": "2026-02-19T14:22:32Z",
-      "updatedAt": "2026-03-04T22:53:21Z",
+      "updatedAt": "2026-03-17T15:22:36Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
-      "baseRefOid": "3e531232f31c595068d8f4b3879cec5fff2ac20d",
+      "baseRefOid": "6011467943b21517ab778bc49cc6095030e39f1c",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "sheurich/issue-34-case-handling",
-      "headRefOid": "3da541050d8c7652753b8448ab2affd4dfffb1f2",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "2cdd3da2be4f1d46303baf4566b70e41542611cf",
+      "closedAt": "2026-03-17T15:22:33Z",
+      "mergedAt": "2026-03-17T15:22:33Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "54154aa49d4fdd1494ca76379e72edcc326ee733"
+      },
       "comments": [
         {
           "author": "birgelee",
@@ -2107,24 +2150,26 @@
       "id": "PR_kwDOO4VY2c7H8wzR",
       "title": "fix(terminology): rename \"Authorization Domain Name\" to \"Validation Domain Name\"",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/41",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "sheurich",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "Closes #40\n\n## Problem\n\nThe draft defines \"Authorization Domain Name\" as the full DNS label where the validation TXT record is provisioned (e.g., `_validation-persist.example.com`). The CA/Browser Forum Baseline Requirements define the same term as the bare FQDN used to obtain authorization (e.g., `example.com`). This conflict will cause implementer confusion \u2014 especially once issue #33 adds an `adn` (Authorization Domain Name) field that uses the BR definition.\n\n## Change\n\nRename the draft's concept to **\"Validation Domain Name\"** \u2014 aligning with RFC 8555 Section 8.4, which uses \"validation domain name\" for the analogous `_acme-challenge.<FQDN>` label in the dns-01 challenge. All 10 occurrences across 9 locations are updated:\n\n| Section | Context |\n|---|---|\n| \u00a72 Conventions | Glossary heading + definition body |\n| \u00a73 Challenge | Overview paragraph |\n| \u00a74 Challenge Response | Provisioning instructions (\u00d72), example, server verification |\n| \u00a74.1 Multiple Issuer | CA verification step 1 |\n| \u00a74.3 JIT Validation | DNS lookup target |\n| \u00a76.8 Revocation | Record removal instructions |\n| \u00a78.2 Wildcard Example | Record provisioning step |\n\nThe glossary definition now cites both the RFC 8555 precedent and the BR disambiguation: _\"This term follows the precedent set by RFC 8555, Section 8.4, which uses 'validation domain name' for the analogous `_acme-challenge.<FQDN>` label in the dns-01 challenge. This document avoids the term 'Authorization Domain Name' because the CA/Browser Forum Baseline Requirements define it as the FQDN used to obtain authorization, without any label prepended.\"_\n\n## What this does NOT change\n\n- No normative behavior changes \u2014 this is a pure terminology rename\n- No changes to record format, validation procedure, or security properties\n- The term \"Authorization Domain Name\" still appears once, in the disambiguation sentence\n\n## Relationship to other PRs\n\n- **Overlaps with PR #35** (accounturi-review-v2) \u2014 PR #35 rewrites two sentences (\u00a74 verification, \u00a76.8 revocation) that contain \"Authorization Domain Name\". Merging in either order produces two trivial conflicts: apply the rename on top of #35's wording changes. Four other unchanged occurrences in #35's branch will also need the rename during rebase.\n- **Independent of PR #36** (case-handling) \u2014 no overlap.\n- **Prerequisite for issue #33** \u2014 the `adn` field proposal uses \"Authorization Domain Name\" in the BR sense. This rename clears the way for that work.\n\n## Review notes\n\nThis is a mechanical rename. The diff is 11 insertions / 9 deletions in a single file. The term \"Validation Domain Name\" was chosen to match the precedent in RFC 8555 \u00a78.4 without overloading existing BR terminology.",
+      "body": "Closes #40\n\n## Problem\n\nThe draft defines \"Authorization Domain Name\" as the full DNS label where the validation TXT record is provisioned (e.g., `_validation-persist.example.com`). The CA/Browser Forum Baseline Requirements define the same term as the bare FQDN used to obtain authorization (e.g., `example.com`). This conflict causes implementer confusion \u2014 especially once issue #33 adds an `adn` (Authorization Domain Name) field that uses the BR definition.\n\n## Change\n\nRename the draft's concept to **\"Validation Domain Name\"** \u2014 aligning with RFC 8555 Section 8.4, which uses \"validation domain name\" for the analogous `_acme-challenge.<FQDN>` label in the dns-01 challenge. All 10 occurrences across 9 locations are updated:\n\n| Section | Context |\n|---|---|\n| \u00a72 Conventions | Glossary heading + definition body |\n| \u00a73 Challenge | Overview paragraph |\n| \u00a74 Challenge Response | Provisioning instructions (\u00d72), example, server verification |\n| \u00a74.1 Multiple Issuer | CA verification step 1 |\n| \u00a74.3 JIT Validation | DNS lookup target |\n| \u00a76.8 Revocation | Record removal instructions |\n| \u00a78.2 Wildcard Example | Record provisioning step |\n\nThe glossary definition cites both the RFC 8555 precedent and the BR disambiguation.\n\n## What this does NOT change\n\n- No normative behavior changes \u2014 pure terminology rename\n- No changes to record format, validation procedure, or security properties\n\n## Prerequisite for\n\n- **Issue #33** (subdomain validation prompting) \u2014 the `adn` field uses \"Authorization Domain Name\" in the BR sense; this rename clears the way",
       "createdAt": "2026-03-04T18:13:54Z",
-      "updatedAt": "2026-03-05T22:46:49Z",
+      "updatedAt": "2026-03-17T19:34:01Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
-      "baseRefOid": "3e531232f31c595068d8f4b3879cec5fff2ac20d",
+      "baseRefOid": "46ca6bb8464c54749ba0c054a1d16409e00a8b88",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "sheurich/issue-40-adn-terminology",
-      "headRefOid": "87d9fce56dede97472113f0eccedef0f5f76022a",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "4f8866f4beba2ef0d7446a15aaa86922bf89773c",
+      "closedAt": "2026-03-17T19:34:00Z",
+      "mergedAt": "2026-03-17T19:34:00Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "ea88b92fa31cca63c94c3d139cf95db4f34dccca"
+      },
       "comments": [
         {
           "author": "birgelee",
@@ -2215,6 +2260,82 @@
               "updatedAt": "2026-03-04T18:40:58Z"
             }
           ]
+        }
+      ]
+    },
+    {
+      "number": 43,
+      "id": "PR_kwDOO4VY2c7LoB8E",
+      "title": "IETF 125 ACME WG Presentation",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/43",
+      "state": "CLOSED",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "## IETF 125 \u2014 Shenzhen\n\n9 Marp slides (~15 min) for the ACME WG session on `draft-ietf-acme-dns-persist-01`.\n\n### Slides\n\n| # | Topic | Type |\n|---|-------|------|\n| 1 | Title | \u2014 |\n| 2 | Since IETF 124 | Status |\n| 3 | Subdomain validation gap (#33) | Discussion |\n| 4 | Proposed `adn` response field (#33) | Discussion |\n| 5 | TTL as validation ceiling (#42) | Discussion |\n| 6 | IP validation via reverse DNS (#32) | Discussion |\n| 7 | Quick items: error types (#39), client persistUntil (#38) | Temperature check |\n| 8 | Path forward | Status |\n| 9 | Questions | \u2014 |\n\n### Files\n\n- `presentations/ietf-125/slides.md` \u2014 Marp source\n- `presentations/ietf-125/speaker-notes.md` \u2014 per-slide notes with timing, objections, attendee profiles\n- `presentations/ietf-125/slides.pdf` \u2014 generated PDF\n- `presentations/ietf-125/README.md` \u2014 build instructions\n\n### Build\n\n```sh\nmarp presentations/ietf-125/slides.md -o presentations/ietf-125/slides.pdf --pdf --allow-local-files\n```",
+      "createdAt": "2026-03-18T18:04:54Z",
+      "updatedAt": "2026-03-18T18:07:45Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "ea88b92fa31cca63c94c3d139cf95db4f34dccca",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "ietf-125-preso",
+      "headRefOid": "63bb2be3e0284966e594c57f474f7133d5e5f0a9",
+      "closedAt": "2026-03-18T18:07:45Z",
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Opened in error \u2014 presentation branch doesn't need a PR.",
+          "createdAt": "2026-03-18T18:07:44Z",
+          "updatedAt": "2026-03-18T18:07:44Z"
+        }
+      ],
+      "reviews": []
+    },
+    {
+      "number": 45,
+      "id": "PR_kwDOO4VY2c7Lrif1",
+      "title": "fix: update github venue to WG repository",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/45",
+      "state": "MERGED",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "The `venue.github` frontmatter still referenced the pre-adoption personal repository (`sheurich/draft-sheurich-acme-dns-persist`). Update to the WG repository (`ietf-wg-acme/draft-ietf-acme-dns-persist`) so that xml2rfc and the datatracker render the correct links.",
+      "createdAt": "2026-03-18T22:10:36Z",
+      "updatedAt": "2026-03-18T22:11:32Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "ea88b92fa31cca63c94c3d139cf95db4f34dccca",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "sheurich/fix-github-venue",
+      "headRefOid": "3d793ef7819cd3c1eb6e1681d53c2040da6e5ff4",
+      "closedAt": "2026-03-18T22:11:13Z",
+      "mergedAt": "2026-03-18T22:11:13Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "6d6b98c456a6b2ce8a83e255cdc1bc1ac77080fc"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c7ssr9k",
+          "commit": {
+            "abbreviatedOid": "3d793ef"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "## Pull request overview\n\nThis PR updates the document\u2019s `venue.github` frontmatter to point to the adopted IETF WG repository so tooling (xml2rfc / datatracker) renders correct GitHub links.\n\n**Changes:**\n- Update `venue.github` from the pre-adoption personal repo to the WG repo (`ietf-wg-acme/draft-ietf-acme-dns-persist`).\n\n\n\n\n\n---\n\n\ud83d\udca1 <a href=\"/ietf-wg-acme/draft-ietf-acme-dns-persist/new/main?filename=.github/instructions/*.instructions.md\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Add Copilot custom instructions</a> for smarter, more guided reviews. <a href=\"https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Learn how to get started</a>.<br><br>You can also share your feedback on Copilot code review. [Take the survey](https://www.surveymonkey.com/r/XP6L3XJ).",
+          "createdAt": "2026-03-18T22:11:32Z",
+          "updatedAt": "2026-03-18T22:11:32Z",
+          "comments": []
         }
       ]
     }
