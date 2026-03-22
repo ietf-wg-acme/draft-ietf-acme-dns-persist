@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-03-19T01:17:48.077648+00:00",
+  "timestamp": "2026-03-22T01:17:38.794651+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -697,7 +697,7 @@
       "labels": [],
       "body": "Subdomain Validation is a cool concept, and one that I'm happy dns-persist is supporting. In the terms of the Baseline Requirements, this is equivalent to selecting an Authorization Domain Name by pruning labels from the left-hand side of the FQDN, and then performing validation at that ADN.\n\nHowever, ACME does not have good support for selecting ADNs. Traditional CAs, or CAs which use External Account Binding, might have ways for Applicants to indicate to the Server that they want to use a particular ADN for all of their validation. But plain ACME CAs without EAB would have no way to know whether the Applicant wants to validate at `server.dept.example.com`, at `dept.example.com`, or at `example.com`. I'm not a fan of the server having to fan out a bunch of prospective queries to see what layer of the DNS hierarchy the Applicant has placed their dns-persist record at.\n\nSo it would be great if there was a way for the Applicant to proactively indicate to the CA that they want to take advantage of Subdomain Validation. My proposal would be that the ACME client can include an ADN in their POST request to the Challenge URL. The CA would then check that the supplied URL is a valid ADN for the Authorization, and if it is, perform validation at that URL instead. And of course, as already described by the document, ensure that `policy=wildcard` is set.\n\n-----\n\ni.e. if we have an authorization that looks like this:\n```\n   HTTP/1.1 200 OK\n   Content-Type: application/json\n   Link: <https://acme.ca/directory>;rel=\"index\"\n\n   {\n     \"status\": \"pending\",\n     \"expires\": \"2026-02-01T14:09:30Z\",\n\n     \"identifier\": {\n       \"type\": \"dns\",\n       \"value\": \"admin.blog.example.com\"\n     },\n\n     \"challenges\": [\n       {\n         \"type\": \"http-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/http-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n       {\n         \"type\": \"tls-alpn-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/tls-alpn-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n       {\n         \"type\": \"dns-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/dns-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n       {\n         \"type\": \"dns-persist-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/dns-persist-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n     ]\n   }\n```\n\nThen a client might post this to the challenge url:\n```\n   POST /chall/PAniVnsZcis/dns-persist-01\n   Host: acme.ca\n   Content-Type: application/jose+json\n\n   {\n     \"protected\": base64url({\n       \"alg\": \"ES256\",\n       \"kid\": \"https://acme.ca/acct/evOfKhNU60wg\",\n       \"nonce\": \"UQI1PoRi5OuXzxuX7V7wL0\",\n       \"url\": \"https://acme.ca/chall/PAniVnsZcis/dns-persist-01\"\n     }),\n     \"payload\": base64url({\n       \"adn\": \"example.com\"\n     }),\n     \"signature\": \"Q1bURgJoEslbD1c5...3pYdSMLio57mQNN4\"\n   }\n```\n\nWhere the `\"adn\": \"example.com\"` is the important/new part. The CA would confirm that `example.com` is a valid ADN for `admin.blog.example.com`, and then conduct the dns-persist-01 validation at `example.com` and ensure that the record contains the `policy=wildcard` modifier.",
       "createdAt": "2026-01-12T20:04:36Z",
-      "updatedAt": "2026-03-05T18:15:39Z",
+      "updatedAt": "2026-03-19T06:50:48Z",
       "closedAt": null,
       "comments": [
         {
@@ -734,6 +734,20 @@
           "body": "Yeah I'm strongly considering implementing the \"adn\" extension for normal dns-01 as well.",
           "createdAt": "2026-03-05T18:15:39Z",
           "updatedAt": "2026-03-05T18:15:39Z"
+        },
+        {
+          "author": "fhchstr",
+          "authorAssociation": "NONE",
+          "body": "Drive-by comment: Note that I haven't read it in a while, but doesn't https://datatracker.ietf.org/doc/html/rfc9444 address this already? ",
+          "createdAt": "2026-03-19T05:58:02Z",
+          "updatedAt": "2026-03-19T05:58:02Z"
+        },
+        {
+          "author": "aarongable",
+          "authorAssociation": "NONE",
+          "body": "You know, that's actually a very good point. It's been a long time since I read RFC 9444, and I was never a fan of the `subdomainAuthAllowed` piece of it, but you're absolutely right that it seems like the `ancestorDomain` field described in Section 4.3 could fulfill this purpose.\n\nI must admit that I prefer negotiating the ADN at challenge time, rather than at order creation time, but the overall flow looks like it would work either way.",
+          "createdAt": "2026-03-19T06:02:58Z",
+          "updatedAt": "2026-03-19T06:50:48Z"
         }
       ]
     },
