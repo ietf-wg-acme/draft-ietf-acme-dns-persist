@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-03-22T01:17:38.794651+00:00",
+  "timestamp": "2026-03-24T01:11:27.970897+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -936,6 +936,22 @@
       "body": "The abstract lists use cases in this order:\n\n> particularly suited for environments where traditional challenge methods are impractical, such as IoT deployments, multi-tenant platforms, and scenarios requiring batch certificate operations\n\nThe actual adoption drivers are multi-tenant hosting platforms and enterprise domain management. These motivated WG adoption (see [adoption call discussion](https://mailarchive.ietf.org/arch/msg/acme/qQxnsSOBARv04PJEbAYHqsf_b28)) and are driving implementation (LE, Pebble, lego, cert-manager).\n\nReorder the example list in the abstract and \u00a71 Introduction to lead with the stronger use cases. IoT is valid but secondary.",
       "createdAt": "2026-03-18T22:17:44Z",
       "updatedAt": "2026-03-18T22:17:44Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 47,
+      "id": "I_kwDOO4VY2c710jQ-",
+      "title": "Wildcard examples incomplete: add deep-subdomain wildcard",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/47",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "The `policy=wildcard` scope in \u00a75 lists three categories of authorized issuance. Item 3 (\"Specific subdomains\") says \"any specific subdomain\" with no depth restriction \u2014 `server.dept.example.com` is in the examples. Item 2 (\"Wildcard certificates\") says \"covering immediate subdomains\" with only `*.example.com` as an example.\n\nThe permitted list reinforces this gap:\n\n> `example.com`, `www.example.com`, `app.example.com`, `server.dept.example.com`, `*.example.com`\n\nDeep non-wildcard subdomains are shown; deep wildcards are not. A reader could conclude `*.dept.example.com` is not covered, which contradicts item 3's \"any specific subdomain\" \u2014 if `dept.example.com` is authorized, a wildcard cert for it should be too.\n\n**Proposed fix:** Add `*.dept.example.com` to the permitted list and adjust item 2 from \"immediate subdomains\" to \"the validated FQDN or any of its subdomains.\"\n\nContext: [cert-manager#8373 discussion](https://github.com/cert-manager/cert-manager/issues/8373) where a user asked about `*.apps.cls98.example.com` via an ancestor record.",
+      "createdAt": "2026-03-23T23:02:05Z",
+      "updatedAt": "2026-03-23T23:02:05Z",
       "closedAt": null,
       "comments": []
     }
@@ -2350,6 +2366,159 @@
           "createdAt": "2026-03-18T22:11:32Z",
           "updatedAt": "2026-03-18T22:11:32Z",
           "comments": []
+        }
+      ]
+    },
+    {
+      "number": 48,
+      "id": "PR_kwDOO4VY2c7M2irq",
+      "title": "fix: reorder use-case list to match adoption reality",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/48",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Closes #46\n\nMulti-tenant hosting and enterprise DNS environments are the actual adoption drivers (see [adoption call discussion](https://mailarchive.ietf.org/arch/msg/acme/qQxnsSOBARv04PJEbAYHqsf_b28)). IoT is valid but secondary.\n\n### Changes\n\n**Abstract:** Reorder to `multi-tenant hosting platforms, enterprise DNS environments, and IoT deployments`\n\n**\u00a71 Introduction:** Move multi-tenant and pre-validation bullets to top; IoT to last. No text changes within bullets, only reordering.\n\n### Review notes\n\n- Parallel structure checked: all three abstract items are now environment/infrastructure noun phrases\n- No normative language affected (abstract and \u00a71 are informational)",
+      "createdAt": "2026-03-24T01:02:19Z",
+      "updatedAt": "2026-03-24T01:04:06Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "6d6b98c456a6b2ce8a83e255cdc1bc1ac77080fc",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "sheurich/issue-46-reorder-use-cases",
+      "headRefOid": "8caa842478aa88eced757b91e66c9a75c922dec6",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c7uKQSA",
+          "commit": {
+            "abbreviatedOid": "8caa842"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "## Pull request overview\n\nUpdates the draft\u2019s abstract and \u00a71 Introduction to present the most common/primary deployment drivers for `dns-persist-01` earlier, reflecting current adoption emphasis (per issue #46 and the linked adoption discussion).\n\n**Changes:**\n- Reorders the abstract\u2019s example environment list to lead with multi-tenant hosting and enterprise DNS contexts.\n- Reorders the \u00a71 \u201cExamples include\u201d bullets to place multi-tenant and pre-validation earlier and IoT last.\n\n\n\n\n\n---\n\n\ud83d\udca1 <a href=\"/ietf-wg-acme/draft-ietf-acme-dns-persist/new/main?filename=.github/instructions/*.instructions.md\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Add Copilot custom instructions</a> for smarter, more guided reviews. <a href=\"https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Learn how to get started</a>.",
+          "createdAt": "2026-03-24T01:04:05Z",
+          "updatedAt": "2026-03-24T01:04:06Z",
+          "comments": [
+            {
+              "originalPosition": 5,
+              "body": "The abstract now lists \"enterprise DNS environments\" as a primary example, but that phrase doesn\u2019t appear elsewhere in the document (the Introduction examples discuss strict change-management and batch/offline issuance instead). Consider aligning terminology by either adding an explicit Introduction bullet/example for enterprise DNS environments or adjusting the abstract example list to match the examples used later, so readers can easily find the corresponding discussion.",
+              "createdAt": "2026-03-24T01:04:05Z",
+              "updatedAt": "2026-03-24T01:04:06Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 49,
+      "id": "PR_kwDOO4VY2c7M2iyQ",
+      "title": "fix: DNSSEC SHOULD needs deviation consequence (RFC 2119)",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/49",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Closes #44\n\nThe bare SHOULD in \u00a79.6.1 had two problems:\n\n1. **No RFC 2119 deviation consequence.** BCP 14 requires SHOULD to indicate what happens when the requirement is not met. The old text gave no guidance.\n2. **Wrong verb.** \"Validate DNSSEC signatures\" describes implementation behavior; the actual requirement is resolver choice \u2014 use a DNSSEC-validating resolver.\n\n### Changes\n\n```diff\n- To ensure the integrity of the validation process, CAs SHOULD validate\n- DNSSEC signatures on `dns-persist-01` TXT records.\n+ CAs SHOULD use a DNSSEC-validating resolver when querying\n+ `dns-persist-01` TXT records. Without one, a CA will silently accept\n+ forged responses in DNSSEC-signed zones.\n```\n\nThe conditional MUST for fail-closed behavior is unchanged:\n\n> If a CA performs DNSSEC validation, it MUST treat validation failure [...] as a challenge failure and MUST NOT use the record for domain validation.\n\n### Context\n\n- Raised during IETF 124 ACME WG session\n- #1: resolved not to mandate DNSSEC deployment\n- #17: moved DNSSEC from normative requirements to security considerations\n- #28: simplified to bare SHOULD (created the gap)\n- SC-085 (cabforum/servercert#579): requires DNSSEC-validating resolver for WebPKI CAs",
+      "createdAt": "2026-03-24T01:02:33Z",
+      "updatedAt": "2026-03-24T01:04:35Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "6d6b98c456a6b2ce8a83e255cdc1bc1ac77080fc",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "sheurich/issue-44-dnssec-should",
+      "headRefOid": "2b7f50dd3db500c0d49e9e5fa6073333c21aa438",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c7uKQhn",
+          "commit": {
+            "abbreviatedOid": "2b7f50d"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "## Pull request overview\n\nUpdates the DNSSEC security considerations in the `dns-persist-01` draft to clarify what the existing RFC 2119 \u201cSHOULD\u201d entails and what the consequence is when not followed, focusing on resolver behavior rather than implementation details.\n\n**Changes:**\n- Replaces \u201cvalidate DNSSEC signatures\u201d with guidance to use a DNSSEC-validating resolver for `dns-persist-01` TXT lookups.\n- Adds an explicit consequence statement describing the risk of not using DNSSEC validation.\n- Keeps the existing fail-closed \u201cMUST\u201d requirement for DNSSEC validation failures.\n\n\n\n\n\n---\n\n\ud83d\udca1 <a href=\"/ietf-wg-acme/draft-ietf-acme-dns-persist/new/main?filename=.github/instructions/*.instructions.md\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Add Copilot custom instructions</a> for smarter, more guided reviews. <a href=\"https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Learn how to get started</a>.",
+          "createdAt": "2026-03-24T01:04:35Z",
+          "updatedAt": "2026-03-24T01:04:35Z",
+          "comments": [
+            {
+              "originalPosition": 5,
+              "body": "The statement \"Without one, a CA will silently accept forged responses\" is phrased as an absolute outcome. In practice, the risk is that the CA cannot *detect* forged/spoofed answers (and may accept them) when DNSSEC is not validated, rather than forged responses always being present. Consider rewording to reflect inability to detect/mitigate forged responses (e.g., \"may accept\" / \"cannot detect\") to avoid overclaiming.\n```suggestion\nDNS Security Extensions (DNSSEC) {{?RFC4033}} provide cryptographic authentication of DNS data, ensuring that the validation records retrieved by a CA are authentic and have not been tampered with. CAs SHOULD use a DNSSEC-validating resolver when querying `dns-persist-01` TXT records. Without one, a CA cannot detect forged or spoofed responses in DNSSEC-signed zones and may silently accept them. If a CA performs DNSSEC validation, it MUST treat validation failure (e.g., expired signatures, broken chain of trust) as a challenge failure and MUST NOT use the record for domain validation. This requirement is stricter than the general DNSSEC guidance in {{!RFC8555}} because `dns-persist-01` records are long-lived and their compromise would persist for the record's lifetime.\n```",
+              "createdAt": "2026-03-24T01:04:35Z",
+              "updatedAt": "2026-03-24T01:04:35Z"
+            },
+            {
+              "originalPosition": 5,
+              "body": "After switching the SHOULD to \"use a DNSSEC-validating resolver\", the following MUST still refers to when \"a CA performs DNSSEC validation\". To avoid ambiguity about whether relying on a validating resolver counts, consider explicitly tying the MUST to that mechanism (e.g., \"If a CA performs DNSSEC validation (including via a DNSSEC-validating resolver)...\") so implementers know the fail-closed requirement applies in that case too.\n```suggestion\nDNS Security Extensions (DNSSEC) {{?RFC4033}} provide cryptographic authentication of DNS data, ensuring that the validation records retrieved by a CA are authentic and have not been tampered with. CAs SHOULD use a DNSSEC-validating resolver when querying `dns-persist-01` TXT records. Without one, a CA will silently accept forged responses in DNSSEC-signed zones. If a CA performs DNSSEC validation (including via a DNSSEC-validating resolver), it MUST treat validation failure (e.g., expired signatures, broken chain of trust) as a challenge failure and MUST NOT use the record for domain validation. This requirement is stricter than the general DNSSEC guidance in {{!RFC8555}} because `dns-persist-01` records are long-lived and their compromise would persist for the record's lifetime.\n```",
+              "createdAt": "2026-03-24T01:04:35Z",
+              "updatedAt": "2026-03-24T01:04:35Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 50,
+      "id": "PR_kwDOO4VY2c7M2i4R",
+      "title": "fix: add deep-subdomain wildcard to examples and scope",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/50",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Closes #47\n\n\u00a75 item 2 said \"covering immediate subdomains\" with only `*.example.com` as an example, contradicting item 3 which allows subdomains at any depth. A reader could conclude `*.dept.example.com` is not covered by `policy=wildcard` on an ancestor record.\n\n### Changes\n\n**\u00a75 item 2:**\n```diff\n- **Wildcard certificates** - Certificates covering immediate subdomains\n-   (e.g., `*.example.com`)\n+ **Wildcard certificates** - Wildcard certificates for the validated FQDN\n+   or any of its subdomains (e.g., `*.example.com`, `*.dept.example.com`)\n```\n\n**\u00a76 permitted list:**\n```diff\n- Permitted: example.com, www.example.com, app.example.com,\n-   server.dept.example.com, *.example.com\n+ Permitted: example.com, www.example.com, app.example.com,\n+   server.dept.example.com, *.example.com, *.dept.example.com\n```\n\n### Review notes\n\n- \"Wildcard certificates for\" replaces \"Certificates covering\" \u2014 avoids the RFC 6125 \u00a76.4.3 issue where `*.example.com` does not match `example.com` itself\n- The proper suffix rule in \u00a76 has a pre-existing gap: it does not reference RFC 8555 \u00a77.1.3 wildcard stripping. That gap is not introduced by this PR and should be tracked separately.\n\n### Context\n\n[cert-manager#8373](https://github.com/cert-manager/cert-manager/issues/8373) discussion where a user asked about `*.apps.cls98.example.com` via an ancestor record.",
+      "createdAt": "2026-03-24T01:02:47Z",
+      "updatedAt": "2026-03-24T01:05:39Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "6d6b98c456a6b2ce8a83e255cdc1bc1ac77080fc",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "sheurich/issue-47-wildcard-examples",
+      "headRefOid": "197c8eb36414263104b646cfd7fd483ae31bd9ec",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c7uKRDb",
+          "commit": {
+            "abbreviatedOid": "197c8eb"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "## Pull request overview\n\nUpdates the Internet-Draft text to clarify that `policy=wildcard` scope includes wildcard certificates at any subdomain depth, resolving an ambiguity between the scope description and the permitted examples (Issue #47).\n\n**Changes:**\n- Rewords \u00a75 item 2 (\u201cWildcard certificates\u201d) to include deep-subdomain wildcard examples (e.g., `*.dept.example.com`).\n- Extends the \u00a76 \u201cPermitted\u201d example list to include `*.dept.example.com`.\n\n\n\n\n\n---\n\n\ud83d\udca1 <a href=\"/ietf-wg-acme/draft-ietf-acme-dns-persist/new/main?filename=.github/instructions/*.instructions.md\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Add Copilot custom instructions</a> for smarter, more guided reviews. <a href=\"https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Learn how to get started</a>.",
+          "createdAt": "2026-03-24T01:05:38Z",
+          "updatedAt": "2026-03-24T01:05:39Z",
+          "comments": [
+            {
+              "originalPosition": 5,
+              "body": "The phrasing \u201cWildcard certificates for the validated FQDN\u201d can be read as implying that a wildcard like `*.example.com` is a certificate *for / matching* `example.com` itself (which is not true per RFC 6125). Consider rewording to make it unambiguous that the wildcard is for subdomains under the validated FQDN (and under any of its subdomains), rather than for the validated FQDN itself.",
+              "createdAt": "2026-03-24T01:05:38Z",
+              "updatedAt": "2026-03-24T01:05:39Z"
+            },
+            {
+              "originalPosition": 8,
+              "body": "The example sentence (below this list) doesn\u2019t explicitly include a deep wildcard like `*.dept.example.com` even though it\u2019s now introduced in the scope list. Adding it to that sentence would reinforce that deep wildcards are intended to be in-scope and reduce the chance readers interpret \u201cany other subdomain\u201d as non-wildcard names only.\n```suggestion\nFor example, a TXT record at `_validation-persist.example.com` containing `policy=wildcard` can validate certificates for `example.com`, `*.example.com`, `*.dept.example.com`, `www.example.com`, and any other subdomain of `example.com`.\n```",
+              "createdAt": "2026-03-24T01:05:38Z",
+              "updatedAt": "2026-03-24T01:05:39Z"
+            }
+          ]
         }
       ]
     }
