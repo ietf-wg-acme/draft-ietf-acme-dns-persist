@@ -295,7 +295,7 @@ This validation method supports validation for wildcard certificates (e.g., *.ex
 When a DNS TXT record includes the `policy=wildcard` parameter value, it authorizes certificate issuance for:
 
 1. **The validated FQDN itself** - The base domain for which the TXT record exists (e.g., `example.com`)
-2. **Wildcard certificates** - Certificates covering immediate subdomains (e.g., `*.example.com`)
+2. **Wildcard certificates** - Wildcard certificates for the validated FQDN or any of its subdomains (e.g., `*.example.com`, `*.dept.example.com`)
 3. **Specific subdomains** - Any specific subdomain of the validated FQDN (e.g., `www.example.com`, `app.example.com`, `server.dept.example.com`)
 
 For example, a TXT record at `_validation-persist.example.com` containing `policy=wildcard` can validate certificates for `example.com`, `*.example.com`, `www.example.com`, and any other subdomain of `example.com`.
@@ -325,7 +325,7 @@ See {{subdomain-validation-risks}} for important security implications of enabli
 ## Example: Subdomain Validation
 
 For a persistent TXT record provisioned at `_validation-persist.example.com` with `policy=wildcard`:
-- Permitted: `example.com`, `www.example.com`, `app.example.com`, `server.dept.example.com`, `*.example.com`
+- Permitted: `example.com`, `www.example.com`, `app.example.com`, `server.dept.example.com`, `*.example.com`, `*.dept.example.com`
 - Not permitted without additional validation: `otherexample.com`, `example.net`
 
 ----
