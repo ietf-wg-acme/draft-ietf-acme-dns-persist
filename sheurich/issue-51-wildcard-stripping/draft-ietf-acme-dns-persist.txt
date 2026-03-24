@@ -677,7 +677,9 @@ Table of Contents
       subdomain validation to be permitted.
 
    *  CAs MUST verify that the validated FQDN is a proper suffix of the
-      requested FQDN.
+      requested FQDN.  For wildcard requests, this check applies to the
+      base domain after removing the *. prefix.  The base-level wildcard
+      is exempt per Section 5.
 
    *  If the policy parameter is absent or has any value other than
       wildcard, subdomain validation MUST NOT be permitted.

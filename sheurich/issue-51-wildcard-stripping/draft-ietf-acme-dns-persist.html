@@ -1812,7 +1812,7 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
             <p id="section-6.2-1.1.1">The persistent DNS TXT record <span class="bcp14">MUST</span> include <code>policy=wildcard</code> for subdomain validation to be permitted.<a href="#section-6.2-1.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-6.2-1.2">
-            <p id="section-6.2-1.2.1">CAs <span class="bcp14">MUST</span> verify that the validated FQDN is a proper suffix of the requested FQDN.<a href="#section-6.2-1.2.1" class="pilcrow">¶</a></p>
+            <p id="section-6.2-1.2.1">CAs <span class="bcp14">MUST</span> verify that the validated FQDN is a proper suffix of the requested FQDN. For wildcard requests, this check applies to the base domain after removing the <code>*.</code> prefix. The base-level wildcard is exempt per <a href="#wildcard-certificate-validation" class="auto internal xref">Section 5</a>.<a href="#section-6.2-1.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-6.2-1.3">
             <p id="section-6.2-1.3.1">If the <code>policy</code> parameter is absent or has any value other than <code>wildcard</code>, subdomain validation <span class="bcp14">MUST NOT</span> be permitted.<a href="#section-6.2-1.3.1" class="pilcrow">¶</a></p>
