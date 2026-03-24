@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 19 September 2026                         Crosslayer Labs, Inc.
+Expires: 25 September 2026                         Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                           18 March 2026
+                                                           24 March 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -23,14 +23,14 @@ Abstract
    over a domain by confirming the presence of a persistent DNS TXT
    record containing CA and account identification information.  This
    method is particularly suited for environments where traditional
-   challenge methods are impractical, such as IoT deployments, multi-
-   tenant platforms, and scenarios requiring batch certificate
-   operations.  The validation method is designed with a strong focus on
-   security and robustness, incorporating widely adopted industry best
-   practices for persistent domain control validation.  This design aims
-   to make it suitable for Certification Authorities operating under
-   various policy environments, including those that align with the CA/
-   Browser Forum Baseline Requirements.
+   challenge methods are impractical, such as multi-tenant hosting
+   platforms, enterprise DNS environments, and IoT deployments.  The
+   validation method is designed with a strong focus on security and
+   robustness, incorporating widely adopted industry best practices for
+   persistent domain control validation.  This design aims to make it
+   suitable for Certification Authorities operating under various policy
+   environments, including those that align with the CA/Browser Forum
+   Baseline Requirements.
 
 About This Document
 
@@ -63,7 +63,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 19 September 2026.
+   This Internet-Draft will expire on 25 September 2026.
 
 Copyright Notice
 
@@ -150,9 +150,6 @@ Table of Contents
 
    Examples include:
 
-   *  Internet of Things (IoT) deployments where devices may not be able
-      to host an HTTP service or coordinate DNS updates in real-time.
-
    *  Edge compute and multi-tenant hosting platforms where the entity
       managing the DNS zone is distinct from the tenant subscribing to
       the certificate.
@@ -160,11 +157,14 @@ Table of Contents
    *  Organizations that wish to pre-validate domains and batch issuance
       operations offline or at a later time.
 
+   *  Environments with strict change management processes where DNS
+      modifications require approval workflows.
+
    *  Scenarios requiring wildcard certificates where domain control is
       proven once and reused over an extended period.
 
-   *  Environments with strict change management processes where DNS
-      modifications require approval workflows.
+   *  Internet of Things (IoT) deployments where devices may not be able
+      to host an HTTP service or coordinate DNS updates in real-time.
 
    This document defines a new ACME challenge type, "dns-persist-01".
    This method proves control over a Fully Qualified Domain Name (FQDN)
