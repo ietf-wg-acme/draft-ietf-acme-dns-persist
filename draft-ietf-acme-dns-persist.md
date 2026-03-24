@@ -18,7 +18,7 @@ venue:
   type: "Working Group"
   mail: "acme@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/browse/acme/"
-  github: "sheurich/draft-sheurich-acme-dns-persist"
+  github: "ietf-wg-acme/draft-ietf-acme-dns-persist"
 
 author:
  -
@@ -50,7 +50,7 @@ informative:
 
 --- abstract
 
-This document specifies "dns-persist-01", a new validation method for the Automated Certificate Management Environment (ACME) protocol. This method allows a Certification Authority (CA) to verify control over a domain by confirming the presence of a persistent DNS TXT record containing CA and account identification information. This method is particularly suited for environments where traditional challenge methods are impractical, such as IoT deployments, multi-tenant platforms, and scenarios requiring batch certificate operations. The validation method is designed with a strong focus on security and robustness, incorporating widely adopted industry best practices for persistent domain control validation. This design aims to make it suitable for Certification Authorities operating under various policy environments, including those that align with the CA/Browser Forum Baseline Requirements.
+This document specifies "dns-persist-01", a new validation method for the Automated Certificate Management Environment (ACME) protocol. This method allows a Certification Authority (CA) to verify control over a domain by confirming the presence of a persistent DNS TXT record containing CA and account identification information. This method is particularly suited for environments where traditional challenge methods are impractical, such as multi-tenant hosting platforms, enterprise DNS environments, and IoT deployments. The validation method is designed with a strong focus on security and robustness, incorporating widely adopted industry best practices for persistent domain control validation. This design aims to make it suitable for Certification Authorities operating under various policy environments, including those that align with the CA/Browser Forum Baseline Requirements.
 
 --- middle
 
@@ -60,11 +60,11 @@ The Automated Certificate Management Environment (ACME) protocol {{!RFC8555}} de
 
 Examples include:
 
-- Internet of Things (IoT) deployments where devices may not be able to host an HTTP service or coordinate DNS updates in real-time.
 - Edge compute and multi-tenant hosting platforms where the entity managing the DNS zone is distinct from the tenant subscribing to the certificate.
 - Organizations that wish to pre-validate domains and batch issuance operations offline or at a later time.
-- Scenarios requiring wildcard certificates where domain control is proven once and reused over an extended period.
 - Environments with strict change management processes where DNS modifications require approval workflows.
+- Scenarios requiring wildcard certificates where domain control is proven once and reused over an extended period.
+- Internet of Things (IoT) deployments where devices may not be able to host an HTTP service or coordinate DNS updates in real-time.
 
 This document defines a new ACME challenge type, "dns-persist-01". This method proves control over a Fully Qualified Domain Name (FQDN) by confirming the presence of a persistent DNS TXT record containing CA and account identification information.
 
@@ -295,7 +295,7 @@ This validation method supports validation for wildcard certificates (e.g., *.ex
 When a DNS TXT record includes the `policy=wildcard` parameter value, it authorizes certificate issuance for:
 
 1. **The validated FQDN itself** - The base domain for which the TXT record exists (e.g., `example.com`)
-2. **Wildcard certificates** - Certificates covering immediate subdomains (e.g., `*.example.com`)
+2. **Wildcard certificates** - Wildcard certificates for the validated FQDN or any of its subdomains (e.g., `*.example.com`, `*.dept.example.com`)
 3. **Specific subdomains** - Any specific subdomain of the validated FQDN (e.g., `www.example.com`, `app.example.com`, `server.dept.example.com`)
 
 For example, a TXT record at `_validation-persist.example.com` containing `policy=wildcard` can validate certificates for `example.com`, `*.example.com`, `www.example.com`, and any other subdomain of `example.com`.
@@ -310,14 +310,14 @@ When the `policy=wildcard` parameter is present (as described in {{wildcard-cert
 
 ## Determining Permitted Subdomains
 
-To determine which subdomains are permitted, the FQDN for which the persistent TXT record exists (referred to as the "validated FQDN") MUST be a proper suffix of the FQDN for which a certificate is requested (referred to as the "requested FQDN"). That is, the requested FQDN MUST contain at least one additional label prepended to the validated FQDN.
+To determine which subdomains are permitted, the FQDN for which the persistent TXT record exists (referred to as the "validated FQDN") MUST be a proper suffix of the FQDN for which a certificate is requested (referred to as the "requested FQDN"). For wildcard certificate requests, the proper suffix check applies to the base domain name after removing the wildcard prefix (`*.`), consistent with {{!RFC8555}}, Section 7.1.3. The base-level wildcard (e.g., `*.example.com` where the validated FQDN is `example.com`) is authorized directly by {{wildcard-certificate-validation}} and is not subject to this proper suffix requirement.
 
-For example, if `dept.example.com` is the validated FQDN, a certificate for `server.dept.example.com` is permitted because `dept.example.com` is its suffix.
+For example, if `dept.example.com` is the validated FQDN, a certificate for `server.dept.example.com` is permitted because `dept.example.com` is its suffix. A certificate for `*.server.dept.example.com` is also permitted: after removing the wildcard prefix, `server.dept.example.com` has `dept.example.com` as a proper suffix.
 
 ## Implementation Requirements
 
 - The persistent DNS TXT record MUST include `policy=wildcard` for subdomain validation to be permitted.
-- CAs MUST verify that the validated FQDN is a proper suffix of the requested FQDN.
+- CAs MUST verify that the validated FQDN is a proper suffix of the requested FQDN. For wildcard requests, this check applies to the base domain after removing the `*.` prefix. The base-level wildcard is exempt per {{wildcard-certificate-validation}}.
 - If the `policy` parameter is absent or has any value other than `wildcard`, subdomain validation MUST NOT be permitted.
 
 See {{subdomain-validation-risks}} for important security implications of enabling subdomain validation.
@@ -325,7 +325,7 @@ See {{subdomain-validation-risks}} for important security implications of enabli
 ## Example: Subdomain Validation
 
 For a persistent TXT record provisioned at `_validation-persist.example.com` with `policy=wildcard`:
-- Permitted: `example.com`, `www.example.com`, `app.example.com`, `server.dept.example.com`, `*.example.com`
+- Permitted: `example.com`, `www.example.com`, `app.example.com`, `server.dept.example.com`, `*.example.com`, `*.dept.example.com`
 - Not permitted without additional validation: `otherexample.com`, `example.net`
 
 ----
@@ -414,7 +414,7 @@ To enhance the security and integrity of the validation process, CAs and clients
 
 ### DNSSEC
 
-DNS Security Extensions (DNSSEC) {{?RFC4033}} provide cryptographic authentication of DNS data, ensuring that the validation records retrieved by a CA are authentic and have not been tampered with. To ensure the integrity of the validation process, CAs SHOULD validate DNSSEC signatures on `dns-persist-01` TXT records. If a CA performs DNSSEC validation, it MUST treat validation failure (e.g., expired signatures, broken chain of trust) as a challenge failure and MUST NOT use the record for domain validation. This requirement is stricter than the general DNSSEC guidance in {{!RFC8555}} because `dns-persist-01` records are long-lived and their compromise would persist for the record's lifetime.
+DNS Security Extensions (DNSSEC) {{?RFC4033}} provide cryptographic authentication of DNS data, ensuring that the validation records retrieved by a CA are authentic and have not been tampered with. CAs SHOULD use a DNSSEC-validating resolver when querying `dns-persist-01` TXT records. Without one, a CA will silently accept forged responses in DNSSEC-signed zones. If a CA performs DNSSEC validation, it MUST treat validation failure (e.g., expired signatures, broken chain of trust) as a challenge failure and MUST NOT use the record for domain validation. This requirement is stricter than the general DNSSEC guidance in {{!RFC8555}} because `dns-persist-01` records are long-lived and their compromise would persist for the record's lifetime.
 
 ### Multi-Perspective Validation
 
