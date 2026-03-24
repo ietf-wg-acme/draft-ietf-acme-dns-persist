@@ -310,14 +310,14 @@ When the `policy=wildcard` parameter is present (as described in {{wildcard-cert
 
 ## Determining Permitted Subdomains
 
-To determine which subdomains are permitted, the FQDN for which the persistent TXT record exists (referred to as the "validated FQDN") MUST be a proper suffix of the FQDN for which a certificate is requested (referred to as the "requested FQDN"). That is, the requested FQDN MUST contain at least one additional label prepended to the validated FQDN.
+To determine which subdomains are permitted, the FQDN for which the persistent TXT record exists (referred to as the "validated FQDN") MUST be a proper suffix of the FQDN for which a certificate is requested (referred to as the "requested FQDN"). For wildcard certificate requests, the proper suffix check applies to the base domain name after removing the wildcard prefix (`*.`), consistent with {{!RFC8555}}, Section 7.1.3. The base-level wildcard (e.g., `*.example.com` where the validated FQDN is `example.com`) is authorized directly by {{wildcard-certificate-validation}} and is not subject to this proper suffix requirement.
 
-For example, if `dept.example.com` is the validated FQDN, a certificate for `server.dept.example.com` is permitted because `dept.example.com` is its suffix.
+For example, if `dept.example.com` is the validated FQDN, a certificate for `server.dept.example.com` is permitted because `dept.example.com` is its suffix. A certificate for `*.server.dept.example.com` is also permitted: after removing the wildcard prefix, `server.dept.example.com` has `dept.example.com` as a proper suffix.
 
 ## Implementation Requirements
 
 - The persistent DNS TXT record MUST include `policy=wildcard` for subdomain validation to be permitted.
-- CAs MUST verify that the validated FQDN is a proper suffix of the requested FQDN.
+- CAs MUST verify that the validated FQDN is a proper suffix of the requested FQDN. For wildcard requests, this check applies to the base domain after removing the `*.` prefix. The base-level wildcard is exempt per {{wildcard-certificate-validation}}.
 - If the `policy` parameter is absent or has any value other than `wildcard`, subdomain validation MUST NOT be permitted.
 
 See {{subdomain-validation-risks}} for important security implications of enabling subdomain validation.
