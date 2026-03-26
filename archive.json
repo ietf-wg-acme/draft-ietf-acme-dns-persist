@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-03-24T01:11:27.970897+00:00",
+  "timestamp": "2026-03-26T01:22:13.483248+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -912,15 +912,15 @@
       "id": "I_kwDOO4VY2c70OoCy",
       "title": "DNSSEC SHOULD needs conditions (RFC 2119)",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/44",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "sheurich",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "RFC 2119 requires SHOULD to state when deviation is acceptable. The DNSSEC text in Security Considerations doesn't:\n\n> CAs SHOULD validate DNSSEC signatures on `dns-persist-01` TXT records.\n\nTwo problems. First, no conditions \u2014 the reader doesn't know what they're giving up by skipping this. Second, wrong verb \u2014 \"validate DNSSEC signatures\" describes implementation behavior when the actual requirement is to use a DNSSEC validating resolver (per SC-085 and the dnsop domain-verification-techniques BCP).\n\nProposed fix:\n\n> CAs SHOULD use a DNSSEC validating resolver when querying `dns-persist-01` TXT records. A CA that does not do so cannot detect DNSSEC failures and will silently accept forged responses for DNSSEC-signed zones.\n\nThe fail-closed requirement stays as-is:\n\n> If a CA performs DNSSEC validation, it MUST treat validation failure as a challenge failure and MUST NOT use the record for domain validation.\n\nWebPKI CAs have no discretion here regardless \u2014 SC-085 already requires DNSSEC validating resolvers for all DCV lookups.\n\nContext:\n- Raised during IETF 124 ACME WG session ([recording](https://www.youtube.com/watch?v=agFEJPXX1XU))\n- #1: resolved not to mandate DNSSEC deployment\n- #17: moved DNSSEC from normative requirements to security considerations\n- #28: simplified to bare SHOULD (created the gap)\n- SC-085 (cabforum/servercert#579): requires DNSSEC validating resolver for WebPKI CAs",
       "createdAt": "2026-03-18T20:13:42Z",
-      "updatedAt": "2026-03-18T21:03:50Z",
-      "closedAt": null,
+      "updatedAt": "2026-03-24T01:48:28Z",
+      "closedAt": "2026-03-24T01:48:28Z",
       "comments": []
     },
     {
@@ -928,15 +928,15 @@
       "id": "I_kwDOO4VY2c70QqJx",
       "title": "Reorder abstract use-case list to match adoption reality",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/46",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "sheurich",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "The abstract lists use cases in this order:\n\n> particularly suited for environments where traditional challenge methods are impractical, such as IoT deployments, multi-tenant platforms, and scenarios requiring batch certificate operations\n\nThe actual adoption drivers are multi-tenant hosting platforms and enterprise domain management. These motivated WG adoption (see [adoption call discussion](https://mailarchive.ietf.org/arch/msg/acme/qQxnsSOBARv04PJEbAYHqsf_b28)) and are driving implementation (LE, Pebble, lego, cert-manager).\n\nReorder the example list in the abstract and \u00a71 Introduction to lead with the stronger use cases. IoT is valid but secondary.",
       "createdAt": "2026-03-18T22:17:44Z",
-      "updatedAt": "2026-03-18T22:17:44Z",
-      "closedAt": null,
+      "updatedAt": "2026-03-24T01:48:26Z",
+      "closedAt": "2026-03-24T01:48:26Z",
       "comments": []
     },
     {
@@ -944,14 +944,70 @@
       "id": "I_kwDOO4VY2c710jQ-",
       "title": "Wildcard examples incomplete: add deep-subdomain wildcard",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/47",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "sheurich",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "The `policy=wildcard` scope in \u00a75 lists three categories of authorized issuance. Item 3 (\"Specific subdomains\") says \"any specific subdomain\" with no depth restriction \u2014 `server.dept.example.com` is in the examples. Item 2 (\"Wildcard certificates\") says \"covering immediate subdomains\" with only `*.example.com` as an example.\n\nThe permitted list reinforces this gap:\n\n> `example.com`, `www.example.com`, `app.example.com`, `server.dept.example.com`, `*.example.com`\n\nDeep non-wildcard subdomains are shown; deep wildcards are not. A reader could conclude `*.dept.example.com` is not covered, which contradicts item 3's \"any specific subdomain\" \u2014 if `dept.example.com` is authorized, a wildcard cert for it should be too.\n\n**Proposed fix:** Add `*.dept.example.com` to the permitted list and adjust item 2 from \"immediate subdomains\" to \"the validated FQDN or any of its subdomains.\"\n\nContext: [cert-manager#8373 discussion](https://github.com/cert-manager/cert-manager/issues/8373) where a user asked about `*.apps.cls98.example.com` via an ancestor record.",
       "createdAt": "2026-03-23T23:02:05Z",
-      "updatedAt": "2026-03-23T23:02:05Z",
+      "updatedAt": "2026-03-24T01:48:31Z",
+      "closedAt": "2026-03-24T01:48:31Z",
+      "comments": []
+    },
+    {
+      "number": 51,
+      "id": "I_kwDOO4VY2c712MN7",
+      "title": "Subdomain proper-suffix rule omits wildcard stripping",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/51",
+      "state": "CLOSED",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "\u00a76 \"Determining Permitted Subdomains\" requires the validated FQDN to be a proper suffix of the requested FQDN. The rule ignores wildcard identifiers:\n\n**1. Base-level wildcard fails the check.** For `*.example.com`, RFC 8555 \u00a77.1.3 strips `*.` to yield `example.com`. The proper-suffix test then asks: is `example.com` a proper suffix of `example.com`? No \u2014 a string cannot be a proper suffix of itself. Yet \u00a75 item 2 and the \u00a76 example both permit `*.example.com`.\n\n**2. Missing stripping instruction.** \u00a76 says \"requested FQDN\" but never directs implementers to strip `*.` before the check. An implementer cannot tell whether to test `*.dept.example.com` or `dept.example.com` against the rule.\n\n**Proposed fix:** Add two statements to \u00a76 \"Determining Permitted Subdomains\":\n\n- For wildcard requests, apply the proper-suffix check to the base domain after removing `*.`, consistent with RFC 8555 \u00a77.1.3.\n- \u00a75 directly authorizes the base-level wildcard (where the base domain equals the validated FQDN); the proper-suffix requirement does not apply.\n\nAlso delete the redundant \"That is\" sentence \u2014 \"proper suffix\" already means \"at least one additional label prepended.\"\n\n#47 exposed this gap by adding `*.dept.example.com` to the permitted list.",
+      "createdAt": "2026-03-24T01:18:45Z",
+      "updatedAt": "2026-03-24T01:48:33Z",
+      "closedAt": "2026-03-24T01:48:33Z",
+      "comments": []
+    },
+    {
+      "number": 54,
+      "id": "I_kwDOO4VY2c72VsrG",
+      "title": "Pre-provisioning wording",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/54",
+      "state": "OPEN",
+      "author": "rmbolger",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "> Domain owners MAY provision _validation-persist TXT records before any ACME interaction occurs.\n\nShouldn't this be more like\n\n> Domain owners MAY provision _validation-persist TXT records before any ACME orders are created.\n\nDomain owners would need to at least have created an ACME account in order to have an `accounturi` value for the pre-provisioned record.",
+      "createdAt": "2026-03-25T06:15:19Z",
+      "updatedAt": "2026-03-25T11:03:32Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@rmbolger thanks! The existing wording is imprecise. Will be fixed in an editorial update.",
+          "createdAt": "2026-03-25T11:03:32Z",
+          "updatedAt": "2026-03-25T11:03:32Z"
+        }
+      ]
+    },
+    {
+      "number": 55,
+      "id": "I_kwDOO4VY2c72V4Kq",
+      "title": "Confused about client validation of accounturi",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/55",
+      "state": "OPEN",
+      "author": "rmbolger",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "With regards to Account URI Privacy, the alternative account URI is what would be presented by the CA in the `accounturi` field in the challenge object described in 3.1, right? But there's guidance in that description that says:\n\n> Clients that pre-provisioned a record using their ACME account URL ([[RFC8555](https://www.ietf.org/archive/id/draft-ietf-acme-dns-persist-01.html#RFC8555)], Section 7.3) SHOULD verify the value identifies the same account.\n\nBut if it's an alternative URI, it purposefully won't match the real account URI and the client just has to trust that it's right, wouldn't it? Or am I missing where the alternative account URI comes from?",
+      "createdAt": "2026-03-25T06:25:20Z",
+      "updatedAt": "2026-03-25T06:25:20Z",
       "closedAt": null,
       "comments": []
     }
@@ -2305,7 +2361,7 @@
       "labels": [],
       "body": "## IETF 125 \u2014 Shenzhen\n\n9 Marp slides (~15 min) for the ACME WG session on `draft-ietf-acme-dns-persist-01`.\n\n### Slides\n\n| # | Topic | Type |\n|---|-------|------|\n| 1 | Title | \u2014 |\n| 2 | Since IETF 124 | Status |\n| 3 | Subdomain validation gap (#33) | Discussion |\n| 4 | Proposed `adn` response field (#33) | Discussion |\n| 5 | TTL as validation ceiling (#42) | Discussion |\n| 6 | IP validation via reverse DNS (#32) | Discussion |\n| 7 | Quick items: error types (#39), client persistUntil (#38) | Temperature check |\n| 8 | Path forward | Status |\n| 9 | Questions | \u2014 |\n\n### Files\n\n- `presentations/ietf-125/slides.md` \u2014 Marp source\n- `presentations/ietf-125/speaker-notes.md` \u2014 per-slide notes with timing, objections, attendee profiles\n- `presentations/ietf-125/slides.pdf` \u2014 generated PDF\n- `presentations/ietf-125/README.md` \u2014 build instructions\n\n### Build\n\n```sh\nmarp presentations/ietf-125/slides.md -o presentations/ietf-125/slides.pdf --pdf --allow-local-files\n```",
       "createdAt": "2026-03-18T18:04:54Z",
-      "updatedAt": "2026-03-18T18:07:45Z",
+      "updatedAt": "2026-03-24T15:26:53Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "ea88b92fa31cca63c94c3d139cf95db4f34dccca",
@@ -2316,15 +2372,7 @@
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
-      "comments": [
-        {
-          "author": "sheurich",
-          "authorAssociation": "COLLABORATOR",
-          "body": "Opened in error \u2014 presentation branch doesn't need a PR.",
-          "createdAt": "2026-03-18T18:07:44Z",
-          "updatedAt": "2026-03-18T18:07:44Z"
-        }
-      ],
+      "comments": [],
       "reviews": []
     },
     {
@@ -2374,24 +2422,26 @@
       "id": "PR_kwDOO4VY2c7M2irq",
       "title": "fix: reorder use-case list to match adoption reality",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/48",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "sheurich",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Closes #46\n\nMulti-tenant hosting and enterprise DNS environments are the actual adoption drivers (see [adoption call discussion](https://mailarchive.ietf.org/arch/msg/acme/qQxnsSOBARv04PJEbAYHqsf_b28)). IoT is valid but secondary.\n\n### Changes\n\n**Abstract:** Reorder to `multi-tenant hosting platforms, enterprise DNS environments, and IoT deployments`\n\n**\u00a71 Introduction:** Move multi-tenant and pre-validation bullets to top; IoT to last. No text changes within bullets, only reordering.\n\n### Review notes\n\n- Parallel structure checked: all three abstract items are now environment/infrastructure noun phrases\n- No normative language affected (abstract and \u00a71 are informational)",
       "createdAt": "2026-03-24T01:02:19Z",
-      "updatedAt": "2026-03-24T01:04:06Z",
+      "updatedAt": "2026-03-24T01:48:26Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "6d6b98c456a6b2ce8a83e255cdc1bc1ac77080fc",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "sheurich/issue-46-reorder-use-cases",
       "headRefOid": "8caa842478aa88eced757b91e66c9a75c922dec6",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2026-03-24T01:48:24Z",
+      "mergedAt": "2026-03-24T01:48:24Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "125229f59d47b6c7c6c1780f814551d6d74f746d"
+      },
       "comments": [],
       "reviews": [
         {
@@ -2421,24 +2471,26 @@
       "id": "PR_kwDOO4VY2c7M2iyQ",
       "title": "fix: DNSSEC SHOULD needs deviation consequence (RFC 2119)",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/49",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "sheurich",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Closes #44\n\nThe bare SHOULD in \u00a79.6.1 had two problems:\n\n1. **No RFC 2119 deviation consequence.** BCP 14 requires SHOULD to indicate what happens when the requirement is not met. The old text gave no guidance.\n2. **Wrong verb.** \"Validate DNSSEC signatures\" describes implementation behavior; the actual requirement is resolver choice \u2014 use a DNSSEC-validating resolver.\n\n### Changes\n\n```diff\n- To ensure the integrity of the validation process, CAs SHOULD validate\n- DNSSEC signatures on `dns-persist-01` TXT records.\n+ CAs SHOULD use a DNSSEC-validating resolver when querying\n+ `dns-persist-01` TXT records. Without one, a CA will silently accept\n+ forged responses in DNSSEC-signed zones.\n```\n\nThe conditional MUST for fail-closed behavior is unchanged:\n\n> If a CA performs DNSSEC validation, it MUST treat validation failure [...] as a challenge failure and MUST NOT use the record for domain validation.\n\n### Context\n\n- Raised during IETF 124 ACME WG session\n- #1: resolved not to mandate DNSSEC deployment\n- #17: moved DNSSEC from normative requirements to security considerations\n- #28: simplified to bare SHOULD (created the gap)\n- SC-085 (cabforum/servercert#579): requires DNSSEC-validating resolver for WebPKI CAs",
       "createdAt": "2026-03-24T01:02:33Z",
-      "updatedAt": "2026-03-24T01:04:35Z",
+      "updatedAt": "2026-03-24T01:48:29Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "6d6b98c456a6b2ce8a83e255cdc1bc1ac77080fc",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "sheurich/issue-44-dnssec-should",
       "headRefOid": "2b7f50dd3db500c0d49e9e5fa6073333c21aa438",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2026-03-24T01:48:27Z",
+      "mergedAt": "2026-03-24T01:48:27Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "a2e0c13d3215d1808d1190062d49f13ecf233617"
+      },
       "comments": [],
       "reviews": [
         {
@@ -2474,24 +2526,26 @@
       "id": "PR_kwDOO4VY2c7M2i4R",
       "title": "fix: add deep-subdomain wildcard to examples and scope",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/50",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "sheurich",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Closes #47\n\n\u00a75 item 2 said \"covering immediate subdomains\" with only `*.example.com` as an example, contradicting item 3 which allows subdomains at any depth. A reader could conclude `*.dept.example.com` is not covered by `policy=wildcard` on an ancestor record.\n\n### Changes\n\n**\u00a75 item 2:**\n```diff\n- **Wildcard certificates** - Certificates covering immediate subdomains\n-   (e.g., `*.example.com`)\n+ **Wildcard certificates** - Wildcard certificates for the validated FQDN\n+   or any of its subdomains (e.g., `*.example.com`, `*.dept.example.com`)\n```\n\n**\u00a76 permitted list:**\n```diff\n- Permitted: example.com, www.example.com, app.example.com,\n-   server.dept.example.com, *.example.com\n+ Permitted: example.com, www.example.com, app.example.com,\n+   server.dept.example.com, *.example.com, *.dept.example.com\n```\n\n### Review notes\n\n- \"Wildcard certificates for\" replaces \"Certificates covering\" \u2014 avoids the RFC 6125 \u00a76.4.3 issue where `*.example.com` does not match `example.com` itself\n- The proper suffix rule in \u00a76 has a pre-existing gap: it does not reference RFC 8555 \u00a77.1.3 wildcard stripping. That gap is not introduced by this PR and should be tracked separately.\n\n### Context\n\n[cert-manager#8373](https://github.com/cert-manager/cert-manager/issues/8373) discussion where a user asked about `*.apps.cls98.example.com` via an ancestor record.",
       "createdAt": "2026-03-24T01:02:47Z",
-      "updatedAt": "2026-03-24T01:05:39Z",
+      "updatedAt": "2026-03-24T01:48:31Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "6d6b98c456a6b2ce8a83e255cdc1bc1ac77080fc",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "sheurich/issue-47-wildcard-examples",
       "headRefOid": "197c8eb36414263104b646cfd7fd483ae31bd9ec",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2026-03-24T01:48:30Z",
+      "mergedAt": "2026-03-24T01:48:30Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "91a4c363db69ce08698bd69f4e5bf1282c3b792e"
+      },
       "comments": [],
       "reviews": [
         {
@@ -2517,6 +2571,140 @@
               "body": "The example sentence (below this list) doesn\u2019t explicitly include a deep wildcard like `*.dept.example.com` even though it\u2019s now introduced in the scope list. Adding it to that sentence would reinforce that deep wildcards are intended to be in-scope and reduce the chance readers interpret \u201cany other subdomain\u201d as non-wildcard names only.\n```suggestion\nFor example, a TXT record at `_validation-persist.example.com` containing `policy=wildcard` can validate certificates for `example.com`, `*.example.com`, `*.dept.example.com`, `www.example.com`, and any other subdomain of `example.com`.\n```",
               "createdAt": "2026-03-24T01:05:38Z",
               "updatedAt": "2026-03-24T01:05:39Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 52,
+      "id": "PR_kwDOO4VY2c7M2rtq",
+      "title": "fix: add wildcard-stripping clarification to proper-suffix rule",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/52",
+      "state": "MERGED",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Closes #51\n\n\u00a76 \"Determining Permitted Subdomains\" requires the validated FQDN to be a proper suffix of the requested FQDN but says nothing about wildcard identifiers. Two problems:\n\n1. `*.example.com` after RFC 8555 \u00a77.1.3 stripping becomes `example.com` \u2014 not a proper suffix of itself, so the rule rejects it. Yet \u00a75 and the \u00a76 example both permit it.\n2. No instruction to strip `*.` before the check. An implementer cannot tell whether to test `*.dept.example.com` or `dept.example.com`.\n\n### Changes\n\n- Add wildcard-stripping instruction referencing RFC 8555 \u00a77.1.3\n- Note that \u00a75 directly authorizes the base-level wildcard (not subject to proper-suffix rule)\n- Add wildcard example (`*.server.dept.example.com`) to the existing example paragraph\n- Remove redundant \"That is\" sentence \u2014 \"proper suffix\" already means at least one additional label\n\n#47 exposed this gap by adding `*.dept.example.com` to the permitted list.",
+      "createdAt": "2026-03-24T01:19:39Z",
+      "updatedAt": "2026-03-24T01:48:34Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "6d6b98c456a6b2ce8a83e255cdc1bc1ac77080fc",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "sheurich/issue-51-wildcard-stripping",
+      "headRefOid": "cec7477b8dabdeb101d1781fb2095cfe9a00df34",
+      "closedAt": "2026-03-24T01:48:32Z",
+      "mergedAt": "2026-03-24T01:48:32Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "36321d85c24228b4a65081a76d42bfce9d99cb2b"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c7uKaO1",
+          "commit": {
+            "abbreviatedOid": "e871341"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "## Pull request overview\n\nThis PR updates the ACME `dns-persist` draft to clarify how wildcard identifiers (`*.`) interact with the \u201cproper suffix\u201d rule when determining whether subdomain certificate requests are permitted under `policy=wildcard`.\n\n**Changes:**\n- Specify that, for wildcard requests, the proper-suffix comparison is performed after stripping the `*.` prefix (per RFC 8555 \u00a77.1.3).\n- Clarify that the base-level wildcard (e.g., `*.example.com` when the validated FQDN is `example.com`) is authorized directly by the wildcard policy scope and is not subject to the proper-suffix rule.\n- Extend the examples to include a deep-subdomain wildcard case (e.g., `*.server.dept.example.com`).\n\n\n\n\n\n---\n\n\ud83d\udca1 <a href=\"/ietf-wg-acme/draft-ietf-acme-dns-persist/new/main?filename=.github/instructions/*.instructions.md\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Add Copilot custom instructions</a> for smarter, more guided reviews. <a href=\"https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Learn how to get started</a>.",
+          "createdAt": "2026-03-24T01:21:34Z",
+          "updatedAt": "2026-03-24T01:21:35Z",
+          "comments": [
+            {
+              "originalPosition": 8,
+              "body": "The added example permits a deep wildcard request (`*.server.dept.example.com`) when `dept.example.com` is validated. Earlier, the scope description for `policy=wildcard` describes wildcard certificates as covering \u201cimmediate subdomains\u201d (e.g., `*.example.com`), which could be read as limiting wildcard issuance to only one label below the validated FQDN. Consider aligning the scope language with this example by explicitly stating whether wildcard certificates are allowed for any permitted subdomain (not just the validated FQDN\u2019s immediate children).",
+              "createdAt": "2026-03-24T01:21:34Z",
+              "updatedAt": "2026-03-24T01:21:35Z"
+            },
+            {
+              "originalPosition": 5,
+              "body": "The first sentence states the validated FQDN MUST be a proper suffix of the requested FQDN, but the paragraph then carves out an exception for the base-level wildcard. As written, this reads like a contradictory set of requirements. Consider rephrasing the normative requirement to explicitly exclude the base-level wildcard case (e.g., \u201cExcept for the base-level wildcard\u2026 the validated FQDN MUST be a proper suffix\u2026\u201d), so implementers don\u2019t miss the exception.",
+              "createdAt": "2026-03-24T01:21:35Z",
+              "updatedAt": "2026-03-24T01:21:35Z"
+            },
+            {
+              "originalPosition": 6,
+              "body": "This paragraph adds wildcard-stripping and a base-level wildcard exception, but later in \u201cImplementation Requirements\u201d the text still says CAs MUST verify the validated FQDN is a proper suffix of the requested FQDN without mentioning stripping `*.` or exempting `*.example.com`-style requests. That creates conflicting guidance within the same section; please update the later requirement to match the wildcard handling defined here.",
+              "createdAt": "2026-03-24T01:21:35Z",
+              "updatedAt": "2026-03-24T01:21:35Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 53,
+      "id": "PR_kwDOO4VY2c7NDDNm",
+      "title": "IETF 125 ACME WG Presentation",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/53",
+      "state": "MERGED",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "## IETF 125 \u2014 Shenzhen\r\n\r\n9 Marp slides (~15 min) for the ACME WG session on `draft-ietf-acme-dns-persist-01`.\r\n\r\n### Slides\r\n\r\n| # | Topic | Type |\r\n|---|-------|------|\r\n| 1 | Title | \u2014 |\r\n| 2 | Since IETF 124 (Montreal) | Status |\r\n| 3 | Subdomain validation gap (#33) | Discussion |\r\n| 4 | Proposed `adn` response field (#33) | Discussion |\r\n| 5 | TTL as validation ceiling (#42) | Discussion |\r\n| 6 | IP validation via reverse DNS (#32) | Discussion |\r\n| 7 | Quick items: error types (#39), client persistUntil (#38) | Temperature check |\r\n| 8 | Path forward | Status |\r\n| 9 | Questions | \u2014 |\r\n\r\n### Files\r\n\r\n- `presentations/ietf-125/slides.md` \u2014 Marp source\r\n- `presentations/ietf-125/speaker-notes.md` \u2014 per-slide notes\r\n- `presentations/ietf-125/slides.pdf` \u2014 generated PDF for datatracker submission\r\n- `presentations/ietf-125/README.md` \u2014 build instructions\r\n\r\n### Build\r\n\r\n```sh\r\nmarp presentations/ietf-125/slides.md -o presentations/ietf-125/slides.pdf --pdf --allow-local-files\r\n```",
+      "createdAt": "2026-03-24T15:28:58Z",
+      "updatedAt": "2026-03-24T15:34:50Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "36321d85c24228b4a65081a76d42bfce9d99cb2b",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "ietf-125-preso",
+      "headRefOid": "c9a612a98e9fb1ebf2fcdebf1af08dd9776bfce2",
+      "closedAt": "2026-03-24T15:34:47Z",
+      "mergedAt": "2026-03-24T15:34:47Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "df1b3e7e4cd8509294d20c38005d2a5e93422b96"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c7ubjUW",
+          "commit": {
+            "abbreviatedOid": "dbaa6bf"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "## Pull request overview\n\nAdds an IETF 125 ACME WG slide deck and supporting materials for presenting `draft-ietf-acme-dns-persist-01`, focusing discussion on open design questions (subdomain prompting via `adn`, TTL-as-ceiling removal, and IP validation scope).\n\n**Changes:**\n- Introduce a 9-slide Marp deck for the IETF 125 session agenda and discussion prompts.\n- Add detailed speaker notes with timing, transitions, and anticipated Q&A.\n- Add a per-presentation README with build/submission instructions.\n\n### Reviewed changes\n\nCopilot reviewed 3 out of 4 changed files in this pull request and generated 5 comments.\n\n| File | Description |\n| ---- | ----------- |\n| presentations/ietf-125/slides.md | New Marp slide deck covering status + open issues (#33, #42, #32, #38, #39). |\n| presentations/ietf-125/speaker-notes.md | New per-slide timing plan, talk track, and likely questions. |\n| presentations/ietf-125/README.md | Build/preview instructions for generating `slides.pdf` with Marp CLI. |\n\n\n\n\n\n---\n\n\ud83d\udca1 <a href=\"/ietf-wg-acme/draft-ietf-acme-dns-persist/new/main?filename=.github/instructions/*.instructions.md\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Add Copilot custom instructions</a> for smarter, more guided reviews. <a href=\"https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Learn how to get started</a>.",
+          "createdAt": "2026-03-24T15:32:15Z",
+          "updatedAt": "2026-03-24T15:32:16Z",
+          "comments": [
+            {
+              "originalPosition": 12,
+              "body": "The timing table has an extra empty first column because each row starts with `||` instead of `|`. This renders as a 5-column table with a blank leading column; drop the extra leading `|` so the table has only the intended 4 columns.",
+              "createdAt": "2026-03-24T15:32:15Z",
+              "updatedAt": "2026-03-24T15:32:16Z"
+            },
+            {
+              "originalPosition": 118,
+              "body": "This section refers to \"Authorization Domain Name\" even though slide 2 notes the draft renamed that concept to \"Validation Domain Name\" due to BR term conflicts. To avoid confusing the room, either use the same term as the draft here (and throughout the deck/notes) or explicitly define what `adn` stands for in this presentation and why it differs from the draft\u2019s terminology.\n```suggestion\nto the challenge URL with the domain to check \u2014 historically named for the\n\"authorization domain name\" concept, which the current draft now calls the\nValidation Domain Name. The CA confirms it's a valid Validation Domain Name \u2014\nobtained by pruning labels from the requested FQDN per the BRs \u2014 looks up the\nrecord there, and validates.\n```",
+              "createdAt": "2026-03-24T15:32:15Z",
+              "updatedAt": "2026-03-24T15:32:16Z"
+            },
+            {
+              "originalPosition": 209,
+              "body": "Grammar: \"sunsets March 15, 2027\" reads like a missing preposition; consider \"sunsets on March 15, 2027\" for clarity.\n```suggestion\non March 15, 2027.\n```",
+              "createdAt": "2026-03-24T15:32:15Z",
+              "updatedAt": "2026-03-24T15:32:16Z"
+            },
+            {
+              "originalPosition": 177,
+              "body": "Slide 2 calls out the rename from \"Authorization Domain Name\" \u2192 \"Validation Domain Name\" (to avoid BR term conflicts), but this slide reintroduces \"Authorization Domain Name\" when describing what the CA checks. This terminology inconsistency is likely to confuse the audience; align the term with the draft (or explicitly define the distinction if you intend `adn` to mean something different).\n```suggestion\n- CA confirms `example.com` is a valid Validation Domain Name for `server.dept.example.com`\n```",
+              "createdAt": "2026-03-24T15:32:16Z",
+              "updatedAt": "2026-03-24T15:32:16Z"
+            },
+            {
+              "originalPosition": 173,
+              "body": "The fenced block is marked as `json`, but the content includes an HTTP path and arrow (`POST ... \u2192 payload:`), which is not valid JSON. Consider changing the fence language to `text`/`bash` or splitting it into (1) a text line for the POST and (2) a valid JSON object example for the payload.\n```suggestion\n```text\n```",
+              "createdAt": "2026-03-24T15:32:16Z",
+              "updatedAt": "2026-03-24T15:32:17Z"
             }
           ]
         }
