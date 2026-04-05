@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-03-26T01:22:13.483248+00:00",
+  "timestamp": "2026-04-05T01:26:20.485459+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -1007,7 +1007,45 @@
       "labels": [],
       "body": "With regards to Account URI Privacy, the alternative account URI is what would be presented by the CA in the `accounturi` field in the challenge object described in 3.1, right? But there's guidance in that description that says:\n\n> Clients that pre-provisioned a record using their ACME account URL ([[RFC8555](https://www.ietf.org/archive/id/draft-ietf-acme-dns-persist-01.html#RFC8555)], Section 7.3) SHOULD verify the value identifies the same account.\n\nBut if it's an alternative URI, it purposefully won't match the real account URI and the client just has to trust that it's right, wouldn't it? Or am I missing where the alternative account URI comes from?",
       "createdAt": "2026-03-25T06:25:20Z",
-      "updatedAt": "2026-03-25T06:25:20Z",
+      "updatedAt": "2026-04-03T13:30:37Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "glatzert",
+          "authorAssociation": "NONE",
+          "body": "I'm a little bit baffeled about the existance of that field at all - what use does it have?\nThe client should know it's own account uri or are there cases where it doesn't?",
+          "createdAt": "2026-04-02T19:16:34Z",
+          "updatedAt": "2026-04-02T19:16:34Z"
+        },
+        {
+          "author": "rmbolger",
+          "authorAssociation": "NONE",
+          "body": "See [section 7.2.2](https://www.ietf.org/archive/id/draft-ietf-acme-dns-persist-01.html#section-7.2.2) of the current draft. The accounturi presented by the CA in the challenge may be an \"alternative\" account URI specific to the identifier that maps to the real account URI on the CA side. This is a privacy feature that can prevent 3rd parties from correlating ownership of distinct domains by querying the `_validation-persist` records.\n\nMy issue is just that since the mapping of real account URI to alternative account URI is not exposed to the clients until they query the challenge object, there's no other source of truth for them to validate the alternative URI is correct.",
+          "createdAt": "2026-04-02T21:32:53Z",
+          "updatedAt": "2026-04-02T21:32:53Z"
+        },
+        {
+          "author": "glatzert",
+          "authorAssociation": "NONE",
+          "body": "Why is this still an accounturi then? \nIt could be an arbitrary token instead ... \n\nHm.. ",
+          "createdAt": "2026-04-03T13:30:37Z",
+          "updatedAt": "2026-04-03T13:30:37Z"
+        }
+      ]
+    },
+    {
+      "number": 56,
+      "id": "I_kwDOO4VY2c76ITCK",
+      "title": "Naming conventions",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/56",
+      "state": "OPEN",
+      "author": "glatzert",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "Hi everyone,\n\nI'm maintainer of an ACME Server Implementation and I stumbled over the naming convention in this draft.\n\nTake a look at (for example) https://www.rfc-editor.org/rfc/rfc8555#section-7.1.2 - naming is all camelCase and that's valid throughout RFC8555.\nThis draft adds new challenge objects and seems to follow no convention:\n\n- `accounturi` neither matches the kebab-cased `issuer-domain-names` nor does it align with ACMEs camelCase (should probably be `accountUri`)\n- `issuer-domain-names` does not align with ACMEs camelCase (should probably be `issuerDomainNames`)\n",
+      "createdAt": "2026-04-02T19:12:35Z",
+      "updatedAt": "2026-04-02T19:12:35Z",
       "closedAt": null,
       "comments": []
     }
