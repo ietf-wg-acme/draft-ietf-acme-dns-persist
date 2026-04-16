@@ -362,7 +362,8 @@ Table of Contents
        record.
 
    3.  The issue-value MUST contain an accounturi parameter whose value
-       is a URI that identifies the ACME account requesting validation.
+       is a URI that identifies the ACME account requesting validation,
+       either directly or through a subscriber-account association.
 
        The accounturi value MUST conform to one of the following three
        modes:
@@ -401,7 +402,10 @@ Table of Contents
               each validation against a subscriber URI.
 
           5.  The CA SHOULD make subscriber-account URIs syntactically
-              distinguishable from per-account URIs.
+              distinguishable from per-account URIs.  If subscriber-
+              account URIs are not distinguishable, clients and auditors
+              cannot independently determine which verification model
+              applies to a given accounturi value.
 
        For all modes, the CA MUST verify that the URI in the DNS record
        authorizes the ACME account making the request; if it does not,
@@ -636,10 +640,10 @@ Table of Contents
       header of the account creation response ([RFC8555], Section 7.3).
       If the CA supports subscriber-account URIs (mode 3c, see
       Section 4.1), a subscriber-account URI MAY be used instead.
-      Domain owners pre-provisioning with a subscriber-account URI
-      SHOULD understand that ACME accounts added to the subscriber
-      relationship after provisioning will automatically inherit the
-      record's validation rights.
+      Domain owners pre-provisioning with a subscriber-account URI are
+      advised that ACME accounts added to the subscriber relationship
+      after provisioning will automatically inherit the record's
+      validation rights.
 
    *  *issuer-domain-name*: Clients MAY use the caaIdentities array from
       the ACME directory metadata ([RFC8555], Section 7.1.1) as a hint
@@ -778,8 +782,9 @@ Table of Contents
 7.2.  Account Binding Security
 
    The accounturi parameter provides strong binding between domain
-   validation and specific ACME accounts.  However, this binding depends
-   on the security of the ACME account itself.
+   validation and the ACME account or subscriber account identified by
+   the URI.  However, this binding depends on the security of the
+   account itself.
 
    The security of this method is fundamentally bound to the security of
    the ACME account's private key.  For validation records using an ACME
@@ -937,9 +942,9 @@ Table of Contents
        specific ACME accounts are being granted authorization by their
        DNS record.
 
-   Note that once the Authorization Domain Name (adn) response field is
-   defined, it composes with policy=wildcard and subscriber URIs to
-   further broaden authorization scope.
+   Note that once the adn response field is defined, it composes with
+   policy=wildcard and subscriber URIs to further broaden authorization
+   scope.
 
    Further security considerations regarding the revocation of these
    broad authorizations are discussed in Section 7.11, the semantic
@@ -1107,9 +1112,9 @@ Table of Contents
        (Alternative 1:1 URI), this serves as a full emergency measure,
        effectively invalidating the record's utility.  For mode 3c
        (Subscriber-account URI), deactivating a single compromised ACME
-       account only removes that specific account from the subscriber
-       relationship; it explicitly does NOT invalidate the subscriber-
-       level record for the remaining associated accounts.
+       account prevents that ACME account from using the subscriber-
+       level authorization, but does NOT affect other associated ACME
+       accounts or invalidate the subscriber-level record.
 
    3.  *Deactivate subscriber account:* For mode 3c only, an immediate
        deactivation of the entire subscriber account is required.  When
