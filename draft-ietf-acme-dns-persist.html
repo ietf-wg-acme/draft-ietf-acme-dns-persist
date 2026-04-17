@@ -1402,7 +1402,6 @@ svg :is([fill="white"], [fill^="#fff"]) {
 </li>
         </ol>
 <p id="section-1.1-3">Certification Authorities operating under various trust program requirements will find this technical framework suitable for their domain validation needs, as its design inherently supports robust and auditable validation practices.<a href="#section-1.1-3" class="pilcrow">¶</a></p>
-<p id="section-1.1-4"></p>
 </section>
 </div>
 </section>
@@ -1445,7 +1444,6 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
 </dd>
       <dd class="break"></dd>
 </dl>
-<p id="section-2-3"></p>
 </section>
 </div>
 <div id="dns-persist-01-challenge">
@@ -1511,7 +1509,6 @@ The server <span class="bcp14">MUST</span> ensure the array is not empty. Server
 <a href="#name-example-dns-persist-01-chal" class="selfRef">Example dns-persist-01 Challenge Object</a>
           </figcaption></figure>
 </div>
-<p id="section-3.1-5"></p>
 </section>
 </div>
 </section>
@@ -1752,7 +1749,6 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
         </ul>
 <p id="section-4.5-3">Organizations pre-provisioning records <span class="bcp14">SHOULD</span> maintain an inventory of <code>_validation-persist</code> records and the ACME accounts they reference. Records <span class="bcp14">MAY</span> include a <code>persistUntil</code> parameter to bound their effective lifetime (see <a href="#persist-until-parameter-considerations" class="auto internal xref">Section 7.9</a>). Domain owners <span class="bcp14">SHOULD</span> audit <code>_validation-persist</code> records after any DNS infrastructure security incident, as pre-provisioned records persist beyond the window of compromise.<a href="#section-4.5-3" class="pilcrow">¶</a></p>
 <p id="section-4.5-4">CAs implementing <code>dns-persist-01</code> <span class="bcp14">SHOULD</span> maintain stable account URIs for the lifetime of the account and <span class="bcp14">SHOULD</span> document their URI stability guarantees. If a CA must change its URI structure, it <span class="bcp14">SHOULD</span> provide a transition period during which both old and new URIs are accepted for validation.<a href="#section-4.5-4" class="pilcrow">¶</a></p>
-<p id="section-4.5-5"></p>
 </section>
 </div>
 </section>
@@ -1782,7 +1778,6 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
         </ol>
 <p id="section-5.1-3">For example, a TXT record at <code>_validation-persist.example.com</code> containing <code>policy=wildcard</code> can validate certificates for <code>example.com</code>, <code>*.example.com</code>, <code>www.example.com</code>, and any other subdomain of <code>example.com</code>.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
 <p id="section-5.1-4">If the <code>policy</code> parameter is absent, or if its value is anything other than <code>wildcard</code>, the validation applies only to the specific FQDN being validated. CAs <span class="bcp14">MUST NOT</span> consider such validation sufficient for wildcard certificates or subdomains.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
-<p id="section-5.1-5"></p>
 </section>
 </div>
 </section>
@@ -1835,7 +1830,6 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
             <p id="section-6.3-2.2.1">Not permitted without additional validation: <code>otherexample.com</code>, <code>example.net</code><a href="#section-6.3-2.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-6.3-3"></p>
 </section>
 </div>
 </section>
@@ -2071,7 +2065,6 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
 </li>
         </ul>
 <p id="section-7.10-8">While this method provides a persistent signal of control, the fundamental ACME authorization object (as defined in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>) remains subject to its own lifecycle, including expiration. A persistent DNS record allows for repeated authorizations, but each authorization object issued by the CA will have a defined validity period, after which it expires unless renewed.<a href="#section-7.10-8" class="pilcrow">¶</a></p>
-<p id="section-7.10-9"></p>
 </section>
 </div>
 </section>
@@ -2120,7 +2113,6 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
             <p id="section-8.2-2.3.1"><strong>Reference</strong>: This document<a href="#section-8.2-2.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-8.2-3"></p>
 </section>
 </div>
 </section>
@@ -2153,8 +2145,8 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
 <figure id="figure-4">
           <div class="lang-dns sourcecode" id="section-9.1-6.1">
 <pre>
-_validation-persist.example.com. IN TXT ("first-part-of-long-string..."
-" ...second-part-of-long-string")
+_validation-persist.example.com. IN TXT ("first-255-bytes..."
+" ...remaining-bytes")
 </pre>
 </div>
 <figcaption><a href="#figure-4" class="selfRef">Figure 4</a>:
@@ -2313,7 +2305,6 @@ _validation-persist.example.com. IN TXT ("first-part-of-long-string..."
             <p id="section-9.5-2.4.1">Considering dedicated interfaces or APIs for ACME validation record management<a href="#section-9.5-2.4.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-9.5-3"></p>
 </section>
 </div>
 </section>
