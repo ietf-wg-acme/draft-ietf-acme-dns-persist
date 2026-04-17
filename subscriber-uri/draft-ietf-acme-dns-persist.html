@@ -1449,14 +1449,19 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
 <p id="section-2-2.6.2">Note: The <code>issuer-domain-names</code> provided in the challenge object <span class="bcp14">MAY</span> be drawn from the machine-readable <code>caaIdentities</code> array in the ACME server's directory object, as specified in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.1.1. This creates a clearer programmatic link between the server's advertised identities and the challenge object.<a href="#section-2-2.6.2" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="section-2-2.7"><strong>Validation Data Reuse Period</strong></dt>
+<dt id="section-2-2.7"><strong>Subscriber Account</strong></dt>
         <dd style="margin-left: 1.5em" id="section-2-2.8">
-          <p id="section-2-2.8.1">The period during which a CA may rely on validation data, as defined by the CA's practices and applicable requirements.<a href="#section-2-2.8.1" class="pilcrow">¶</a></p>
+          <p id="section-2-2.8.1">A "CA account" (<span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>, Section 3) that encompasses one or more ACME accounts and represents their common subscriber. A URI identifying a subscriber account is called a "subscriber-account URI." This document uses "subscriber account" in preference to the RFC 8657 term "CA account" because ACME accounts are also CA accounts, and the two must be distinguished.<a href="#section-2-2.8.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="section-2-2.9"><strong>persistUntil</strong></dt>
+<dt id="section-2-2.9"><strong>Validation Data Reuse Period</strong></dt>
         <dd style="margin-left: 1.5em" id="section-2-2.10">
-          <p id="section-2-2.10.1">An optional parameter in the validation record that specifies the timestamp after which the validation record should no longer be considered valid by CAs. The value <span class="bcp14">MUST</span> be a base-10 encoded integer representing a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds).<a href="#section-2-2.10.1" class="pilcrow">¶</a></p>
+          <p id="section-2-2.10.1">The period during which a CA may rely on validation data, as defined by the CA's practices and applicable requirements.<a href="#section-2-2.10.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.11"><strong>persistUntil</strong></dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.12">
+          <p id="section-2-2.12.1">An optional parameter in the validation record that specifies the timestamp after which the validation record should no longer be considered valid by CAs. The value <span class="bcp14">MUST</span> be a base-10 encoded integer representing a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds).<a href="#section-2-2.12.1" class="pilcrow">¶</a></p>
 </dd>
       <dd class="break"></dd>
 </dl>
@@ -2060,7 +2065,7 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
         <h3 id="name-caa-interaction">
 <a href="#section-7.7" class="section-number selfRef">7.7. </a><a href="#name-caa-interaction" class="section-name selfRef">CAA Interaction</a>
         </h3>
-<p id="section-7.7-1">The <code>dns-persist-01</code> validation method is a valid <code>validationmethods</code> parameter value for CAA records per <span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>. Note that CAA <code>accounturi</code> and <code>dns-persist</code> <code>accounturi</code> are independent reinforcing checks — both can restrict issuance, and subscriber URIs in one do not automatically apply to the other.<a href="#section-7.7-1" class="pilcrow">¶</a></p>
+<p id="section-7.7-1">The <code>dns-persist-01</code> validation method is a valid <code>validationmethods</code> parameter value for CAA records per <span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>. Note that CAA <code>accounturi</code> and <code>dns-persist-01</code> <code>accounturi</code> are independent reinforcing checks — both can restrict issuance, and subscriber URIs in one do not automatically apply to the other.<a href="#section-7.7-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="dns-security-measures">

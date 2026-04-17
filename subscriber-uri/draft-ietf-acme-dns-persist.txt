@@ -243,6 +243,13 @@ Table of Contents
       Section 7.1.1.  This creates a clearer programmatic link between
       the server's advertised identities and the challenge object.
 
+   *Subscriber Account*  A "CA account" ([RFC8657], Section 3) that
+      encompasses one or more ACME accounts and represents their common
+      subscriber.  A URI identifying a subscriber account is called a
+      "subscriber-account URI."  This document uses "subscriber account"
+      in preference to the RFC 8657 term "CA account" because ACME
+      accounts are also CA accounts, and the two must be distinguished.
+
    *Validation Data Reuse Period*  The period during which a CA may rely
       on validation data, as defined by the CA's practices and
       applicable requirements.
@@ -1004,7 +1011,7 @@ Table of Contents
 
    The dns-persist-01 validation method is a valid validationmethods
    parameter value for CAA records per [RFC8657].  Note that CAA
-   accounturi and dns-persist accounturi are independent reinforcing
+   accounturi and dns-persist-01 accounturi are independent reinforcing
    checks — both can restrict issuance, and subscriber URIs in one do
    not automatically apply to the other.
 
