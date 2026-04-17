@@ -325,6 +325,7 @@ See {{subdomain-validation-risks}} for important security implications of enabli
 ## Example: Subdomain Validation
 
 For a persistent TXT record provisioned at `_validation-persist.example.com` with `policy=wildcard`:
+
 - Permitted: `example.com`, `www.example.com`, `app.example.com`, `server.dept.example.com`, `*.example.com`, `*.dept.example.com`
 - Not permitted without additional validation: `otherexample.com`, `example.net`
 
@@ -494,16 +495,18 @@ When designing future extensions to this specification, new parameters SHOULD be
 The RDATA of the TXT record, which contains the `issue-value`, may become large, particularly if the `accounturi` is long. While the total size of a TXT record's RDATA can be up to 65,535 octets, it must be formatted as a sequence of one or more character-strings, where each string is limited to 255 octets in length.
 
 **CA Implementation Guidelines:**
+
 - CAs SHOULD endeavor to keep the `accounturi` values they generate reasonably concise to minimize the final record size.
 
 **Client Implementation Guidelines:**
+
 - Clients MUST properly handle the creation of TXT records where the RDATA exceeds 255 octets. As specified in {{!RFC1035}}, Section 3.3.14, clients MUST split the RDATA into multiple, concatenated, quote-enclosed strings, each no more than 255 octets. For example:
 
-    ~~~ dns
-    _validation-persist.example.com. IN TXT ("first-part-of-long-string..."
-    " ...second-part-of-long-string")
-    ~~~
-    {: #ex-long-txt-record title="Multi-String TXT Record Format"}
+~~~ dns
+_validation-persist.example.com. IN TXT ("first-part-of-long-string..."
+" ...second-part-of-long-string")
+~~~
+{: #ex-long-txt-record title="Multi-String TXT Record Format"}
 
 Failure to correctly format long RDATA values may result in validation failures.
 
@@ -519,12 +522,14 @@ The recommended normalization process consists of the following four steps, appl
 4.  **Trailing Dot Removal**: Remove any trailing dot from the final string.
 
 For example, a domain name like `EXAMPLE.com.` is normalized as follows:
+
 1. After case-folding: `example.com.`
 2. After NFC normalization: `example.com.`
 3. After Punycode conversion: `example.com.`
 4. After removing trailing dot: `example.com`
 
 An internationalized domain name like `üÑICODE-example.com.` is normalized as follows:
+
 1. After case-folding: `ünicode-example.com.`
 2. After NFC normalization: `ünicode-example.com.`
 3. After Punycode conversion: `xn--nicode-example-9jb.com.`
