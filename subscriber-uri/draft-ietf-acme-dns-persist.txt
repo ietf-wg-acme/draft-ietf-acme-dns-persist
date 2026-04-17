@@ -209,7 +209,6 @@ Table of Contents
    domain validation needs, as its design inherently supports robust and
    auditable validation practices.
 
-
 2.  Conventions and Definitions
 
    The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
@@ -253,7 +252,6 @@ Table of Contents
       no longer be considered valid by CAs.  The value MUST be a base-10
       encoded integer representing a UNIX timestamp (the number of
       seconds since 1970-01-01T00:00:00Z ignoring leap seconds).
-
 
 3.  The "dns-persist-01" Challenge
 
@@ -330,7 +328,6 @@ Table of Contents
    }
 
              Figure 1: Example dns-persist-01 Challenge Object
-
 
 4.  Challenge Response and Verification
 
@@ -667,7 +664,6 @@ Table of Contents
    SHOULD provide a transition period during which both old and new URIs
    are accepted for validation.
 
-
 5.  Wildcard and Subdomain Certificate Validation
 
    This validation method supports validation for wildcard certificates
@@ -699,7 +695,6 @@ Table of Contents
    than wildcard, the validation applies only to the specific FQDN being
    validated.  CAs MUST NOT consider such validation sufficient for
    wildcard certificates or subdomains.
-
 
 6.  Subdomain Certificate Validation
 
@@ -753,7 +748,6 @@ Table of Contents
 
    *  Not permitted without additional validation: otherexample.com,
       example.net
-
 
 7.  Security Considerations
 
@@ -1176,7 +1170,6 @@ Table of Contents
    authorization object issued by the CA will have a defined validity
    period, after which it expires unless renewed.
 
-
 8.  IANA Considerations
 
 8.1.  ACME Validation Methods Registry
@@ -1202,7 +1195,6 @@ Table of Contents
    *  *_NODE NAME*: _validation-persist
 
    *  *Reference*: This document
-
 
 9.  Implementation Considerations
 
@@ -1233,8 +1225,8 @@ Table of Contents
       concatenated, quote-enclosed strings, each no more than 255
       octets.  For example:
 
-   _validation-persist.example.com. IN TXT ("first-part-of-long-string..."
-   " ...second-part-of-long-string")
+   _validation-persist.example.com. IN TXT ("first-255-bytes..."
+   " ...remaining-bytes")
 
                   Figure 4: Multi-String TXT Record Format
 
@@ -1373,7 +1365,6 @@ Table of Contents
 
    *  Considering dedicated interfaces or APIs for ACME validation
       record management
-
 
 10.  Examples
 
