@@ -1054,7 +1054,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Heurich, et al.</td>
-<td class="center">Expires 18 October 2026</td>
+<td class="center">Expires 19 October 2026</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1067,12 +1067,12 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <dd class="internet-draft">draft-ietf-acme-dns-persist-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-04-16" class="published">16 April 2026</time>
+<time datetime="2026-04-17" class="published">17 April 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2026-10-18">18 October 2026</time></dd>
+<dd class="expires"><time datetime="2026-10-19">19 October 2026</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -1129,7 +1129,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 18 October 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 19 October 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1826,10 +1826,16 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
         <h3 id="name-example-subdomain-validatio">
 <a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-example-subdomain-validatio" class="section-name selfRef">Example: Subdomain Validation</a>
         </h3>
-<p id="section-6.3-1">For a persistent TXT record provisioned at <code>_validation-persist.example.com</code> with <code>policy=wildcard</code>:
-- Permitted: <code>example.com</code>, <code>www.example.com</code>, <code>app.example.com</code>, <code>server.dept.example.com</code>, <code>*.example.com</code>, <code>*.dept.example.com</code>
-- Not permitted without additional validation: <code>otherexample.com</code>, <code>example.net</code><a href="#section-6.3-1" class="pilcrow">¶</a></p>
-<p id="section-6.3-2"></p>
+<p id="section-6.3-1">For a persistent TXT record provisioned at <code>_validation-persist.example.com</code> with <code>policy=wildcard</code>:<a href="#section-6.3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.3-2.1">
+            <p id="section-6.3-2.1.1">Permitted: <code>example.com</code>, <code>www.example.com</code>, <code>app.example.com</code>, <code>server.dept.example.com</code>, <code>*.example.com</code>, <code>*.dept.example.com</code><a href="#section-6.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.3-2.2">
+            <p id="section-6.3-2.2.1">Not permitted without additional validation: <code>otherexample.com</code>, <code>example.net</code><a href="#section-6.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-6.3-3"></p>
 </section>
 </div>
 </section>
@@ -2131,20 +2137,31 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
 <a href="#section-9.1" class="section-number selfRef">9.1. </a><a href="#name-dns-record-size-considerati" class="section-name selfRef">DNS Record Size Considerations</a>
         </h3>
 <p id="section-9.1-1">The RDATA of the TXT record, which contains the <code>issue-value</code>, may become large, particularly if the <code>accounturi</code> is long. While the total size of a TXT record's RDATA can be up to 65,535 octets, it must be formatted as a sequence of one or more character-strings, where each string is limited to 255 octets in length.<a href="#section-9.1-1" class="pilcrow">¶</a></p>
-<p id="section-9.1-2"><strong>CA Implementation Guidelines:</strong>
-- CAs <span class="bcp14">SHOULD</span> endeavor to keep the <code>accounturi</code> values they generate reasonably concise to minimize the final record size.<a href="#section-9.1-2" class="pilcrow">¶</a></p>
-<p id="section-9.1-3"><strong>Client Implementation Guidelines:</strong>
-- Clients <span class="bcp14">MUST</span> properly handle the creation of TXT records where the RDATA exceeds 255 octets. As specified in <span>[<a href="#RFC1035" class="cite xref">RFC1035</a>]</span>, Section 3.3.14, clients <span class="bcp14">MUST</span> split the RDATA into multiple, concatenated, quote-enclosed strings, each no more than 255 octets. For example:<a href="#section-9.1-3" class="pilcrow">¶</a></p>
-<div class="alignLeft art-text artwork" id="section-9.1-4">
+<p id="section-9.1-2"><strong>CA Implementation Guidelines:</strong><a href="#section-9.1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-9.1-3.1">
+            <p id="section-9.1-3.1.1">CAs <span class="bcp14">SHOULD</span> endeavor to keep the <code>accounturi</code> values they generate reasonably concise to minimize the final record size.<a href="#section-9.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-9.1-4"><strong>Client Implementation Guidelines:</strong><a href="#section-9.1-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-9.1-5.1">
+            <p id="section-9.1-5.1.1">Clients <span class="bcp14">MUST</span> properly handle the creation of TXT records where the RDATA exceeds 255 octets. As specified in <span>[<a href="#RFC1035" class="cite xref">RFC1035</a>]</span>, Section 3.3.14, clients <span class="bcp14">MUST</span> split the RDATA into multiple, concatenated, quote-enclosed strings, each no more than 255 octets. For example:<a href="#section-9.1-5.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<span id="name-multi-string-txt-record-for"></span><div id="ex-long-txt-record">
+<figure id="figure-4">
+          <div class="lang-dns sourcecode" id="section-9.1-6.1">
 <pre>
-~~~ dns
 _validation-persist.example.com. IN TXT ("first-part-of-long-string..."
 " ...second-part-of-long-string")
-~~~
-{: #ex-long-txt-record title="Multi-String TXT Record Format"}
-</pre><a href="#section-9.1-4" class="pilcrow">¶</a>
+</pre>
 </div>
-<p id="section-9.1-5">Failure to correctly format long RDATA values may result in validation failures.<a href="#section-9.1-5" class="pilcrow">¶</a></p>
+<figcaption><a href="#figure-4" class="selfRef">Figure 4</a>:
+<a href="#name-multi-string-txt-record-for" class="selfRef">Multi-String TXT Record Format</a>
+          </figcaption></figure>
+</div>
+<p id="section-9.1-7">Failure to correctly format long RDATA values may result in validation failures.<a href="#section-9.1-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="normalization-algorithm">
@@ -2168,16 +2185,36 @@ _validation-persist.example.com. IN TXT ("first-part-of-long-string..."
             <p id="section-9.2-3.4.1"><strong>Trailing Dot Removal</strong>: Remove any trailing dot from the final string.<a href="#section-9.2-3.4.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
-<p id="section-9.2-4">For example, a domain name like <code>EXAMPLE.com.</code> is normalized as follows:
-1. After case-folding: <code>example.com.</code>
-2. After NFC normalization: <code>example.com.</code>
-3. After Punycode conversion: <code>example.com.</code>
-4. After removing trailing dot: <code>example.com</code><a href="#section-9.2-4" class="pilcrow">¶</a></p>
-<p id="section-9.2-5">An internationalized domain name like <code>üÑICODE-example.com.</code> is normalized as follows:
-1. After case-folding: <code>ünicode-example.com.</code>
-2. After NFC normalization: <code>ünicode-example.com.</code>
-3. After Punycode conversion: <code>xn--nicode-example-9jb.com.</code>
-4. After removing trailing dot: <code>xn--nicode-example-9jb.com</code><a href="#section-9.2-5" class="pilcrow">¶</a></p>
+<p id="section-9.2-4">For example, a domain name like <code>EXAMPLE.com.</code> is normalized as follows:<a href="#section-9.2-4" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-9.2-5">
+<li id="section-9.2-5.1">
+            <p id="section-9.2-5.1.1">After case-folding: <code>example.com.</code><a href="#section-9.2-5.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-9.2-5.2">
+            <p id="section-9.2-5.2.1">After NFC normalization: <code>example.com.</code><a href="#section-9.2-5.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-9.2-5.3">
+            <p id="section-9.2-5.3.1">After Punycode conversion: <code>example.com.</code><a href="#section-9.2-5.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-9.2-5.4">
+            <p id="section-9.2-5.4.1">After removing trailing dot: <code>example.com</code><a href="#section-9.2-5.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-9.2-6">An internationalized domain name like <code>üÑICODE-example.com.</code> is normalized as follows:<a href="#section-9.2-6" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-9.2-7">
+<li id="section-9.2-7.1">
+            <p id="section-9.2-7.1.1">After case-folding: <code>ünicode-example.com.</code><a href="#section-9.2-7.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-9.2-7.2">
+            <p id="section-9.2-7.2.1">After NFC normalization: <code>ünicode-example.com.</code><a href="#section-9.2-7.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-9.2-7.3">
+            <p id="section-9.2-7.3.1">After Punycode conversion: <code>xn--nicode-example-9jb.com.</code><a href="#section-9.2-7.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-9.2-7.4">
+            <p id="section-9.2-7.4.1">After removing trailing dot: <code>xn--nicode-example-9jb.com</code><a href="#section-9.2-7.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
 </section>
 </div>
 <div id="ca-implementation-guidelines">
@@ -2335,7 +2372,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
           <li id="section-10.2-2.2">
             <p id="section-10.2-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record at the base domain's Validation Domain Name, including <code>policy=wildcard</code>:<a href="#section-10.2-2.2.1" class="pilcrow">¶</a></p>
 <span id="name-wildcard-policy-validation-"></span><div id="ex-wildcard-validation">
-<figure id="figure-4">
+<figure id="figure-5">
               <div class="lang-dns sourcecode" id="section-10.2-2.2.2.1">
 <pre>
 _validation-persist.example.com. IN TXT ("authority.example;"
@@ -2343,7 +2380,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 " policy=wildcard")
 </pre>
 </div>
-<figcaption><a href="#figure-4" class="selfRef">Figure 4</a>:
+<figcaption><a href="#figure-5" class="selfRef">Figure 5</a>:
 <a href="#name-wildcard-policy-validation-" class="selfRef">Wildcard Policy Validation Record</a>
               </figcaption></figure>
 </div>
@@ -2367,7 +2404,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
           <li id="section-10.3-2.2">
             <p id="section-10.3-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record including <code>persistUntil</code>:<a href="#section-10.3-2.2.1" class="pilcrow">¶</a></p>
 <span id="name-validation-record-with-expi"></span><div id="ex-persist-until">
-<figure id="figure-5">
+<figure id="figure-6">
               <div class="lang-dns sourcecode" id="section-10.3-2.2.2.1">
 <pre>
 _validation-persist.example.com. IN TXT ("authority.example;"
@@ -2375,7 +2412,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 " persistUntil=1721952000")
 </pre>
 </div>
-<figcaption><a href="#figure-5" class="selfRef">Figure 5</a>:
+<figcaption><a href="#figure-6" class="selfRef">Figure 6</a>:
 <a href="#name-validation-record-with-expi" class="selfRef">Validation Record with Expiration Time</a>
               </figcaption></figure>
 </div>
@@ -2399,7 +2436,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
           <li id="section-10.4-2.2">
             <p id="section-10.4-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record including <code>policy=wildcard</code> and <code>persistUntil</code>:<a href="#section-10.4-2.2.1" class="pilcrow">¶</a></p>
 <span id="name-wildcard-validation-record-"></span><div id="ex-wildcard-persist-until">
-<figure id="figure-6">
+<figure id="figure-7">
               <div class="lang-dns sourcecode" id="section-10.4-2.2.2.1">
 <pre>
 _validation-persist.example.com. IN TXT ("authority.example;"
@@ -2408,7 +2445,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 " persistUntil=1721952000")
 </pre>
 </div>
-<figcaption><a href="#figure-6" class="selfRef">Figure 6</a>:
+<figcaption><a href="#figure-7" class="selfRef">Figure 7</a>:
 <a href="#name-wildcard-validation-record-" class="selfRef">Wildcard Validation Record with Expiration Time</a>
               </figcaption></figure>
 </div>

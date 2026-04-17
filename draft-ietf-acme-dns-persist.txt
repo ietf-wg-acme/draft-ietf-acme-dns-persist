@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 18 October 2026                           Crosslayer Labs, Inc.
+Expires: 19 October 2026                           Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                           16 April 2026
+                                                           17 April 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -63,7 +63,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 18 October 2026.
+   This Internet-Draft will expire on 19 October 2026.
 
 Copyright Notice
 
@@ -691,10 +691,13 @@ Table of Contents
 6.3.  Example: Subdomain Validation
 
    For a persistent TXT record provisioned at _validation-
-   persist.example.com with policy=wildcard: - Permitted: example.com,
-   www.example.com, app.example.com, server.dept.example.com,
-   *.example.com, *.dept.example.com - Not permitted without additional
-   validation: otherexample.com, example.net
+   persist.example.com with policy=wildcard:
+
+   *  Permitted: example.com, www.example.com, app.example.com,
+      server.dept.example.com, *.example.com, *.dept.example.com
+
+   *  Not permitted without additional validation: otherexample.com,
+      example.net
 
 
 7.  Security Considerations
@@ -1041,21 +1044,23 @@ Table of Contents
    must be formatted as a sequence of one or more character-strings,
    where each string is limited to 255 octets in length.
 
-   *CA Implementation Guidelines:* - CAs SHOULD endeavor to keep the
-   accounturi values they generate reasonably concise to minimize the
-   final record size.
+   *CA Implementation Guidelines:*
 
-   *Client Implementation Guidelines:* - Clients MUST properly handle
-   the creation of TXT records where the RDATA exceeds 255 octets.  As
-   specified in [RFC1035], Section 3.3.14, clients MUST split the RDATA
-   into multiple, concatenated, quote-enclosed strings, each no more
-   than 255 octets.  For example:
+   *  CAs SHOULD endeavor to keep the accounturi values they generate
+      reasonably concise to minimize the final record size.
 
- ~~~ dns
- _validation-persist.example.com. IN TXT ("first-part-of-long-string..."
- " ...second-part-of-long-string")
- ~~~
- {: #ex-long-txt-record title="Multi-String TXT Record Format"}
+   *Client Implementation Guidelines:*
+
+   *  Clients MUST properly handle the creation of TXT records where the
+      RDATA exceeds 255 octets.  As specified in [RFC1035],
+      Section 3.3.14, clients MUST split the RDATA into multiple,
+      concatenated, quote-enclosed strings, each no more than 255
+      octets.  For example:
+
+   _validation-persist.example.com. IN TXT ("first-part-of-long-string..."
+   " ...second-part-of-long-string")
+
+                  Figure 4: Multi-String TXT Record Format
 
    Failure to correctly format long RDATA values may result in
    validation failures.
@@ -1084,15 +1089,26 @@ Table of Contents
        string.
 
    For example, a domain name like EXAMPLE.com. is normalized as
-   follows: 1.  After case-folding: example.com. 2.  After NFC
-   normalization: example.com. 3.  After Punycode conversion:
-   example.com. 4.  After removing trailing dot: example.com
+   follows:
+
+   1.  After case-folding: example.com.
+
+   2.  After NFC normalization: example.com.
+
+   3.  After Punycode conversion: example.com.
+
+   4.  After removing trailing dot: example.com
 
    An internationalized domain name like üÑICODE-example.com. is
-   normalized as follows: 1.  After case-folding: ünicode-example.com.
-   2.  After NFC normalization: ünicode-example.com. 3.  After Punycode
-   conversion: xn--nicode-example-9jb.com. 4.  After removing trailing
-   dot: xn--nicode-example-9jb.com
+   normalized as follows:
+
+   1.  After case-folding: ünicode-example.com.
+
+   2.  After NFC normalization: ünicode-example.com.
+
+   3.  After Punycode conversion: xn--nicode-example-9jb.com.
+
+   4.  After removing trailing dot: xn--nicode-example-9jb.com
 
 9.3.  CA Implementation Guidelines
 
@@ -1224,7 +1240,7 @@ Table of Contents
        " accounturi=https://ca.example/acct/123;"
        " policy=wildcard")
 
-                  Figure 4: Wildcard Policy Validation Record
+                  Figure 5: Wildcard Policy Validation Record
 
    3.  CA validates the record through DNS queries.  This validation
        authorizes certificates for "example.com", "*.example.com", and
@@ -1245,7 +1261,7 @@ Table of Contents
        " accounturi=https://ca.example/acct/123;"
        " persistUntil=1721952000")
 
-                Figure 5: Validation Record with Expiration Time
+                Figure 6: Validation Record with Expiration Time
 
    3.  CA validates the record.  This validation is sufficient only for
        "example.com" and will not be considered valid after the
@@ -1267,7 +1283,7 @@ Table of Contents
        " policy=wildcard;"
        " persistUntil=1721952000")
 
-           Figure 6: Wildcard Validation Record with Expiration Time
+           Figure 7: Wildcard Validation Record with Expiration Time
 
    3.  CA validates the record.  This validation authorizes certificates
        for "example.com", "*.example.com", and specific subdomains, but
