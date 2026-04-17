@@ -80,8 +80,6 @@ This validation method is designed to provide a robust and persistent mechanism 
 
 Certification Authorities operating under various trust program requirements will find this technical framework suitable for their domain validation needs, as its design inherently supports robust and auditable validation practices.
 
-----
-
 # Conventions and Definitions {#conventions-and-definitions}
 
 {::boilerplate bcp14-tagged}
@@ -104,8 +102,6 @@ Certification Authorities operating under various trust program requirements wil
 
 **persistUntil**
 :   An optional parameter in the validation record that specifies the timestamp after which the validation record should no longer be considered valid by CAs. The value MUST be a base-10 encoded integer representing a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds).
-
-----
 
 # The "dns-persist-01" Challenge {#dns-persist-01-challenge}
 
@@ -143,8 +139,6 @@ The following shows an example challenge object:
 }
 ~~~
 {: #fig-challenge-object title="Example dns-persist-01 Challenge Object"}
-
-----
 
 # Challenge Response and Verification {#challenge-response-and-verification}
 
@@ -284,8 +278,6 @@ Organizations pre-provisioning records SHOULD maintain an inventory of `_validat
 
 CAs implementing `dns-persist-01` SHOULD maintain stable account URIs for the lifetime of the account and SHOULD document their URI stability guarantees. If a CA must change its URI structure, it SHOULD provide a transition period during which both old and new URIs are accepted for validation.
 
-----
-
 # Wildcard and Subdomain Certificate Validation {#wildcard-certificate-validation}
 
 This validation method supports validation for wildcard certificates (e.g., *.example.com) and specific subdomains through the use of the `policy=wildcard` parameter.
@@ -301,8 +293,6 @@ When a DNS TXT record includes the `policy=wildcard` parameter value, it authori
 For example, a TXT record at `_validation-persist.example.com` containing `policy=wildcard` can validate certificates for `example.com`, `*.example.com`, `www.example.com`, and any other subdomain of `example.com`.
 
 If the `policy` parameter is absent, or if its value is anything other than `wildcard`, the validation applies only to the specific FQDN being validated. CAs MUST NOT consider such validation sufficient for wildcard certificates or subdomains.
-
-----
 
 # Subdomain Certificate Validation {#subdomain-certificate-validation}
 
@@ -328,8 +318,6 @@ For a persistent TXT record provisioned at `_validation-persist.example.com` wit
 
 - Permitted: `example.com`, `www.example.com`, `app.example.com`, `server.dept.example.com`, `*.example.com`, `*.dept.example.com`
 - Not permitted without additional validation: `otherexample.com`, `example.net`
-
-----
 
 # Security Considerations {#security-considerations}
 
@@ -463,8 +451,6 @@ Certificate Authorities (CAs) implementing this method MUST:
 
 While this method provides a persistent signal of control, the fundamental ACME authorization object (as defined in {{!RFC8555}}) remains subject to its own lifecycle, including expiration. A persistent DNS record allows for repeated authorizations, but each authorization object issued by the CA will have a defined validity period, after which it expires unless renewed.
 
-----
-
 # IANA Considerations {#iana-considerations}
 
 ## ACME Validation Methods Registry {#acme-validation-methods-registry}
@@ -484,8 +470,6 @@ IANA is requested to register the following entry in the "Underscored and Global
 - **_NODE NAME**: _validation-persist
 - **Reference**: This document
 
-----
-
 # Implementation Considerations {#implementation-considerations}
 
 When designing future extensions to this specification, new parameters SHOULD be designed to degrade gracefully when ignored by CAs that do not recognize them. Parameters that fundamentally change the security properties of the validation SHOULD NOT be introduced without a version negotiation mechanism.
@@ -503,8 +487,8 @@ The RDATA of the TXT record, which contains the `issue-value`, may become large,
 - Clients MUST properly handle the creation of TXT records where the RDATA exceeds 255 octets. As specified in {{!RFC1035}}, Section 3.3.14, clients MUST split the RDATA into multiple, concatenated, quote-enclosed strings, each no more than 255 octets. For example:
 
 ~~~ dns
-_validation-persist.example.com. IN TXT ("first-part-of-long-string..."
-" ...second-part-of-long-string")
+_validation-persist.example.com. IN TXT ("first-255-bytes..."
+" ...remaining-bytes")
 ~~~
 {: #ex-long-txt-record title="Multi-String TXT Record Format"}
 
@@ -577,8 +561,6 @@ DNS providers supporting this validation method should consider:
 - Providing audit logging for validation record changes
 - Supporting reasonable TTL values for validation records
 - Considering dedicated interfaces or APIs for ACME validation record management
-
-----
 
 # Examples {#examples}
 
