@@ -376,13 +376,13 @@ Table of Contents
           account object ([RFC8555], Section 7.3) as a valid accounturi
           value.
 
-       *  *(3b) Alternative 1:1 URI*: CAs MAY accept other URIs,
-          provided each such URI uniquely and permanently identifies a
-          single ACME account and satisfies the uniqueness requirements
-          of [RFC8657], Section 5.4.  CAs MUST NOT reassign a URI to a
+       *  *(3b) Alternative URI*: CAs MAY accept other URIs, provided
+          each such URI uniquely and permanently identifies a single
+          ACME account and satisfies the uniqueness requirements of
+          [RFC8657], Section 5.4.  CAs MUST NOT reassign a URI to a
           different account.  When an ACME account is deactivated, CAs
-          MUST treat all 1:1 URIs associated with that account as
-          invalid for validation purposes.
+          MUST treat all alternative URIs associated with that account
+          as invalid for validation purposes.
 
        *  *(3c) Subscriber-account URI*: CAs MAY accept a URI that maps
           to multiple ACME accounts, provided the accounts constitute a
@@ -458,10 +458,10 @@ Table of Contents
    parameter values in dns-persist-01 records:
 
    *  accounturi: The value is a URI.  For ACME account URLs and
-      Alternative 1:1 URIs, CAs MUST compare accounturi values using
-      Simple String Comparison per [RFC3986], Section 6.2.1, with no
-      case-folding or other normalization.  For Subscriber-account URIs,
-      CAs MUST perform CA-internal verification of the URI.
+      alternative URIs, CAs MUST compare accounturi values using Simple
+      String Comparison per [RFC3986], Section 6.2.1, with no case-
+      folding or other normalization.  For Subscriber-account URIs, CAs
+      MUST perform CA-internal verification of the URI.
 
    *  policy: Case-insensitive, as specified in item 4 above.
 
@@ -792,9 +792,9 @@ Table of Contents
 
    The security of this method is fundamentally bound to the security of
    the ACME account's private key.  For validation records using an ACME
-   account URL (mode 3a) or an Alternative 1:1 URI (mode 3b), if this
-   key is compromised, an attacker can immediately use any pre-existing
-   dns-persist-01 authorizations associated with that account to issue
+   account URL (mode 3a) or an alternative URI (mode 3b), if this key is
+   compromised, an attacker can immediately use any pre-existing dns-
+   persist-01 authorizations associated with that account to issue
    certificates, without needing any further access to the domain's DNS
    infrastructure.  This elevates the importance of secure key
    management for ACME clients far above that required for transient
@@ -866,11 +866,11 @@ Table of Contents
    Domain owners who require privacy without CA cooperation can use
    separate ACME accounts for domains that should not be correlated.
    Note that the use of a Subscriber-account URI (mode 3c) represents a
-   privacy inversion compared to the 1:1 privacy model of mode 3b: a
-   single visible URI correlates all domains across all ACME accounts
-   belonging to that subscriber.  Domain owners who require privacy
-   SHOULD use mode 3b or separate ACME accounts, rather than subscriber-
-   account URIs.  Domain owners and auditors who require independent
+   privacy inversion compared to the privacy model of mode 3b: a single
+   visible URI correlates all domains across all ACME accounts belonging
+   to that subscriber.  Domain owners who require privacy SHOULD use
+   mode 3b or separate ACME accounts, rather than subscriber-account
+   URIs.  Domain owners and auditors who require independent
    verifiability SHOULD use the ACME account URL directly, since third
    parties cannot independently determine which account is bound to an
    alternative URI.
@@ -1113,7 +1113,7 @@ Table of Contents
        revocation of issuance capability (e.g., suspected account key
        compromise), an ACME account can be deactivated as specified in
        [RFC8555], Section 7.3.6.  For modes 3a (ACME URL) and 3b
-       (Alternative 1:1 URI), this serves as a full emergency measure,
+       (Alternative URI), this serves as a full emergency measure,
        effectively invalidating the record's utility.  For mode 3c
        (Subscriber-account URI), deactivating a single compromised ACME
        account prevents that ACME account from using the subscriber-
@@ -1131,7 +1131,7 @@ Table of Contents
    actions across the three modes:
 
      +==============+===============+===============+===============+
-     | Action       | 3a (ACME URL) | 3b (Alt 1:1)  | 3c            |
+     | Action       | 3a (ACME URL) | 3b (Alt URI)  | 3c            |
      |              |               |               | (Subscriber)  |
      +==============+===============+===============+===============+
      | Remove DNS   | ✓ (after      | ✓ (after      | ✓ (after      |
