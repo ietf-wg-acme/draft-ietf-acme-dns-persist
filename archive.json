@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-04-05T01:26:20.485459+00:00",
+  "timestamp": "2026-04-19T01:46:43.379500+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -1007,7 +1007,7 @@
       "labels": [],
       "body": "With regards to Account URI Privacy, the alternative account URI is what would be presented by the CA in the `accounturi` field in the challenge object described in 3.1, right? But there's guidance in that description that says:\n\n> Clients that pre-provisioned a record using their ACME account URL ([[RFC8555](https://www.ietf.org/archive/id/draft-ietf-acme-dns-persist-01.html#RFC8555)], Section 7.3) SHOULD verify the value identifies the same account.\n\nBut if it's an alternative URI, it purposefully won't match the real account URI and the client just has to trust that it's right, wouldn't it? Or am I missing where the alternative account URI comes from?",
       "createdAt": "2026-03-25T06:25:20Z",
-      "updatedAt": "2026-04-03T13:30:37Z",
+      "updatedAt": "2026-04-17T21:26:38Z",
       "closedAt": null,
       "comments": [
         {
@@ -1030,6 +1030,13 @@
           "body": "Why is this still an accounturi then? \nIt could be an arbitrary token instead ... \n\nHm.. ",
           "createdAt": "2026-04-03T13:30:37Z",
           "updatedAt": "2026-04-03T13:30:37Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Agreed, the SHOULD verify in \u00a73.1 asks clients to confirm something they can't confirm when the CA returns an alternative URI.\n\nPR #58 restructures `accounturi` into three modes with different trust properties. 3a (ACME account URL) is verifiable by string comparison. 3b (alternative URI) is verifiable only if the CA exposes the mapping. 3c (subscriber-account URI) is not independently verifiable; the draft documents that as the explicit tradeoff. The blanket SHOULD verify is replaced with per-mode guidance.\n\n@glatzert: the parameter stays `accounturi` because RFC 8657 \u00a73 defines \"CA account\" broadly (including \"group of related entities\") and the CAA ecosystem already uses the name. The value doesn't have to be the client's own account URL in every mode.\n\nThe `accountkey=` discussion on the mailing list ([thread](https://mailarchive.ietf.org/arch/msg/acme/5FKQ3eYoilJBJqyoUFc5n9ierzM/)) proposes adding a client-computed thumbprint that binds the record to the client's key independently of `accounturi`. If adopted, the unverifiable modes are safe because the binding comes from the thumbprint, not from verifying the URI.\n\nWhat the client should do when verification *is* possible and fails is tracked in #59.",
+          "createdAt": "2026-04-17T21:26:38Z",
+          "updatedAt": "2026-04-17T21:26:38Z"
         }
       ]
     },
@@ -1048,6 +1055,46 @@
       "updatedAt": "2026-04-02T19:12:35Z",
       "closedAt": null,
       "comments": []
+    },
+    {
+      "number": 57,
+      "id": "I_kwDOO4VY2c7_BxdK",
+      "title": "Support subscriber-account URIs in `accounturi`",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/57",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "## Problem\n\nThe `accounturi` model currently requires each URI to \"uniquely and permanently identify a single ACME account\" ([\u00a74.1 item 3](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/blob/df1b3e7e4cd8509294d20c38005d2a5e93422b96/draft-ietf-acme-dns-persist.md?plain=1#L167)). This works for per-account URLs and the 1:1 privacy URIs added in PR #35, but breaks down when a CA's subscribers manage large numbers of ACME accounts under a single relationship.\n\n[Martijn Katerbarg](https://github.com/XolphinMartijn) (Sectigo) raised this on the [SC-098 discussion thread](https://groups.google.com/a/groups.cabforum.org/g/servercert-wg/c/Jyp40sfgQY8/m/NMhaRCyrCAAJ). SC-098 mandates CA processing of [RFC 8657](https://www.rfc-editor.org/rfc/rfc8657) CAA `accounturi` and `validationmethods` parameters by 2027-03-15. During that discussion, Martijn reported that individual Sectigo subscribers can have over 100,000 ACME accounts (per-server credentials). A subscriber wanting to use `accounturi` in CAA or dns-persist records would need a separate record per ACME account. That doesn't scale. SC-098 is being revised to accommodate this use case ([cabforum/servercert#567](https://github.com/cabforum/servercert/pull/567)); the account referencing scheme here is intended to be consistent with that ballot.\n\n## RFC 8657 basis\n\nRFC 8657 \u00a73 already accommodates this for CAA. It defines \"CA account\" as an object \"that represents a specific entity or **group of related entities**.\" The dns-persist draft intentionally narrowed this to \"a single ACME account\" for stronger security binding. The operational reality warrants relaxing that constraint, provided we add explicit safeguards and document the security tradeoffs.\n\n## Design\n\nSplit \u00a74.1 item 3 into three sub-items with distinct semantics:\n\n- **(3a) ACME account URL** \u2014 MUST accept. Simple String Comparison. Unchanged.\n- **(3b) Alternative 1:1 URIs** \u2014 MAY accept. Simple String Comparison or CA resolution. Privacy model from PR #35. Unchanged.\n- **(3c) Subscriber-account URIs** \u2014 MAY accept. One URI maps to many ACME accounts, with five constraints:\n  1. CA MUST verify the requesting ACME account is associated with the subscriber account through its own account management system.\n  2. CA MUST document the URI format and association model in its CP/CPS.\n  3. Same non-reassignment and deactivation lifecycle requirements apply.\n  4. CA MUST log which specific ACME account was used for each validation against a subscriber URI.\n  5. CA SHOULD make subscriber-account URIs syntactically distinguishable from per-account URIs.\n\nNo client-side protocol changes. Subscriber URIs are valid URIs provisioned identically to existing `accounturi` values. No new JSON fields, DNS record syntax, or IANA registrations.\n\n## Security interactions\n\nThe 1:many model introduces nine interactions that need explicit treatment in the draft:\n\n1. **`policy=wildcard` \u00d7 subscriber URIs.** The broadest authorization the protocol can express: any ACME account under the subscriber, for any subdomain, for the record's lifetime. One compromised key out of 100K grants unlimited subdomain issuance.\n2. **JIT validation \u00d7 subscriber URIs.** JIT eliminates the challenge-response detection window. With subscriber URIs, any account under the subscriber gets JIT access, including accounts that didn't exist when the record was provisioned.\n3. **Pre-provisioning \u00d7 subscriber URIs.** ACME accounts created after record provisioning automatically inherit validation rights. The domain owner has no visibility into which accounts get added.\n4. **Revocation model gap.** Deactivating one compromised ACME account doesn't invalidate the subscriber-level record for remaining accounts. The current emergency measure (\"deactivate the ACME account\") is insufficient.\n5. **Comparison semantics.** Simple String Comparison doesn't apply to subscriber URIs. The CA performs an internal lookup instead.\n6. **Privacy inversion.** Subscriber URIs increase correlation (one visible URI across all domains), the opposite of the 1:1 privacy model.\n7. **DNS spoofing amplification.** The value of a spoofed dns-persist record to an attacker who also holds any ACME key under the subscriber is higher than with 1:1 binding. Amplifies the consequence of operating without DNSSEC.\n8. **`adn` (issue #33) \u00d7 subscriber URIs.** Once `adn` lands, it composes with `policy=wildcard` and subscriber URIs to deepen the scope of interaction #1. Forward reference needed.\n9. **Subscriber credential compromise.** Compromise of the CA's subscriber account management system (portal, API) lets an attacker add new ACME accounts that immediately inherit all persistent authorizations. Distinct from ACME key compromise.\n\n## Related issues\n\n- Closes #55 \u2014 the 3a/3b/3c restructure resolves the confusion about client validation of alternative URIs by making the trust model explicit for each type\n- Closes #54 \u2014 the pre-provisioning revision supersedes the narrow wording fix\n- Related to #33 \u2014 interaction #8 cross-references `adn`\n- Related to #39 \u2014 introduces a new failure mode but doesn't address error type registration\n\n",
+      "createdAt": "2026-04-16T21:37:08Z",
+      "updatedAt": "2026-04-16T23:50:05Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 59,
+      "id": "I_kwDOO4VY2c7_Dg3M",
+      "title": "Define client behavior on `accounturi` verification mismatch",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/59",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "\u00a73.1 says clients that pre-provisioned a record using their ACME account URL \"SHOULD verify the value identifies the same account.\" The per-mode verification note added in #58 clarifies *which* modes are verifiable:\n\n- **3a (ACME account URL):** String comparison \u2014 mismatch is definitive.\n- **3b (Alternative 1:1 URI):** Verifiable only if the CA exposes the mapping.\n- **3c (Subscriber-account URI):** Not independently verifiable.\n\nThe draft does not specify what the client should do when verification is possible and fails. Options include:\n\n1. MUST NOT rely on the pre-provisioned record for that challenge (treat as misconfiguration)\n2. SHOULD alert the operator (potential unauthorized issuance)\n3. MAY proceed but log the mismatch\n\nThe right answer likely differs by mode. For 3a, a mismatch is unambiguous and probably warrants MUST NOT. For 3b, a mismatch may simply mean the client lacks the mapping and cannot conclude anything. For 3c, verification is not possible so the question does not arise.\n\nRaised during review of #58.",
+      "createdAt": "2026-04-16T23:29:51Z",
+      "updatedAt": "2026-04-16T23:58:01Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "body": "Some more questions to ask are:\n1. Should the verification should be performed by clients that did not pre-provision a record?\n2. What does not relying on the pre-provisioned record mean for a client?\n3. Why might a mismatch occur when operating in mode 3a i.e. what threat model would this be protecting against?",
+          "createdAt": "2026-04-16T23:58:01Z",
+          "updatedAt": "2026-04-16T23:58:01Z"
+        }
+      ]
     }
   ],
   "pulls": [
@@ -2743,6 +2790,196 @@
               "body": "The fenced block is marked as `json`, but the content includes an HTTP path and arrow (`POST ... \u2192 payload:`), which is not valid JSON. Consider changing the fence language to `text`/`bash` or splitting it into (1) a text line for the POST and (2) a valid JSON object example for the payload.\n```suggestion\n```text\n```",
               "createdAt": "2026-03-24T15:32:16Z",
               "updatedAt": "2026-03-24T15:32:17Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 58,
+      "id": "PR_kwDOO4VY2c7TIBoS",
+      "title": "feat: support subscriber-account URIs in `accounturi`",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/58",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Fixes #57. Closes #55. Closes #54.\n\n## Summary\n\nAllow `accounturi` in dns-persist-01 records to identify a CA subscriber account encompassing multiple ACME accounts. See #57 for the problem statement, RFC 8657 basis, design rationale, and security analysis.\n\n## Changes\n\n### \u00a72: Subscriber Account definition\n\nDefines \"Subscriber Account\" as a \"CA account\" (RFC 8657 \u00a73) that encompasses one or more ACME accounts. Maps the term to the normative reference and explains the naming choice (disambiguation from ACME accounts, which are also CA accounts).\n\n### \u00a74.1 item 3: three-mode structure\n\n| Mode                        | Cardinality | Comparison                                | Requirement |\n|-----------------------------|-------------|-------------------------------------------|-------------|\n| (3a) ACME account URL       | 1:1         | Simple String Comparison                  | MUST accept |\n| (3b) Alternative URI        | many:1      | Simple String Comparison or CA resolution | MAY accept  |\n| (3c) Subscriber-account URI | 1:many      | CA-internal lookup                        | MAY accept  |\n\nConstraints on 3c:\n1. CA MUST verify the requesting ACME account is associated with the subscriber account\n2. CA MUST document the URI format and association model in CP/CPS\n3. Non-reassignment and deactivation lifecycle requirements carry over\n4. CA MUST log which specific ACME account was used for each subscriber-URI validation\n5. CA SHOULD make subscriber URIs syntactically distinguishable from per-account URIs\n\nResolves #55: the trust model is now unambiguous for each URI type. Clients can independently verify 3a (string comparison), may be able to verify 3b (if the CA exposes the mapping), and cannot verify 3c (must trust the CA).\n\n### \u00a76.8: revocation rewrite\n\n| Action                        | 3a (ACME URL)          | 3b (Alt URI)           | 3c (Subscriber)             |\n|-------------------------------|------------------------|------------------------|-----------------------------|\n| Remove DNS record             | \u2713 (after cache expiry) | \u2713 (after cache expiry) | \u2713 (after cache expiry)      |\n| Deactivate ACME account       | \u2713 (immediate)          | \u2713 (immediate)          | \u2717 (only that account)       |\n| Deactivate subscriber account | N/A                    | N/A                    | \u2713 (immediate, all accounts) |\n\nCAs supporting subscriber-account URIs MUST provide a subscriber-account deactivation mechanism.\n\n### \u00a77.2: account binding security\n\n- Existing claim that security is \"fundamentally bound to the security of the ACME account's private key\" is incomplete for subscriber URIs \u2014 bound to any key under the subscriber plus the subscriber account management system.\n- New subsection (\u00a77.2.1) on subscriber credential compromise: compromise of the CA's account management system lets an attacker add ACME accounts that immediately inherit all persistent authorizations.\n\n### Security considerations\n\nAddresses all nine interactions from #57:\n- Interactions 1\u20133 and 6\u20138: new subsections or additions in Security Considerations\n- Interaction 4: addressed by \u00a76.8 rewrite\n- Interaction 5: addressed by \u00a74.1 restructure\n- Interaction 9: addressed by new \u00a77.2.1 subsection\n\n### Other text updates\n\n- \u00a71: qualify \"uniquely identifies the applicant's account\" to cover subscriber accounts\n- \u00a73.1: broaden `accounturi` field description; add per-mode client verification guidance\n- \u00a74.4: subscriber URI as pre-provisioning source; forward-authorization advisory\n- Case-handling rules: Simple String Comparison for 3a/3b; CA-internal verification for 3c\n- Error handling (\u00a79.3.1): cover the subscriber-association failure mode\n- \u00a77.6 CAA interaction: use `dns-persist-01` consistently; note CAA and dns-persist `accounturi` as independent reinforcing checks\n- Quote RFC 8657 \u00a73 \"group of related entities\" directly in normative text\n\n## Deferred\n\n- Client mismatch behavior (#59) \u2014 warrants focused treatment per mode\n- IANA error type registration (#39) \u2014 new failure mode noted but not registered\n- `adn` response field (#33) \u2014 forward-referenced only\n- Naming conventions (#56) \u2014 independent editorial issue\n- TTL validation reuse (#42) \u2014 independent issue\n\nNo new JSON fields, DNS record syntax, or IANA registrations. The change is purely semantic.",
+      "createdAt": "2026-04-16T22:28:52Z",
+      "updatedAt": "2026-04-18T17:58:05Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "f94be25e09291aea0421257446b97bd28439f3fe",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "subscriber-uri",
+      "headRefOid": "3748f5625f65ad23f992e63aa146790d8954f081",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Re [Henry's comment on \"1:1\"](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/58#discussion_r2106786654): dropped \"1:1\" from the mode 3b label and all six references. The normative text (\"each such URI uniquely and permanently identifies a single ACME account\") already captures the constraint unambiguously.",
+          "createdAt": "2026-04-17T13:38:26Z",
+          "updatedAt": "2026-04-17T13:38:26Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@sheurich thanks for updating that. This is good to go from my perspective.",
+          "createdAt": "2026-04-18T17:58:05Z",
+          "updatedAt": "2026-04-18T17:58:05Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c713aVF",
+          "commit": {
+            "abbreviatedOid": "3d6a245"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "## Pull request overview\n\nThis PR updates the `draft-ietf-acme-dns-persist` specification to allow `accounturi` values in `dns-persist-01` records to identify a CA \u201csubscriber account\u201d (1:many mapping to ACME accounts), and revises related verification, revocation, and security-considerations text accordingly.\n\n**Changes:**\n- Restructures `accounturi` handling into three explicit modes (3a/3b/3c) and updates comparison/verification rules.\n- Rewrites revocation/invalidation guidance to account for subscriber-account URIs and adds related security analysis subsections.\n- Updates pre-provisioning, privacy, CAA interaction, and error-handling text to reflect subscriber-account semantics.\n\n\n\n",
+          "createdAt": "2026-04-16T23:01:23Z",
+          "updatedAt": "2026-04-16T23:01:25Z",
+          "comments": [
+            {
+              "originalPosition": 85,
+              "body": "\u201cDomain owners \u2026 SHOULD understand that \u2026\u201d uses a BCP 14 keyword for something that isn\u2019t really a protocol requirement (and isn\u2019t testable). Consider rephrasing as non-normative explanatory text (lowercase \u201cshould\u201d) or as an explicit operational warning (\u201cDomain owners are advised that \u2026\u201d) so implementers don\u2019t have to interpret \u201cunderstand\u201d as a compliance requirement.\n```suggestion\n- **accounturi**: The ACME account URL, as returned in the `Location` header of the account creation response ({{!RFC8555}}, Section 7.3). If the CA supports subscriber-account URIs (mode 3c, see {{validation-record-format}}), a subscriber-account URI MAY be used instead. Domain owners pre-provisioning with a subscriber-account URI are advised that ACME accounts added to the subscriber relationship after provisioning will automatically inherit the record's validation rights.\n```",
+              "createdAt": "2026-04-16T23:01:23Z",
+              "updatedAt": "2026-04-16T23:01:25Z"
+            },
+            {
+              "originalPosition": 96,
+              "body": "This section still states that `accounturi` provides binding \u201cbetween domain validation and specific ACME accounts\u201d, but mode 3c explicitly binds to a subscriber account (1:many). Consider updating the introductory sentence(s) to describe binding to an ACME account *or* subscriber account, to avoid contradicting the new mode definitions below.",
+              "createdAt": "2026-04-16T23:01:23Z",
+              "updatedAt": "2026-04-16T23:01:25Z"
+            },
+            {
+              "originalPosition": 132,
+              "body": "The draft explicitly says earlier that it avoids the term \u201cAuthorization Domain Name\u201d (because of BR terminology conflicts), but this new text reintroduces it. Consider referring only to the `adn` response field (or another draft-defined term) without calling it \u201cAuthorization Domain Name\u201d.\n```suggestion\nNote that once the `adn` response field is defined, it composes with `policy=wildcard` and subscriber URIs to further broaden authorization scope.\n```",
+              "createdAt": "2026-04-16T23:01:24Z",
+              "updatedAt": "2026-04-16T23:01:25Z"
+            },
+            {
+              "originalPosition": 143,
+              "body": "This new subsection heading lacks an explicit kramdown-rfc anchor (`{#...}`). New subsections in this document generally use anchors for stable cross-references; consider adding one here so it can be referenced unambiguously.\n```suggestion\n### DNS Spoofing Amplification with Subscriber URIs {#dns-spoofing-amplification-with-subscriber-uris}\n```",
+              "createdAt": "2026-04-16T23:01:24Z",
+              "updatedAt": "2026-04-16T23:01:25Z"
+            },
+            {
+              "originalPosition": 170,
+              "body": "In mode 3c, saying \u201cdeactivating a single \u2026 ACME account only removes that specific account from the subscriber relationship\u201d is a CA-internal detail that may not be true (the relationship could persist while the ACME account is simply unusable/deactivated). Consider rephrasing to the externally observable effect: deactivating that ACME account prevents it from using the subscriber-level authorization, but does not affect other associated ACME accounts or invalidate the subscriber-level record.\n```suggestion\n2. **Deactivate ACME account:** For situations requiring immediate revocation of issuance capability (e.g., suspected account key compromise), an ACME account can be deactivated as specified in {{!RFC8555}}, Section 7.3.6. For modes 3a (ACME URL) and 3b (Alternative 1:1 URI), this serves as a full emergency measure, effectively invalidating the record's utility. For mode 3c (Subscriber-account URI), deactivating a single compromised ACME account prevents that ACME account from using the subscriber-level authorization, but does NOT affect other associated ACME accounts or invalidate the subscriber-level record.\n```",
+              "createdAt": "2026-04-16T23:01:24Z",
+              "updatedAt": "2026-04-16T23:01:25Z"
+            },
+            {
+              "originalPosition": 32,
+              "body": "The client guidance says clients that pre-provisioned using their ACME account URL \u201cSHOULD verify the value identifies the same account\u201d, but it doesn\u2019t specify what the client is expected to do if verification fails (e.g., abort the order, warn the operator, or treat it as potential mis-issuance). Consider adding an explicit behavior on mismatch to make the SHOULD actionable and interoperable.\n```suggestion\n- **accounturi** (required, string): A URI identifying the specific ACME account requesting validation or a subscriber account encompassing it (see {{validation-record-format}}), using the identifier format specified in {{!RFC8657}}, Section 3. This is the URI the CA expects in the DNS record and the mechanism by which the CA communicates alternative URIs to the client. Clients that pre-provisioned a record using their ACME account URL ({{!RFC8555}}, Section 7.3) SHOULD verify the value identifies the same account. If the client can independently verify the value and determines that it identifies a different account, the client MUST NOT rely on the pre-provisioned record for that challenge and SHOULD treat the mismatch as a misconfiguration or potential unauthorized issuance attempt and alert the operator. Note that independent verification is possible for mode 3a (Simple String Comparison), may be possible for mode 3b (if the CA exposes the URI-to-account mapping), and is not possible for mode 3c (clients must trust the CA's subscriber-account association).\n```",
+              "createdAt": "2026-04-16T23:01:24Z",
+              "updatedAt": "2026-04-16T23:01:25Z"
+            },
+            {
+              "originalPosition": 43,
+              "body": "In the Validation Record Format requirements, item 3 still says the `accounturi` value \u201cidentifies the ACME account requesting validation\u201d, but mode 3c allows `accounturi` to identify a subscriber account that *encompasses* the requesting ACME account. This is internally inconsistent and could be read as forbidding mode 3c. Consider updating item 3\u2019s lead-in sentence to cover all three modes (direct ACME account identification for 3a/3b, subscriber-account identification plus association check for 3c).",
+              "createdAt": "2026-04-16T23:01:25Z",
+              "updatedAt": "2026-04-16T23:01:25Z"
+            },
+            {
+              "originalPosition": 53,
+              "body": "Constraint 5 (\u201cCA SHOULD make subscriber-account URIs syntactically distinguishable\u2026\u201d) introduces a normative SHOULD without stating what the expected consequence/risk is if a CA does not do this, and \u201csyntactically distinguishable\u201d is underspecified (distinguishable by whom, and how). Consider either making this non-normative guidance, or specifying concrete, testable criteria (e.g., a dedicated URI scheme/prefix) and why it matters (e.g., auditability, avoiding confusion with 1:1 comparison semantics).\n```suggestion\n        5.  Subscriber-account URIs are best made syntactically distinguishable from per-account URIs, for example by using a dedicated URI scheme or a stable path prefix documented in the CP/CPS. Doing so improves auditability and reduces confusion with 1:1 per-account URI handling, where comparison semantics may differ.\n```",
+              "createdAt": "2026-04-16T23:01:25Z",
+              "updatedAt": "2026-04-16T23:01:25Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c713x5g",
+          "commit": {
+            "abbreviatedOid": "3d6a245"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-04-16T23:26:59Z",
+          "updatedAt": "2026-04-16T23:26:59Z",
+          "comments": [
+            {
+              "originalPosition": 32,
+              "body": "Valid gap. The SHOULD verify clause predates this PR but adding the per-mode verification note makes the gap more visible. Mismatch behavior interacts differently across modes: for 3a, string mismatch is definitive; for 3b, it depends on whether the client can resolve the mapping; for 3c, the client cannot verify at all. That complexity warrants focused treatment rather than a sentence grafted onto this change.",
+              "createdAt": "2026-04-16T23:26:59Z",
+              "updatedAt": "2026-04-16T23:26:59Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c71359P",
+          "commit": {
+            "abbreviatedOid": "3d6a245"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-04-16T23:35:14Z",
+          "updatedAt": "2026-04-16T23:35:14Z",
+          "comments": [
+            {
+              "originalPosition": 32,
+              "body": "Tracked in https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/59",
+              "createdAt": "2026-04-16T23:35:14Z",
+              "updatedAt": "2026-04-16T23:35:14Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c7138zu",
+          "commit": {
+            "abbreviatedOid": "b15622a"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "## Pull request overview\n\nCopilot reviewed 1 out of 1 changed files in this pull request and generated 2 comments.\n\n\n\n",
+          "createdAt": "2026-04-16T23:38:54Z",
+          "updatedAt": "2026-04-16T23:38:54Z",
+          "comments": [
+            {
+              "originalPosition": 50,
+              "body": "The PR introduces the term \u201csubscriber account\u201d / \u201cSubscriber-account URI\u201d but the document doesn\u2019t define what a \u201csubscriber account\u201d is or how it relates to RFC 8657\u2019s defined term \u201cCA account\u201d (\u201ca specific entity or group of related entities\u201d). Per the draft\u2019s account-identity guidance, consider either (a) using the RFC 8657 term consistently (e.g., \u201cCA account\u201d / \u201cCA-account URI\u201d), or (b) adding a definition in Conventions and Definitions that explicitly maps \u201csubscriber account\u201d to the RFC 8657 concept to avoid ambiguity for implementers and auditors.",
+              "createdAt": "2026-04-16T23:38:54Z",
+              "updatedAt": "2026-04-17T01:41:59Z"
+            },
+            {
+              "originalPosition": 161,
+              "body": "In the CAA interaction note, the inline identifier ``dns-persist`` isn\u2019t used elsewhere in the draft (the challenge type/label is consistently \u201cdns-persist-01\u201d). This is likely to confuse readers about whether the statement refers to the ACME challenge, the IANA label, or something else\u2014please use the same identifier here as in the rest of the document (or explicitly define what ``dns-persist`` denotes).\n```suggestion\nThe `dns-persist-01` validation method is a valid `validationmethods` parameter value for CAA records per {{!RFC8657}}. Note that CAA `accounturi` and `dns-persist-01` `accounturi` are independent reinforcing checks \u2014 both can restrict issuance, and subscriber URIs in one do not automatically apply to the other.\n```",
+              "createdAt": "2026-04-16T23:38:54Z",
+              "updatedAt": "2026-04-16T23:38:54Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c716IKv",
+          "commit": {
+            "abbreviatedOid": "ece4f22"
+          },
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "I like it, would just remove the \"1:1\" reference to avoid confusion.",
+          "createdAt": "2026-04-17T02:15:10Z",
+          "updatedAt": "2026-04-17T02:16:00Z",
+          "comments": [
+            {
+              "originalPosition": 57,
+              "body": "I think we are on the same page with what this method is in tended imply, but I wonder if using \"1:1\" will confuse people. I would expect a 1:1 to mean that there is exactly 1 alternative URI mapping back to an ACME account and there can exist no other alternative mapping strategies.\n\nI understand the language is not intended to mean this (the next sentence specifically says \"URIs\" implying there can be multiple mappings), but I had always thought of this as a many-to-one not 1:1 style mapping.\n\nWe could also just drop the \"1:1\" reference together and just call this something like \"Alternative URI**\"",
+              "createdAt": "2026-04-17T02:15:10Z",
+              "updatedAt": "2026-04-17T02:16:00Z"
             }
           ]
         }
