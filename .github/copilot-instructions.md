@@ -4,6 +4,14 @@ This repository contains `draft-ietf-acme-dns-persist`, an IETF Standards Track 
 
 Review every pull request against the rules in this file. Flag violations with the relevant section reference from this file (not from the draft — the draft's section numbers change).
 
+## Scope of These Rules
+
+These rules apply to substantive content review — changes to normative text, examples, security considerations, or cross-references. Typo fixes, reference URL updates, CI-only changes, and presentation-deck updates do not require the full protocol and security analysis. Apply format checks (§1) to all PRs; apply the deeper review philosophy (§3–5) only where the PR changes protocol behavior.
+
+## Review Comment Style
+
+Consolidate observations per section rather than emitting one comment per line. Prefer a single top-level summary that names the issues, with specific inline comments only where they add precision (e.g., exact wording proposals, anchor references). Do not restate the checklist in each comment. If many issues cluster in one area, group them under a single heading in the summary.
+
 ---
 
 ## 1. Document Format: kramdown-rfc
@@ -64,6 +72,14 @@ The `accounturi` mechanism is the most security-sensitive part of the protocol. 
 - **Client verification varies by mode.** Some modes are independently verifiable by the client; others require trusting the CA. Client-facing guidance must distinguish these cases.
 - **Privacy properties are mode-dependent and sometimes contradictory.** Some modes reduce correlation; others increase it. Privacy text must correctly characterize each mode.
 - **RFC 8657 is the foundation.** The account model builds on RFC 8657 §3 ("CA account" = "a specific entity or group of related entities"), §5.4 (URI uniqueness), and §5.9 (URI revelation). Changes must remain consistent with these definitions.
+- **CA-side and client-side guidance travel together.** Flag any PR that specifies CA-side enforcement or verification without corresponding client-side guidance, or vice versa. The draft has historically been stronger on CA behavior; client obligations must be stated explicitly, not implied.
+
+### Naming conventions
+
+JSON field naming across the draft is inconsistent (`accounturi` lowercase, `issuer-domain-names` kebab-case, RFC 8555 uses camelCase). Resolution is under working group discussion. Until resolved:
+
+- Do not demand renames of existing fields.
+- Flag any PR that introduces a *new* field name using a style not already present (a third convention), and ask the author to match one of the existing styles.
 
 ---
 
@@ -157,3 +173,16 @@ These cause persistent confusion. Flag them in any PR:
 - **"ACME account" vs. "account" vs. "CA account"**: The draft supports account URIs that are not ACME account URLs. Generic "account" language must be used where all modes apply. "CA account" has a specific RFC 8657 §3 definition that is broader than "ACME account."
 - **CAA `accounturi` vs. dns-persist `accounturi`**: Independent mechanisms. A URI in one does not automatically apply to the other.
 - **DNSSEC "mandatory"**: It is SHOULD, not MUST. The deviation consequence is documented. Do not treat it as a requirement.
+
+---
+
+## 9. Open Design Questions
+
+Before flagging inconsistency or gaps in areas of active discussion, retrieve the current set of open issues and PRs:
+
+```sh
+gh issue list --state open --limit 50
+gh pr list --state open --limit 20
+```
+
+Cross-check changed sections against open issue titles. If a PR under review touches a section referenced by an open issue, the "inconsistency" may be the unresolved question itself. Note the issue number in the review comment rather than demanding resolution in that PR. This includes naming conventions (see §4), client-side behavior gaps (see §4), error type registration, TTL-based reuse limits, subdomain validation prompting, and IP validation via reverse zones.
