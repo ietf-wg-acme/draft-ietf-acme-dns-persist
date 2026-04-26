@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-04-19T01:46:43.379500+00:00",
+  "timestamp": "2026-04-26T01:48:25.034042+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -697,7 +697,7 @@
       "labels": [],
       "body": "Subdomain Validation is a cool concept, and one that I'm happy dns-persist is supporting. In the terms of the Baseline Requirements, this is equivalent to selecting an Authorization Domain Name by pruning labels from the left-hand side of the FQDN, and then performing validation at that ADN.\n\nHowever, ACME does not have good support for selecting ADNs. Traditional CAs, or CAs which use External Account Binding, might have ways for Applicants to indicate to the Server that they want to use a particular ADN for all of their validation. But plain ACME CAs without EAB would have no way to know whether the Applicant wants to validate at `server.dept.example.com`, at `dept.example.com`, or at `example.com`. I'm not a fan of the server having to fan out a bunch of prospective queries to see what layer of the DNS hierarchy the Applicant has placed their dns-persist record at.\n\nSo it would be great if there was a way for the Applicant to proactively indicate to the CA that they want to take advantage of Subdomain Validation. My proposal would be that the ACME client can include an ADN in their POST request to the Challenge URL. The CA would then check that the supplied URL is a valid ADN for the Authorization, and if it is, perform validation at that URL instead. And of course, as already described by the document, ensure that `policy=wildcard` is set.\n\n-----\n\ni.e. if we have an authorization that looks like this:\n```\n   HTTP/1.1 200 OK\n   Content-Type: application/json\n   Link: <https://acme.ca/directory>;rel=\"index\"\n\n   {\n     \"status\": \"pending\",\n     \"expires\": \"2026-02-01T14:09:30Z\",\n\n     \"identifier\": {\n       \"type\": \"dns\",\n       \"value\": \"admin.blog.example.com\"\n     },\n\n     \"challenges\": [\n       {\n         \"type\": \"http-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/http-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n       {\n         \"type\": \"tls-alpn-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/tls-alpn-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n       {\n         \"type\": \"dns-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/dns-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n       {\n         \"type\": \"dns-persist-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/dns-persist-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n     ]\n   }\n```\n\nThen a client might post this to the challenge url:\n```\n   POST /chall/PAniVnsZcis/dns-persist-01\n   Host: acme.ca\n   Content-Type: application/jose+json\n\n   {\n     \"protected\": base64url({\n       \"alg\": \"ES256\",\n       \"kid\": \"https://acme.ca/acct/evOfKhNU60wg\",\n       \"nonce\": \"UQI1PoRi5OuXzxuX7V7wL0\",\n       \"url\": \"https://acme.ca/chall/PAniVnsZcis/dns-persist-01\"\n     }),\n     \"payload\": base64url({\n       \"adn\": \"example.com\"\n     }),\n     \"signature\": \"Q1bURgJoEslbD1c5...3pYdSMLio57mQNN4\"\n   }\n```\n\nWhere the `\"adn\": \"example.com\"` is the important/new part. The CA would confirm that `example.com` is a valid ADN for `admin.blog.example.com`, and then conduct the dns-persist-01 validation at `example.com` and ensure that the record contains the `policy=wildcard` modifier.",
       "createdAt": "2026-01-12T20:04:36Z",
-      "updatedAt": "2026-03-19T06:50:48Z",
+      "updatedAt": "2026-04-23T07:24:05Z",
       "closedAt": null,
       "comments": [
         {
@@ -748,6 +748,13 @@
           "body": "You know, that's actually a very good point. It's been a long time since I read RFC 9444, and I was never a fan of the `subdomainAuthAllowed` piece of it, but you're absolutely right that it seems like the `ancestorDomain` field described in Section 4.3 could fulfill this purpose.\n\nI must admit that I prefer negotiating the ADN at challenge time, rather than at order creation time, but the overall flow looks like it would work either way.",
           "createdAt": "2026-03-19T06:02:58Z",
           "updatedAt": "2026-03-19T06:50:48Z"
+        },
+        {
+          "author": "commonism",
+          "authorAssociation": "NONE",
+          "body": "As the CA limits the adn value to the apex domain using the public suffix list, I propose to include this apex domain in the dns-persist challenge.\n\nIt allows the client to travel all labels from apex to the identifier to find a matching persist record without having to carry the spl itself.\n",
+          "createdAt": "2026-04-23T07:24:05Z",
+          "updatedAt": "2026-04-23T07:24:05Z"
         }
       ]
     },
@@ -2807,7 +2814,7 @@
       "labels": [],
       "body": "Fixes #57. Closes #55. Closes #54.\n\n## Summary\n\nAllow `accounturi` in dns-persist-01 records to identify a CA subscriber account encompassing multiple ACME accounts. See #57 for the problem statement, RFC 8657 basis, design rationale, and security analysis.\n\n## Changes\n\n### \u00a72: Subscriber Account definition\n\nDefines \"Subscriber Account\" as a \"CA account\" (RFC 8657 \u00a73) that encompasses one or more ACME accounts. Maps the term to the normative reference and explains the naming choice (disambiguation from ACME accounts, which are also CA accounts).\n\n### \u00a74.1 item 3: three-mode structure\n\n| Mode                        | Cardinality | Comparison                                | Requirement |\n|-----------------------------|-------------|-------------------------------------------|-------------|\n| (3a) ACME account URL       | 1:1         | Simple String Comparison                  | MUST accept |\n| (3b) Alternative URI        | many:1      | Simple String Comparison or CA resolution | MAY accept  |\n| (3c) Subscriber-account URI | 1:many      | CA-internal lookup                        | MAY accept  |\n\nConstraints on 3c:\n1. CA MUST verify the requesting ACME account is associated with the subscriber account\n2. CA MUST document the URI format and association model in CP/CPS\n3. Non-reassignment and deactivation lifecycle requirements carry over\n4. CA MUST log which specific ACME account was used for each subscriber-URI validation\n5. CA SHOULD make subscriber URIs syntactically distinguishable from per-account URIs\n\nResolves #55: the trust model is now unambiguous for each URI type. Clients can independently verify 3a (string comparison), may be able to verify 3b (if the CA exposes the mapping), and cannot verify 3c (must trust the CA).\n\n### \u00a76.8: revocation rewrite\n\n| Action                        | 3a (ACME URL)          | 3b (Alt URI)           | 3c (Subscriber)             |\n|-------------------------------|------------------------|------------------------|-----------------------------|\n| Remove DNS record             | \u2713 (after cache expiry) | \u2713 (after cache expiry) | \u2713 (after cache expiry)      |\n| Deactivate ACME account       | \u2713 (immediate)          | \u2713 (immediate)          | \u2717 (only that account)       |\n| Deactivate subscriber account | N/A                    | N/A                    | \u2713 (immediate, all accounts) |\n\nCAs supporting subscriber-account URIs MUST provide a subscriber-account deactivation mechanism.\n\n### \u00a77.2: account binding security\n\n- Existing claim that security is \"fundamentally bound to the security of the ACME account's private key\" is incomplete for subscriber URIs \u2014 bound to any key under the subscriber plus the subscriber account management system.\n- New subsection (\u00a77.2.1) on subscriber credential compromise: compromise of the CA's account management system lets an attacker add ACME accounts that immediately inherit all persistent authorizations.\n\n### Security considerations\n\nAddresses all nine interactions from #57:\n- Interactions 1\u20133 and 6\u20138: new subsections or additions in Security Considerations\n- Interaction 4: addressed by \u00a76.8 rewrite\n- Interaction 5: addressed by \u00a74.1 restructure\n- Interaction 9: addressed by new \u00a77.2.1 subsection\n\n### Other text updates\n\n- \u00a71: qualify \"uniquely identifies the applicant's account\" to cover subscriber accounts\n- \u00a73.1: broaden `accounturi` field description; add per-mode client verification guidance\n- \u00a74.4: subscriber URI as pre-provisioning source; forward-authorization advisory\n- Case-handling rules: Simple String Comparison for 3a/3b; CA-internal verification for 3c\n- Error handling (\u00a79.3.1): cover the subscriber-association failure mode\n- \u00a77.6 CAA interaction: use `dns-persist-01` consistently; note CAA and dns-persist `accounturi` as independent reinforcing checks\n- Quote RFC 8657 \u00a73 \"group of related entities\" directly in normative text\n\n## Deferred\n\n- Client mismatch behavior (#59) \u2014 warrants focused treatment per mode\n- IANA error type registration (#39) \u2014 new failure mode noted but not registered\n- `adn` response field (#33) \u2014 forward-referenced only\n- Naming conventions (#56) \u2014 independent editorial issue\n- TTL validation reuse (#42) \u2014 independent issue\n\nNo new JSON fields, DNS record syntax, or IANA registrations. The change is purely semantic.",
       "createdAt": "2026-04-16T22:28:52Z",
-      "updatedAt": "2026-04-18T17:58:05Z",
+      "updatedAt": "2026-04-24T17:06:51Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "f94be25e09291aea0421257446b97bd28439f3fe",
@@ -2980,6 +2987,206 @@
               "body": "I think we are on the same page with what this method is in tended imply, but I wonder if using \"1:1\" will confuse people. I would expect a 1:1 to mean that there is exactly 1 alternative URI mapping back to an ACME account and there can exist no other alternative mapping strategies.\n\nI understand the language is not intended to mean this (the next sentence specifically says \"URIs\" implying there can be multiple mappings), but I had always thought of this as a many-to-one not 1:1 style mapping.\n\nWe could also just drop the \"1:1\" reference together and just call this something like \"Alternative URI**\"",
               "createdAt": "2026-04-17T02:15:10Z",
               "updatedAt": "2026-04-17T02:16:00Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c74lQt2",
+          "commit": {
+            "abbreviatedOid": "3748f56"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-04-24T12:46:15Z",
+          "updatedAt": "2026-04-24T12:46:16Z",
+          "comments": [
+            {
+              "originalPosition": 55,
+              "body": "This would imply that CAs that support HTTP reverse proxies (which is currently allowed) would accept arbitrary URI origins.",
+              "createdAt": "2026-04-24T12:46:16Z",
+              "updatedAt": "2026-04-24T12:46:16Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c74lZ-1",
+          "commit": {
+            "abbreviatedOid": "3748f56"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-04-24T12:52:50Z",
+          "updatedAt": "2026-04-24T12:52:50Z",
+          "comments": [
+            {
+              "originalPosition": 161,
+              "body": "Why does the ACME key need to be compromised for this attack? Surely the attacker could legitimately create their own ACME account.",
+              "createdAt": "2026-04-24T12:52:50Z",
+              "updatedAt": "2026-04-24T12:52:50Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c74n863",
+          "commit": {
+            "abbreviatedOid": "3748f56"
+          },
+          "author": "rmbolger",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-04-24T14:27:33Z",
+          "updatedAt": "2026-04-24T14:27:34Z",
+          "comments": [
+            {
+              "originalPosition": 55,
+              "body": "I don't follow. The account URI in the record doesn't have to actually be usable for real (like have a web server able to respond to it). It's just an arbitrary string that should map to an account from the CA's perspective.",
+              "createdAt": "2026-04-24T14:27:33Z",
+              "updatedAt": "2026-04-24T14:27:34Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c74oEP_",
+          "commit": {
+            "abbreviatedOid": "3748f56"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-04-24T14:32:28Z",
+          "updatedAt": "2026-04-24T14:32:28Z",
+          "comments": [
+            {
+              "originalPosition": 55,
+              "body": "The issue is that a CA operating under mode 3a would be prohibited from requiring that the URI uniquely identifies the account.",
+              "createdAt": "2026-04-24T14:32:28Z",
+              "updatedAt": "2026-04-24T14:32:28Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c74oSff",
+          "commit": {
+            "abbreviatedOid": "3748f56"
+          },
+          "author": "rmbolger",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-04-24T14:41:47Z",
+          "updatedAt": "2026-04-24T14:41:47Z",
+          "comments": [
+            {
+              "originalPosition": 161,
+              "body": "Perhaps this is more relevant for commercial providers where it's not as easy to create an attacker controlled account? But even if the attacker can spoof DNS responses with a victim's Subscriber-account URI, the attacker still needs to have compromised one of the victim's account keys in order to sign the ACME requests with, right?",
+              "createdAt": "2026-04-24T14:41:47Z",
+              "updatedAt": "2026-04-24T14:41:47Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c74od3p",
+          "commit": {
+            "abbreviatedOid": "3748f56"
+          },
+          "author": "rmbolger",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-04-24T14:48:49Z",
+          "updatedAt": "2026-04-24T14:48:49Z",
+          "comments": [
+            {
+              "originalPosition": 55,
+              "body": "Wait what? 3a is already how ACME CAs operate today where accounts have a single URI value that uniquely identifies the account. Why would they be prohibited from continuing to do that?",
+              "createdAt": "2026-04-24T14:48:49Z",
+              "updatedAt": "2026-04-24T14:48:49Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c74qaZ-",
+          "commit": {
+            "abbreviatedOid": "3748f56"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-04-24T16:05:18Z",
+          "updatedAt": "2026-04-24T16:05:18Z",
+          "comments": [
+            {
+              "originalPosition": 55,
+              "body": "The issue is that an RFC8555 account URI doesn't uniquely identify the account and CAs like Let's Encrypt allow the domain name in an account URI to be changed while still referring to the same account. This can cause a security issue with this challenge type as a valid account URI might point to an attacker controlled domain.",
+              "createdAt": "2026-04-24T16:05:18Z",
+              "updatedAt": "2026-04-24T16:05:19Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c74qv8H",
+          "commit": {
+            "abbreviatedOid": "3748f56"
+          },
+          "author": "rmbolger",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-04-24T16:20:04Z",
+          "updatedAt": "2026-04-24T16:20:04Z",
+          "comments": [
+            {
+              "originalPosition": 55,
+              "body": "Sure it does. An account URI today only refers to a single account on the CA side. If the CA changes (for example) the domain in the account URI, the new URI still only refers to a single account on the CA side. You just now have two account URIs that uniquely identify an account (assuming the CA still recognizes the old one).\r\n\r\nPerhaps we're interpreting the phrase \"uniquely identify the account\" differently? I take it to mean that at any given time, an account URI can refer to only one account on the CA side. There can theoretically be many account URI values that refer to the same account. But they can all only refer to a single account.",
+              "createdAt": "2026-04-24T16:20:04Z",
+              "updatedAt": "2026-04-24T16:20:04Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c74rekn",
+          "commit": {
+            "abbreviatedOid": "3748f56"
+          },
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-04-24T16:55:54Z",
+          "updatedAt": "2026-04-24T16:55:55Z",
+          "comments": [
+            {
+              "originalPosition": 55,
+              "body": "on this point I will mention that this is the existing behavior inherited from RFC 8657 which shares many of these same security considerations. Additionally, if we assume the CA and the subscriber are benign, it seems unlikely the subscriber will intentionally put in an arbitrary adversary-controlled prefix to their accounturi. A goal for this standard is to maintain consistency with RFC 8657, so I am somewhat keep this language as is.",
+              "createdAt": "2026-04-24T16:55:54Z",
+              "updatedAt": "2026-04-24T16:55:55Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c74rsye",
+          "commit": {
+            "abbreviatedOid": "3748f56"
+          },
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-04-24T17:06:51Z",
+          "updatedAt": "2026-04-24T17:06:51Z",
+          "comments": [
+            {
+              "originalPosition": 161,
+              "body": "The context for this is imagine a CA which has some type of non-ACME subscriber relationship (e.g., an enterprise account) which contains multiple ACME accounts within it (say an ACME account for each ACME client within the enterprise). These associated ACME accounts are understood by the CA and only the enterprise administrator can make new ACME accounts within the enterprise.\r\n\r\nCAB/F participants have asked to let this method support specifying the account URI of the **enterprise subscriber** account and permit this to authorize issuance by the sub ACME accounts. One security consideration of this approach is that it creates a larger attack surface because there are now N different authorized ACME accounts and a compromise of the private key of any one of those accounts will authorize issuance. IMO the alternative of forcing a single ACME account for the entire enterprise will just mean the same ACME private key will be spread over N different servers, so I think this is a good approach to facilitate enterprise use cases.\r\n\r\nMy understanding of this text is that its introduced to help explain this security consideration. I will say I find the combination of DNS record spoofing and this enterprise account attack surface expansion somewhat confusing as if the attacker is capable of spoofing a DNS record, the obvious attack is to just spoof their own account URI in the record. My proposal would be to remove the words spoofing and focus the section on the expanded attack surface that comes from enterprise level subscriber accounts.",
+              "createdAt": "2026-04-24T17:06:51Z",
+              "updatedAt": "2026-04-24T17:06:51Z"
             }
           ]
         }
