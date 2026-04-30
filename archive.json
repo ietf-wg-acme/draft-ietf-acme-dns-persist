@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-04-26T01:48:25.034042+00:00",
+  "timestamp": "2026-04-30T02:01:18.964657+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -681,9 +681,17 @@
       "labels": [],
       "body": "The CA/BF is [currently voting](https://groups.google.com/a/groups.cabforum.org/g/servercert-wg/c/eiwn6p3FLcU/m/cBBzuUFmBgAJ) on a [change](https://github.com/cabforum/servercert/pull/626) which will enshrine DNS Persist as a method for validation of IP addresses via use of the ARPA Reverse Address Zone (in-addr.arpa and ip6.arpa).\n\nThis method uses a different underscore-prefixed DNS label, specifically \"`_ip-validation-persist`\", which makes sense: using the same prefix would make it unclear whether a given DNS Persist TXT record is allowing issuance for that Reverse Zone Domain Name directly, or for the IP address which corresponds to that Reverse Zone Domain Name.\n\nHowever, this means that there's now a gap between what the CA/BF allows (or will allow, once the ballot passes) and what this draft specifies. This draft should probably grow a new subsection specifying how these same records can be used to confirm control over IP addresses via the Reverse Address Zone.",
       "createdAt": "2025-11-06T16:41:49Z",
-      "updatedAt": "2025-11-06T16:41:49Z",
+      "updatedAt": "2026-04-30T00:23:26Z",
       "closedAt": null,
-      "comments": []
+      "comments": [
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@aarongable Agreed; SC-091 permits `_ip-validation-persist` in the BRs and the draft should specify it.\n\nThis is purely additive. Planned for -02:\n\nA new top-level section (\"IP Address Validation via the Reverse Namespace\") between Subdomain Validation and Security Considerations, covering:\n\n- `_ip-validation-persist` prefix. Distinct from `_validation-persist` for the ambiguity reason you identified.\n- IP-to-reverse-zone mapping: RFC 1035 \u00a73.5 for IPv4 (`in-addr.arpa`), RFC 3596 \u00a72.5 for IPv6 (`ip6.arpa`).\n- Record format unchanged: same `issue-value` syntax, same parameters (`accounturi`, `persistUntil`, `issuer-domain-name`). The challenge object signals which prefix via the ACME identifier type: `dns` -> `_validation-persist`, `ip` -> `_ip-validation-persist`.\n- `policy=wildcard` exclusion: no IP-address equivalent of subdomain hierarchy. CAs MUST ignore `policy=wildcard` for IP identifiers.\n\nIANA additions: a second ACME Validation Methods entry with Identifier Type `ip` (per RFC 8738), and a second Underscored DNS Node Name registration for `_ip-validation-persist`.",
+          "createdAt": "2026-04-30T00:23:26Z",
+          "updatedAt": "2026-04-30T00:23:26Z"
+        }
+      ]
     },
     {
       "number": 33,
@@ -838,7 +846,7 @@
       "labels": [],
       "body": "## Problem\n\nThe draft places `persistUntil` enforcement entirely on CAs (\u00a74.1 item 5: \"CAs MUST NOT consider this validation record valid for new validation attempts after the specified timestamp\"). \u00a79.3.1 says CAs SHOULD return `unauthorized` when the timestamp has passed. Nothing tells clients to check `persistUntil` before initiating validation.\n\nA client that manages or provisions `_validation-persist` records knows (or can query) the `persistUntil` value. Without guidance to check it, the client POSTs `{}` to the challenge URL, gets back an `unauthorized` error, and must infer the cause. The remediation (reprovision the record with an updated timestamp) is clear if the client checks locally, but not obvious from the server error alone.\n\n## Proposed change\n\nAdd a SHOULD-level recommendation in \u00a79.4 (Client Implementation Guidelines):\n\n> Clients that provision or manage `_validation-persist` records containing a `persistUntil` parameter SHOULD verify that the current time is before the `persistUntil` timestamp prior to responding to a challenge. If the timestamp has passed, the client SHOULD report an actionable error (e.g., \"the _validation-persist record for example.com expired on 2026-01-15; reprovision it\") rather than initiating a validation attempt that will fail.\n\nAdd a forward reference in \u00a74.1 item 5: \"See also {{client-implementation-guidelines}} for client-side handling of this parameter.\"\n\n## Context\n\nIdentified by a client implementer working from the draft. The change is SHOULD-level implementation guidance \u2014 it doesn't affect the protocol or interoperability. The CA enforces the constraint regardless.\n\n## Open question\n\nSplit-horizon DNS complicates client-side checking \u2014 enterprise clients may not see the `_validation-persist` record from their network vantage point. Is a SHOULD that silently fails behind split-horizon DNS worth adding?",
       "createdAt": "2026-02-26T21:27:13Z",
-      "updatedAt": "2026-03-18T23:35:02Z",
+      "updatedAt": "2026-04-29T23:48:56Z",
       "closedAt": null,
       "comments": [
         {
@@ -847,6 +855,13 @@
           "body": "If the validation record was created out of band, the client may not be able to know the persistUntil value, particularly in an enterprise environment where DNS resolution for the associated domain returns an internal-only view that may not contain the validation record.\n\nThere have been numerous posts in the LE forums over the years from people who are using ACME clients that try to verify DNS propagation of the dns-01 record data, but can't because from the client's perspective it never exists. These same environments are also often locked down such that you can't explicitly query an external public resolver for an internet-facing DNS view.",
           "createdAt": "2026-02-26T22:50:20Z",
           "updatedAt": "2026-02-26T22:50:20Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@rmbolger Good point on split-horizon. The SHOULD doesn't require a DNS query; a client that provisioned the record already has the `persistUntil` value in its own state. The check is local: compare the current time against the timestamp the client chose when it wrote the record. Split-horizon DNS is irrelevant because the client never resolves the validation record to perform this check.\n\nFor the out-of-band case you're describing (an enterprise workflow provisions the record and a separate ACME client just triggers validation) the client genuinely doesn't know `persistUntil`. That's fine. The SHOULD naturally doesn't apply; the CA enforces the constraint regardless, and the client gets an `unauthorized` error it can surface to the operator. This matches the LE forum pattern where clients don't manage DNS records.\n\nI'll scope the spec text to make this explicit. Proposed addition to \"Client Implementation Guidelines,\" as a new paragraph after the existing bullet list:\n\n> Clients that provision or manage `_validation-persist` records containing a `persistUntil` parameter SHOULD verify locally that the current time is before the `persistUntil` timestamp prior to responding to a challenge. If the timestamp has passed, the client SHOULD report an actionable error to the operator (e.g., \"the `_validation-persist` record for `example.com` expired on 2026-01-15; update the record with a new `persistUntil` value\") rather than initiating a validation attempt that the CA will reject. This check uses the client's own provisioning state, not a DNS query, and is therefore unaffected by split-horizon DNS environments.\n\nAnd a forward reference from the `persistUntil` item in \"Validation Record Format,\" appended after the existing sentence ending \"\u2026reuse of already-validated data.\":\n\n> See also {{client-implementation-guidelines}} for client-side handling of this parameter.\n",
+          "createdAt": "2026-04-29T23:48:56Z",
+          "updatedAt": "2026-04-29T23:48:56Z"
         }
       ]
     },
@@ -902,7 +917,7 @@
       "labels": [],
       "body": "The draft currently says\n\n> The period for which a CA may rely on validation data is its Validation Data Reuse Period (as defined in {{conventions-and-definitions}}). However, if the DNS TXT record's Time-to-Live (TTL) is shorter than this period, the CA MUST treat the record's TTL as the effective validation data reuse period for that specific validation.\n\nGiven the other reuse period limitations in play (limits set by the BRs; limits set by persistUntil), it's confusing and potentially problematic to use the DNS TTL as a separate reuse limitation. As one example, it's common for authoritative nameservers to set very low TTLs by default. If that TTL is too low, it could be lower than the amount of time that it takes a CA to complete a validation and issuance cycle, effectively blocking issuance until the user changes the settings in their authoritative DNS.\n\nIt would be better to let DNS be DNS: the TTL can be whatever the user wants it to be, and that affects caching at the DNS layer. It doesn't affect validation reuse, which happens at a different layer (the CA's business logic). There's a potentially tricky interaction if a CA is using a caching recursive resolver, but that's fundamental to all validation techniques using DNS: the CA must configure any cache in their recursive resolver to be short enough that they can be confident their validations were performed within the acceptable window.\n\nAlso, relatedly, the client of a recursive resolver never actually sees the TTL of the record (as configured on the authoritative nameserver). The DNS client sees the TTL of the cached data in the recursive resolver if there is any. This is potentially quite confusing, since the validation reuse period will depend on a value that is not directly controlled by either the CA or the subscriber.\n\nIt would be better to omit this TTL-based limitation and instead let the relevant PKI rules (root programs, BRs) govern the validation reuse period.",
       "createdAt": "2026-03-05T00:56:52Z",
-      "updatedAt": "2026-03-05T20:47:41Z",
+      "updatedAt": "2026-04-30T00:37:35Z",
       "closedAt": null,
       "comments": [
         {
@@ -911,6 +926,13 @@
           "body": "I am also in favor of not using TTL to determine validation reuse. They are just separate things.",
           "createdAt": "2026-03-05T20:47:41Z",
           "updatedAt": "2026-03-05T20:47:41Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@aarongable @birgelee Agreed. TTL and validation data reuse are independent layers that shouldn't be coupled. The practical problems reinforce that:\n\n- Low default TTLs. Managed DNS providers commonly ship 60-300s defaults. A subscriber who hasn't tuned their TTL finds that dns-persist-01 validation can't be reused, which is the opposite of what this challenge type exists to do. A TTL of zero (common on dynamic records) triggers the current MUST NOT reuse language and reduces dns-persist-01 to plain dns-01 semantics.\n\n- Non-deterministic observed TTL. The TTL a CA's recursive resolver returns is remaining cache time, not the authoritative value. It decrements between fetches. Two CAs querying the same record seconds apart derive different reuse periods from a MUST-level constraint. That's not a sound basis for normative requirements.\n\nThe draft already has the right tools: `persistUntil` for subscriber-controlled expiry and the CA's own Validation Data Reuse Period (BRs / root programs / CP/CPS) for the CA-side cap. These operate at the correct layers and are deterministic for both parties.\n\nI'll remove the TTL-as-reuse-limit language in the next revision. Specific edits:\n\n- `robustness-and-alignment`: Remove list item 2 (TTL consideration). The remaining items cover the actual robustness properties.\n- `validation-data-reuse-and-ttl-handling`: Rewrite to remove the TTL capping requirement. CAs MAY reuse validation data for their Validation Data Reuse Period, subject to `persistUntil`, with no TTL reference. Rename heading to drop \"and TTL Handling.\"\n- `ca-implementation-guidelines`: Remove \"Developing procedures for handling validation record TTL variations.\"\n- `dns-provider-considerations`: Remove \"Supporting reasonable TTL values for validation records.\"\n\nThat leaves two reuse constraints, one subscriber-controlled (`persistUntil`) and one CA-policy-controlled (Validation Data Reuse Period). DNS TTL does its job at the DNS layer without leaking into validation semantics.\n",
+          "createdAt": "2026-04-30T00:37:35Z",
+          "updatedAt": "2026-04-30T00:37:35Z"
         }
       ]
     },
@@ -1059,9 +1081,17 @@
       "labels": [],
       "body": "Hi everyone,\n\nI'm maintainer of an ACME Server Implementation and I stumbled over the naming convention in this draft.\n\nTake a look at (for example) https://www.rfc-editor.org/rfc/rfc8555#section-7.1.2 - naming is all camelCase and that's valid throughout RFC8555.\nThis draft adds new challenge objects and seems to follow no convention:\n\n- `accounturi` neither matches the kebab-cased `issuer-domain-names` nor does it align with ACMEs camelCase (should probably be `accountUri`)\n- `issuer-domain-names` does not align with ACMEs camelCase (should probably be `issuerDomainNames`)\n",
       "createdAt": "2026-04-02T19:12:35Z",
-      "updatedAt": "2026-04-02T19:12:35Z",
+      "updatedAt": "2026-04-30T00:55:07Z",
       "closedAt": null,
-      "comments": []
+      "comments": [
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@glatzert Good catch. The draft has two serialization contexts with different established conventions, and it follows neither cleanly.\n\nDNS TXT record parameters use flat lowercase per RFC 8657/8659 convention: `accounturi`, `policy`. But `persistUntil` breaks the pattern: it should be `persistuntil` to match.\n\nChallenge object JSON fields follow RFC 8555's camelCase: `validationRecord`, `caaIdentities`, etc. The current `issuer-domain-names` (kebab-case) and `accounturi` (flat lowercase) should be `issuerDomainNames` and `accountUri` to align.\n\nThat produces a deliberate split for the account identifier: `accountUri` in the JSON challenge object, `accounturi` in the DNS TXT record. Each format follows its own convention. The JSON field tells the client what value to place in the record's `accounturi` parameter; they are different fields in different serialization contexts.\n\nI'll fix both in the next revision:\n\n- DNS record parameters: `accounturi`, `policy`, `persistuntil` (flat lowercase, RFC 8657/8659 convention)\n- Challenge object JSON: `accountUri`, `issuerDomainNames`, `persistUntil` (camelCase, RFC 8555 convention)\n",
+          "createdAt": "2026-04-30T00:55:06Z",
+          "updatedAt": "2026-04-30T00:55:06Z"
+        }
+      ]
     },
     {
       "number": 57,
@@ -2814,13 +2844,13 @@
       "labels": [],
       "body": "Fixes #57. Closes #55. Closes #54.\n\n## Summary\n\nAllow `accounturi` in dns-persist-01 records to identify a CA subscriber account encompassing multiple ACME accounts. See #57 for the problem statement, RFC 8657 basis, design rationale, and security analysis.\n\n## Changes\n\n### \u00a72: Subscriber Account definition\n\nDefines \"Subscriber Account\" as a \"CA account\" (RFC 8657 \u00a73) that encompasses one or more ACME accounts. Maps the term to the normative reference and explains the naming choice (disambiguation from ACME accounts, which are also CA accounts).\n\n### \u00a74.1 item 3: three-mode structure\n\n| Mode                        | Cardinality | Comparison                                | Requirement |\n|-----------------------------|-------------|-------------------------------------------|-------------|\n| (3a) ACME account URL       | 1:1         | Simple String Comparison                  | MUST accept |\n| (3b) Alternative URI        | many:1      | Simple String Comparison or CA resolution | MAY accept  |\n| (3c) Subscriber-account URI | 1:many      | CA-internal lookup                        | MAY accept  |\n\nConstraints on 3c:\n1. CA MUST verify the requesting ACME account is associated with the subscriber account\n2. CA MUST document the URI format and association model in CP/CPS\n3. Non-reassignment and deactivation lifecycle requirements carry over\n4. CA MUST log which specific ACME account was used for each subscriber-URI validation\n5. CA SHOULD make subscriber URIs syntactically distinguishable from per-account URIs\n\nResolves #55: the trust model is now unambiguous for each URI type. Clients can independently verify 3a (string comparison), may be able to verify 3b (if the CA exposes the mapping), and cannot verify 3c (must trust the CA).\n\n### \u00a76.8: revocation rewrite\n\n| Action                        | 3a (ACME URL)          | 3b (Alt URI)           | 3c (Subscriber)             |\n|-------------------------------|------------------------|------------------------|-----------------------------|\n| Remove DNS record             | \u2713 (after cache expiry) | \u2713 (after cache expiry) | \u2713 (after cache expiry)      |\n| Deactivate ACME account       | \u2713 (immediate)          | \u2713 (immediate)          | \u2717 (only that account)       |\n| Deactivate subscriber account | N/A                    | N/A                    | \u2713 (immediate, all accounts) |\n\nCAs supporting subscriber-account URIs MUST provide a subscriber-account deactivation mechanism.\n\n### \u00a77.2: account binding security\n\n- Existing claim that security is \"fundamentally bound to the security of the ACME account's private key\" is incomplete for subscriber URIs \u2014 bound to any key under the subscriber plus the subscriber account management system.\n- New subsection (\u00a77.2.1) on subscriber credential compromise: compromise of the CA's account management system lets an attacker add ACME accounts that immediately inherit all persistent authorizations.\n\n### Security considerations\n\nAddresses all nine interactions from #57:\n- Interactions 1\u20133 and 6\u20138: new subsections or additions in Security Considerations\n- Interaction 4: addressed by \u00a76.8 rewrite\n- Interaction 5: addressed by \u00a74.1 restructure\n- Interaction 9: addressed by new \u00a77.2.1 subsection\n\n### Other text updates\n\n- \u00a71: qualify \"uniquely identifies the applicant's account\" to cover subscriber accounts\n- \u00a73.1: broaden `accounturi` field description; add per-mode client verification guidance\n- \u00a74.4: subscriber URI as pre-provisioning source; forward-authorization advisory\n- Case-handling rules: Simple String Comparison for 3a/3b; CA-internal verification for 3c\n- Error handling (\u00a79.3.1): cover the subscriber-association failure mode\n- \u00a77.6 CAA interaction: use `dns-persist-01` consistently; note CAA and dns-persist `accounturi` as independent reinforcing checks\n- Quote RFC 8657 \u00a73 \"group of related entities\" directly in normative text\n\n## Deferred\n\n- Client mismatch behavior (#59) \u2014 warrants focused treatment per mode\n- IANA error type registration (#39) \u2014 new failure mode noted but not registered\n- `adn` response field (#33) \u2014 forward-referenced only\n- Naming conventions (#56) \u2014 independent editorial issue\n- TTL validation reuse (#42) \u2014 independent issue\n\nNo new JSON fields, DNS record syntax, or IANA registrations. The change is purely semantic.",
       "createdAt": "2026-04-16T22:28:52Z",
-      "updatedAt": "2026-04-24T17:06:51Z",
+      "updatedAt": "2026-04-29T23:34:15Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
-      "baseRefOid": "f94be25e09291aea0421257446b97bd28439f3fe",
+      "baseRefOid": "83f165bc0709dfdcd00e4ab66f3ac96a4b6d072d",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "subscriber-uri",
-      "headRefOid": "3748f5625f65ad23f992e63aa146790d8954f081",
+      "headRefOid": "f33693188a649802d220a6f7f155a529ec464a5c",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -3187,6 +3217,26 @@
               "body": "The context for this is imagine a CA which has some type of non-ACME subscriber relationship (e.g., an enterprise account) which contains multiple ACME accounts within it (say an ACME account for each ACME client within the enterprise). These associated ACME accounts are understood by the CA and only the enterprise administrator can make new ACME accounts within the enterprise.\r\n\r\nCAB/F participants have asked to let this method support specifying the account URI of the **enterprise subscriber** account and permit this to authorize issuance by the sub ACME accounts. One security consideration of this approach is that it creates a larger attack surface because there are now N different authorized ACME accounts and a compromise of the private key of any one of those accounts will authorize issuance. IMO the alternative of forcing a single ACME account for the entire enterprise will just mean the same ACME private key will be spread over N different servers, so I think this is a good approach to facilitate enterprise use cases.\r\n\r\nMy understanding of this text is that its introduced to help explain this security consideration. I will say I find the combination of DNS record spoofing and this enterprise account attack surface expansion somewhat confusing as if the attacker is capable of spoofing a DNS record, the obvious attack is to just spoof their own account URI in the record. My proposal would be to remove the words spoofing and focus the section on the expanded attack surface that comes from enterprise level subscriber accounts.",
               "createdAt": "2026-04-24T17:06:51Z",
               "updatedAt": "2026-04-24T17:06:51Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c757FTn",
+          "commit": {
+            "abbreviatedOid": "3748f56"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-04-28T22:52:53Z",
+          "updatedAt": "2026-04-28T22:52:53Z",
+          "comments": [
+            {
+              "originalPosition": 55,
+              "body": "RFC 8657 only has a MAY requirement on accepting ACME account URIs (https://www.rfc-editor.org/rfc/rfc8657#section-3.1-1) instead of the MUST requirement here.\r\n\r\nI think what I've been trying to say is that given dns-persist-01's reliance on HTTPS, CAs should be given the option to reject some account URIs that they otherwise allow for other methods e.g. Let's Encrypt should be allowed to reject http://invalid.example/acme/acct/3285011975 as an account URI for the purposes of this method.",
+              "createdAt": "2026-04-28T22:52:53Z",
+              "updatedAt": "2026-04-28T22:52:54Z"
             }
           ]
         }
