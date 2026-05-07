@@ -379,6 +379,52 @@ When a domain uses a Subscriber-account URI (mode 3c) for validation, a compromi
 
 The `accounturi` parameter is a stable identifier for the ACME account that persists across key rotations. When a client rotates their account key following the procedures defined in {{!RFC8555}}, Section 7.3.5, the `accounturi` remains unchanged. Therefore, existing DNS TXT records containing the `accounturi` parameter do not require modification when performing account key rotations.
 
+### Substitution of the Account URI {#account-uri-substitution}
+
+The `accounturi` parameter binds validation to a specific account, but the
+binding's verifiability varies across modes. A client that pre-provisioned a
+DNS record with one `accounturi` value may receive a different value in the
+challenge object's `accounturi` field. This substitution is not inherently
+malicious — it is the mechanism by which CAs communicate alternative URIs
+(mode 3b) or subscriber-account URIs (mode 3c) to clients. However, it
+creates a verifiability gradient:
+
+- **Mode 3a (ACME account URL):** The client can verify the returned URI
+  against its own account URL using Simple String Comparison
+  ({{!RFC3986}}, Section 6.2.1). A mismatch is detectable.
+
+- **Mode 3b (alternative URI):** The client may be able to verify the
+  returned URI if the CA exposes a URI-to-account mapping. Otherwise, the
+  client must trust the CA's assertion.
+
+- **Mode 3c (subscriber-account URI):** The client cannot independently
+  verify that the returned URI maps to its subscriber relationship.
+  Verification depends entirely on the CA's account management system,
+  which also bounds the scope of emergency mechanisms such as account
+  deactivation ({{revocation-and-invalidation}}).
+
+This gradient means that a CA operating in mode 3b or 3c can direct a client
+to publish a DNS record binding validation to a URI the client cannot
+independently verify. The risk is bounded by the CA's existing trust
+relationship with the subscriber: a CA that substitutes a fraudulent URI
+has already violated its obligations under its CP/CPS and the subscriber
+agreement. The substitution does not grant the CA capabilities it does not
+already possess — a CA can issue certificates for any domain in its scope
+without dns-persist-01 validation.
+
+For ACME account URLs specifically, {{!RFC8555}}, Section 7.3 defines the
+account URL as the stable identifier returned in the Location header at
+account creation. This URL persists across key rollovers ({{!RFC8555}},
+Section 7.3.5), and the account's key authorization ({{!RFC8555}},
+Section 8.1) provides a verifiable cryptographic binding to the current
+account key at any point in time. Neither property is available for
+modes 3b and 3c, where the URI is CA-assigned and opaque.
+
+Verification options for clients that pre-provisioned records correspond
+to the verifiability gradient above; see {{challenge-object}} for the
+normative requirements. Clients unable to verify SHOULD log the
+substitution for operator review.
+
 ### Account URI Privacy {#account-uri-privacy}
 
 Because `_validation-persist` TXT records are publicly queryable and long-lived, the `accounturi` value is visible to any party that queries DNS. When the same URI appears in records for multiple domains, third parties can infer that those domains share the same ACME account and likely share infrastructure. This correlation risk is noted in {{!RFC8657}}, Section 5.9.
