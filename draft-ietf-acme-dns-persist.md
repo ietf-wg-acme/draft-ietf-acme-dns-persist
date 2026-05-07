@@ -148,6 +148,14 @@ For example, if the domain being validated is "example.com", the Validation Doma
 
 The client indicates it is ready for validation by POSTing an empty JSON object (`{}`) to the challenge URL, following the procedure defined in {{!RFC8555}}, Section 7.5.1.
 
+## Account URI verification {#account-uri-verification}
+
+The client verifies the provided accounturi by POSTing an empty JSON object (`{}`) to the accounturi URL, following the procedure defined in {{!RFC8555}}, Section 7.5.1.
+
+If the request was not successful then the challenge MUST be aborted.
+
+If the request was sucessful and the response was a json object with a `token` field, the token MUST be copied into the value of the token parameter in the validation record. See {{validation-record-format}}.
+
 ## Validation Record Format {#validation-record-format}
 
 The RDATA of this TXT record MUST fulfill the following requirements:
@@ -171,6 +179,8 @@ The RDATA of this TXT record MUST fulfill the following requirements:
     If the `policy` parameter is absent, or if its value is anything other than `wildcard`, the CA MUST proceed as if the `policy` parameter were not present (i.e., the validation applies only to the specific FQDN).
 
 5.  The issue-value MAY contain a `persistUntil` parameter. If present, the value MUST be a base-10 encoded integer representing a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds). If the value is not a valid base-10 integer, the CA MUST treat the record as malformed and reject it. CAs MUST NOT consider this validation record valid for new validation attempts after the specified timestamp. However, this does not affect the reuse of already-validated data.
+
+6.  The issue-value MUST contain a `token` parameter if one was present in the accounturi object. See {{account-uri-verification}}.
 
 This specification defines the following case-handling rules for parameter values in dns-persist-01 records:
 
