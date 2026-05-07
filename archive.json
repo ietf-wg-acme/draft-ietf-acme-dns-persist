@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-05-05T01:57:05.670490+00:00",
+  "timestamp": "2026-05-07T01:59:31.764341+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -1128,7 +1128,7 @@
       "labels": [],
       "body": "\u00a73.1 says clients that pre-provisioned a record using their ACME account URL \"SHOULD verify the value identifies the same account.\" The per-mode verification note added in #58 clarifies *which* modes are verifiable:\n\n- **3a (ACME account URL):** String comparison \u2014 mismatch is definitive.\n- **3b (Alternative 1:1 URI):** Verifiable only if the CA exposes the mapping.\n- **3c (Subscriber-account URI):** Not independently verifiable.\n\nThe draft does not specify what the client should do when verification is possible and fails. Options include:\n\n1. MUST NOT rely on the pre-provisioned record for that challenge (treat as misconfiguration)\n2. SHOULD alert the operator (potential unauthorized issuance)\n3. MAY proceed but log the mismatch\n\nThe right answer likely differs by mode. For 3a, a mismatch is unambiguous and probably warrants MUST NOT. For 3b, a mismatch may simply mean the client lacks the mapping and cannot conclude anything. For 3c, verification is not possible so the question does not arise.\n\nRaised during review of #58.",
       "createdAt": "2026-04-16T23:29:51Z",
-      "updatedAt": "2026-05-02T15:13:53Z",
+      "updatedAt": "2026-05-06T00:15:45Z",
       "closedAt": null,
       "comments": [
         {
@@ -1144,6 +1144,13 @@
           "body": "In my opinion, a client should never attempt to validate challenges themselves, other than to verify propagation and sleep until propagated. (avoid submitting a challenge for validation before it has \"propagated\" to all authorative resolvers).\n\nIn other words, a client should never attempt to validate a pre-provisioned record, or a HTTP-01 challenge, two types of challenges that should be instantly completeable.\nThats on the CA's side of job.\n\nA client, may validate a challenge as a additional feature, for example as part of a customer panel or similiar - but thats not part of the standard.\n\nTheres several reasons for this, one reason is that a network with a authorative resolver in it, may look entirely different (due to \"DNS Views\" or \"horizons\") from the 'inside' than from the 'outside'.\n\nfor example, nas.sebbe.eu resolves to my external IP solely for certificate issuance (my regular web server), while inside (where the NAS is actually accessible) it resolves to 192.168.1.28 and there you can't find any validation records.\n\n<img width=\"343\" height=\"90\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/e8cdb389-661d-46b6-b875-fdbb3aa8fde4\" />\n\nAn ACME client \"trying\" to verify record presence would fail in this case, even if the records are visible from the CA's point of view.",
           "createdAt": "2026-05-02T15:12:24Z",
           "updatedAt": "2026-05-02T15:13:53Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Updating the issue body and answering your questions. The editorial work on PR #58 (in progress) changes the framing here.\n\nScope note before the answers: \"verification\" in this issue means the client comparing the challenge-object `accounturi` field against its locally stored pre-provisioned value. The comparison uses data the client already holds and does not require a DNS lookup.\n\n### Answers to the three questions\n\n**1. Should verification be performed by clients that did not pre-provision a record?**\n\nNo. A client that did not pre-provision has no prior `accounturi` to compare against. The challenge object's `accounturi` is the first value it encounters; there is nothing to verify against. The verification requirement applies only to clients that pre-provisioned a record and therefore hold a prior value in their own state.\n\n**2. What does \"not relying on the pre-provisioned record\" mean for a client?**\n\nIt means updating the DNS record. If the challenge object returns a different `accounturi` than the one the client pre-provisioned, the client should replace the `accounturi` parameter in its `_validation-persist` TXT record with the value returned in the challenge object. The pre-provisioned value is stale for this CA's validation purposes. The client's operational response is concrete: update the record, not abandon the method.\n\n**3. Why might a mismatch occur in mode 3a, and what threat model does this protect against?**\n\nA mismatch in mode 3a is not necessarily adversarial. The CA may have returned an alternative URI (mode 3b) or a subscriber-account URI (mode 3c) rather than the raw account URL the client provided. A mismatch is the normal signal that this substitution occurred.\n\nThe threat model for verification is narrower than the original issue body assumed. For mode 3a, the client can definitively confirm the returned value matches its account URL. A mismatch that the client did not expect (the CA has no documented reason to substitute) warrants logging and operator review, as it could indicate a misconfigured CA or a compromised channel. But the primary purpose of verification is operational correctness \u2014 ensuring the DNS record matches what the CA expects \u2014 not adversarial detection.\n\nFor modes 3b and 3c, the client's ability to detect adversarial substitution is limited or absent, as defined in the mode 3b and 3c descriptions in the challenge response section.\n\n### Update to the issue body\n\nThe original per-mode options (MUST NOT / SHOULD alert / MAY proceed) should be revised:\n\n- **3a mismatch**: The client MUST update its DNS record to the returned value if proceeding with this CA. If the substitution is unexpected, the client SHOULD log the event for operator review.\n- **3b mismatch**: Same as 3a \u2014 update the record.\n- **3c**: Verification is not possible; the client trusts the CA's subscriber-account association.\n\nThis collapses the original three options into a single behavior: update and log if unexpected. The mode determines the client's ability to detect problems, not the client's response to a mismatch.",
+          "createdAt": "2026-05-06T00:15:45Z",
+          "updatedAt": "2026-05-06T00:15:45Z"
         }
       ]
     },
@@ -1159,7 +1166,7 @@
       "labels": [],
       "body": "I've been implementing DNS-PERSIST in my ACME clients and have hit a snag. I can't get the necessary `issuerDomainNames` except in a Challenge object, which comes from an Authorization, which comes from an Order, because Let's Encrypt, at least, does not support `newAuthz` in its directory.\n\nIn other words, DNS-PERSIST essentially makes domain issuance interactive, or an entire Order has to be wasted (which often costs against rate limits).\n\nIt should be free to get the needed information to use this challenge. My users will run a command or hit an API endpoint to get the values to put in their DNS records, before any actual certificates are issued. At scale like my clients operate this has to be non-interactive.\n\nI opened [a discussion at Let's Encrypt](https://community.letsencrypt.org/t/dns-persist-without-spending-an-order/246892?u=mholt) since the problem is joint between their implementation of DNS-PERSIST and in the spec, so I'm also opening an issue here, too. Let's Encrypt does not implement `newAuthz` which is an optional endpoint, so I cannot use it to get the `issuerDomainNames`.\n\nWhile the current CA implementation is the reason I hit a snag, I believe the crux of the problem is the current weak verbiage in the spec which uses \"MAY\" instead of \"MUST\". IMO, issue #26 was a step in the wrong direction.\n\nI recommend that the spec either:\n\n- require that `issuerDomainNames` be identical to the `caaIdentities` in the directory (so we can just use `caaIdentities`),\n- or revise the spec so that supporting DNS-PERSIST necessarily implies supporting pre-authorization (`newAuthz` then becomes required for DNS-PERSIST)\n- or require that `issuerDomainNames` be published to the directory in a new field, although this might be redundant with `caaIdentities`.\n\nThanks for considering!\n\n(AI-free)",
       "createdAt": "2026-04-30T15:02:45Z",
-      "updatedAt": "2026-05-02T21:39:43Z",
+      "updatedAt": "2026-05-05T21:09:12Z",
       "closedAt": null,
       "comments": [
         {
@@ -1196,6 +1203,34 @@
           "body": "Alright, thanks! That'll do, I suppose. Do the names in the directory's `issuerDomainNames` have to be the same as in the Challenge objects? What if they differ? Is it guaranteed for challenges to succeed even if the name chosen is not in the Challenge's `issuerDomainNames` but is in the directory's `issuerDomainNames`?",
           "createdAt": "2026-05-02T21:39:43Z",
           "updatedAt": "2026-05-02T21:39:43Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> Do the names in the directory's `issuerDomainNames` have to be the same as in the Challenge objects? What if they differ? Is it guaranteed for challenges to succeed even if the name chosen is not in the Challenge's `issuerDomainNames` but is in the directory's `issuerDomainNames`?\n\n@mholt thanks for the follow-up. Taking the three sub-questions in order:\n\n1. No. The directory's `issuerDomainNames` and the Challenge's `issuer-domain-names` array are distinct surfaces; they need not contain the same values.\n\n2. They can differ. `issuerDomainNames` in the directory is a CA-level discovery hint for clients preparing records before any order is open. The Challenge's `issuer-domain-names` array is per-order: it lists the DNS names the CA will accept as the TXT record's `issuer-domain-name` for that specific authorization.\n\n3. At validation, the server matches the TXT record's `issuer-domain-name` against the Challenge's per-order array. If the client's chosen name is in the directory's `issuerDomainNames` but not in the Challenge's array, that record would not satisfy the Challenge. The design intent is that CAs will honor directory-advertised names at Challenge time. Otherwise advertising them for pre-provisioning would have no operational value. The forthcoming PR will state this relationship explicitly.\n\nSeparately, at issuance, RFC 8659 CAA checking at the domain is independent of the directory field: even if a name is accepted at the Challenge, zone-level CAA records can still deny issuance by that CA. That's an operational gate outside the ACME spec's scope.\n\n`caaIdentities` is the authoritative identifier set at the CAA layer and includes legacy identifiers the CA still recognizes. `issuerDomainNames` \u2286 `caaIdentities`, so the CAA mechanism already covers any name the directory advertises. The directory field narrows the larger `caaIdentities` surface to the names the CA wants clients to use for `dns-persist-01` bootstrapping.",
+          "createdAt": "2026-05-05T16:08:52Z",
+          "updatedAt": "2026-05-05T16:08:52Z"
+        },
+        {
+          "author": "mholt",
+          "authorAssociation": "NONE",
+          "body": "Alright, thanks. So to make sure I understand:\n\n- The Challenge's `issuer-domain-name` is selected from the directory's `issuerDomainNames`; and if the client is pre-authorizing or pre-provisioning, they won't need to use the Challenge's `issuer-domain-name` at challenge-time.\n- The `issuerDomainNames` in the directory will be a required field where DNS-PERSIST is implemented by CAs.",
+          "createdAt": "2026-05-05T16:34:57Z",
+          "updatedAt": "2026-05-05T16:34:57Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "body": "@sheurich its also important, that, according to CAB/F forum the CAA is not allowed to present a identity, in `issuer-domain-names` inside the challenge object, that it would then refuse for CAA records authorization.\n\nHowever, it can refuse a identity, that is present in `caaIdentities` for DNS-PERSIST-01 records, that it would otherwise accept in CAA.\n\nSo a CAA cannot have like `dnspersist01.letsencrypt.org` for DNS-PERSIST-01 records, and then refuse to recongnize `dnspersist01.letsencrypt.org` inside a CAA record.\n\nTechnically, it means that both of these must be true:\n`issuerDomainNames` \u2286 `caaIdentities`\n`issuer-domain-names` \u2286 `caaIdentities`\n\nhowever, `issuer-domain-names` and `issuerDomainNames`  does not have relationship with each other, meaning the CA could present different domain names (this would not have any operational value for most CAs, it could have operational value in the case if for example a paid customer have chosen to have a \"branded\" dns-persist-01 authentication name - BUT that \"branded\" authentication name MUST be present in `caaIdentities` according to CAB/F forum, so the CA can't keep anything secret.\n\nThis means, the `caaIdentities` object MUST contain every issuer-domain-name that the CA would accept in any challenge.\nHowever, the CA does not need to accept all domain names that are present in `caaIdentities` for DNS-PERSIST-01.\nHowever, ACCEPTING a DNS-PERSIST-01 challenge for where the issuer-domain-name is not present in `caaIdentities`, is **prohibited**.",
+          "createdAt": "2026-05-05T17:57:12Z",
+          "updatedAt": "2026-05-05T17:57:12Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@mholt on your first bullet: pre-provisioning still runs through the Challenge object's `issuer-domain-names` array at validation. The server matches a pre-provisioned `_validation-persist` record against the per-order array when the authorization is processed; the draft requires the record's `issuer-domain-name` to match one of the names the Challenge presents for that order. Pre-provisioning does not bypass that check. Instead, the draft's guidance is that clients MAY draw `issuer-domain-name` values from `caaIdentities` in the directory, and CAs SHOULD keep `caaIdentities` consistent with the `issuer-domain-name` values they accept. Under that operational alignment, a correctly pre-provisioned name appears in the per-order array when the Challenge is issued, and validation succeeds.\n\nOn @sebastiannielsen's related note: his observation that `issuer-domain-names \u2286 caaIdentities` holds at the CA layer for CAs operating under the CA/Browser Forum Baseline Requirements is correct. The BR require any `issuer-domain-name` a CA accepts in a persistent record to be disclosed in the CP/CPS alongside the `caaIdentities` set. The current draft carries this as SHOULD-level consistency in the pre-provisioning section; tightening the spec-level constraint to MUST is a reasonable refinement the working group can consider in a later revision. For implementers building to the current draft, the operational picture Sebastian describes is the right one to code against.",
+          "createdAt": "2026-05-05T21:09:12Z",
+          "updatedAt": "2026-05-05T21:09:12Z"
         }
       ]
     },
@@ -3011,7 +3046,7 @@
       "labels": [],
       "body": "Fixes #57. Closes #55. Closes #54.\n\n## Summary\n\nAllow `accounturi` in dns-persist-01 records to identify a CA subscriber account encompassing multiple ACME accounts. See #57 for the problem statement, RFC 8657 basis, design rationale, and security analysis.\n\n## Changes\n\n### \u00a72: Subscriber Account definition\n\nDefines \"Subscriber Account\" as a \"CA account\" (RFC 8657 \u00a73) that encompasses one or more ACME accounts. Maps the term to the normative reference and explains the naming choice (disambiguation from ACME accounts, which are also CA accounts).\n\n### \u00a74.1 item 3: three-mode structure\n\n| Mode                        | Cardinality | Comparison                                | Requirement |\n|-----------------------------|-------------|-------------------------------------------|-------------|\n| (3a) ACME account URL       | 1:1         | Simple String Comparison                  | MUST accept |\n| (3b) Alternative URI        | many:1      | Simple String Comparison or CA resolution | MAY accept  |\n| (3c) Subscriber-account URI | 1:many      | CA-internal lookup                        | MAY accept  |\n\nConstraints on 3c:\n1. CA MUST verify the requesting ACME account is associated with the subscriber account\n2. CA MUST document the URI format and association model in CP/CPS\n3. Non-reassignment and deactivation lifecycle requirements carry over\n4. CA MUST log which specific ACME account was used for each subscriber-URI validation\n5. CA SHOULD make subscriber URIs syntactically distinguishable from per-account URIs\n\nResolves #55: the trust model is now unambiguous for each URI type. Clients can independently verify 3a (string comparison), may be able to verify 3b (if the CA exposes the mapping), and cannot verify 3c (must trust the CA).\n\n### \u00a76.8: revocation rewrite\n\n| Action                        | 3a (ACME URL)          | 3b (Alt URI)           | 3c (Subscriber)             |\n|-------------------------------|------------------------|------------------------|-----------------------------|\n| Remove DNS record             | \u2713 (after cache expiry) | \u2713 (after cache expiry) | \u2713 (after cache expiry)      |\n| Deactivate ACME account       | \u2713 (immediate)          | \u2713 (immediate)          | \u2717 (only that account)       |\n| Deactivate subscriber account | N/A                    | N/A                    | \u2713 (immediate, all accounts) |\n\nCAs supporting subscriber-account URIs MUST provide a subscriber-account deactivation mechanism.\n\n### \u00a77.2: account binding security\n\n- Existing claim that security is \"fundamentally bound to the security of the ACME account's private key\" is incomplete for subscriber URIs \u2014 bound to any key under the subscriber plus the subscriber account management system.\n- New subsection (\u00a77.2.1) on subscriber credential compromise: compromise of the CA's account management system lets an attacker add ACME accounts that immediately inherit all persistent authorizations.\n\n### Security considerations\n\nAddresses all nine interactions from #57:\n- Interactions 1\u20133 and 6\u20138: new subsections or additions in Security Considerations\n- Interaction 4: addressed by \u00a76.8 rewrite\n- Interaction 5: addressed by \u00a74.1 restructure\n- Interaction 9: addressed by new \u00a77.2.1 subsection\n\n### Other text updates\n\n- \u00a71: qualify \"uniquely identifies the applicant's account\" to cover subscriber accounts\n- \u00a73.1: broaden `accounturi` field description; add per-mode client verification guidance\n- \u00a74.4: subscriber URI as pre-provisioning source; forward-authorization advisory\n- Case-handling rules: Simple String Comparison for 3a/3b; CA-internal verification for 3c\n- Error handling (\u00a79.3.1): cover the subscriber-association failure mode\n- \u00a77.6 CAA interaction: use `dns-persist-01` consistently; note CAA and dns-persist `accounturi` as independent reinforcing checks\n- Quote RFC 8657 \u00a73 \"group of related entities\" directly in normative text\n\n## Deferred\n\n- Client mismatch behavior (#59) \u2014 warrants focused treatment per mode\n- IANA error type registration (#39) \u2014 new failure mode noted but not registered\n- `adn` response field (#33) \u2014 forward-referenced only\n- Naming conventions (#56) \u2014 independent editorial issue\n- TTL validation reuse (#42) \u2014 independent issue\n\nNo new JSON fields, DNS record syntax, or IANA registrations. The change is purely semantic.",
       "createdAt": "2026-04-16T22:28:52Z",
-      "updatedAt": "2026-04-29T23:34:15Z",
+      "updatedAt": "2026-05-06T22:17:20Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "83f165bc0709dfdcd00e4ab66f3ac96a4b6d072d",
@@ -3406,8 +3441,74 @@
               "updatedAt": "2026-04-28T22:52:54Z"
             }
           ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c78uILN",
+          "commit": {
+            "abbreviatedOid": "3748f56"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-06T22:13:27Z",
+          "updatedAt": "2026-05-06T22:13:27Z",
+          "comments": [
+            {
+              "originalPosition": 55,
+              "body": "@MaxHearnden agreed, the MUST is stronger than warranted. We're revising mode 3a to SHOULD with a soft-redirect:\r\n\r\n> (3a) ACME account URL: CAs SHOULD accept the URI of the ACME account object (RFC 8555, \u00a77.3) as a valid `accounturi` value. A CA that does not accept the account URL directly MUST provide an alternative URI in the challenge `accounturi` field (mode 3b or 3c).\r\n\r\nReasons why this is the right level:\r\n\r\n1. RFC 8657 \u00a75.2 gives CAs explicit discretion over which parameters to recognize and how to interpret them. \u00a75.3 goes further in that a CA that can't support the parameters uniformly MAY split into multiple CAA-processing identities, and one that can't even do that MUST NOT implement the parameters. A MUST on mode 3a overrides that design.\r\n\r\n2. The challenge-response `accounturi` field (\u00a73.1) already works as a substitution mechanism, as the CA can return a different URI than what the client proposed. A MUST on accepting the raw account URL makes that channel pointless for mode 3a. SHOULD preserves it.\r\n\r\nThe soft-redirect ensures subscribers always get a working `accounturi` regardless of which modes a given CA supports.\r\n\r\n@birgelee the SHOULD preserves \u00a75.2's variance model while the redirect keeps subscribers from hitting a dead end.\r\n",
+              "createdAt": "2026-05-06T22:13:27Z",
+              "updatedAt": "2026-05-06T22:13:27Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c78uN8g",
+          "commit": {
+            "abbreviatedOid": "3748f56"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-06T22:17:20Z",
+          "updatedAt": "2026-05-06T22:17:20Z",
+          "comments": [
+            {
+              "originalPosition": 161,
+              "body": "Agreed, the DNS-spoofing framing conflates two threats and makes the section harder to follow. The concern specific to \u00a77.2.1 is attack surface expansion: N authorized ACME accounts under one subscriber relationship means N private keys that could lead to unauthorized issuance. DNS manipulation is orthogonal and already covered under MPIC.\r\n\r\nThe attacker doesn't need to compromise an existing key \u2014 they need access to the subscriber's account management system to add a new account. The current \u00a77.2.1 text says this, but the parent section muddies it by leading with key compromise scenarios.\r\n\r\nI'll revise \u00a77.2 and \u00a77.2.1:\r\n\r\n1. Separate key compromise (\u00a77.2 parent, all modes) from subscriber-management compromise (\u00a77.2.1, mode 3c).\r\n2. Drop DNS spoofing references \u2014 orthogonal, already addressed under MPIC.\r\n3. Focus \u00a77.2.1 on the enterprise attack surface expansion per @birgelee's proposal.",
+              "createdAt": "2026-05-06T22:17:20Z",
+              "updatedAt": "2026-05-06T22:17:20Z"
+            }
+          ]
         }
       ]
+    },
+    {
+      "number": 62,
+      "id": "PR_kwDOO4VY2c7Y930W",
+      "title": "Add procedure for accounturi verification",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/62",
+      "state": "OPEN",
+      "author": "MaxHearnden",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "This PR adds a procedure for ACME clients to verify accounturis. The important step is to make a POST request to the accounturi endpoint, the token field/parameter is just so that ACME servers can force clients to implement the verification process.\r\n\r\nThis also requires the accounturi to be a valid ACME endpoint however I wasn't sure where it should be stated in the draft.",
+      "createdAt": "2026-05-07T00:24:57Z",
+      "updatedAt": "2026-05-07T00:24:57Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "83f165bc0709dfdcd00e4ab66f3ac96a4b6d072d",
+      "headRepository": "MaxHearnden/draft-ietf-acme-dns-persist",
+      "headRefName": "account-uri-verification",
+      "headRefOid": "a52d7e78fde6e993d269746241c43ac3f1c69e00",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
     }
   ]
 }
