@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 31 October 2026                           Crosslayer Labs, Inc.
+Expires: 8 November 2026                           Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                           29 April 2026
+                                                              7 May 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -63,7 +63,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 31 October 2026.
+   This Internet-Draft will expire on 8 November 2026.
 
 Copyright Notice
 
@@ -107,7 +107,8 @@ Table of Contents
      7.2.  Account Binding Security
        7.2.1.  Subscriber Credential Compromise
        7.2.2.  Account Key Rotation
-       7.2.3.  Account URI Privacy
+       7.2.3.  Substitution of the Account URI
+       7.2.4.  Account URI Privacy
      7.3.  Subdomain Validation Risks
        7.3.1.  Subscriber URIs and Broad Authorization Scope
      7.4.  Cross-CA Validation Reuse
@@ -372,9 +373,15 @@ Table of Contents
        The accounturi value MUST conform to one of the following three
        modes:
 
-       *  *(3a) ACME account URL*: CAs MUST accept the URI of the ACME
+       *  *(3a) ACME account URL*: CAs SHOULD accept the URI of the ACME
           account object ([RFC8555], Section 7.3) as a valid accounturi
-          value.
+          value.  A CA that does not accept the account URL directly
+          MUST provide an alternative URI in the challenge accounturi
+          field (mode 3b or 3c) and MUST document the accepted
+          accounturi format in its Certificate Policy and/or
+          Certification Practice Statement.  A CA that advertises
+          support for the dns-persist-01 challenge type MUST accept at
+          least one form of accounturi value.
 
        *  *(3b) Alternative URI*: CAs MAY accept other URIs, provided
           each such URI uniquely and permanently identifies a single
@@ -647,7 +654,10 @@ Table of Contents
       Domain owners pre-provisioning with a subscriber-account URI are
       advised that ACME accounts added to the subscriber relationship
       after provisioning will automatically inherit the record's
-      validation rights.
+      validation rights.  If the CA returns a different URI in the
+      challenge accounturi field (mode 3b or 3c), the client SHOULD
+      update its _validation-persist TXT record to use the returned
+      value.
 
    *  *issuer-domain-name*: Clients MAY use the caaIdentities array from
       the ACME directory metadata ([RFC8555], Section 7.1.1) as a hint
@@ -657,6 +667,17 @@ Table of Contents
       caaIdentities is unavailable, the issuer-domain-name MAY be
       obtained from the CA's Certificate Policy or Certification
       Practice Statement.
+
+   The accounturi value used for pre-provisioning is obtained outside
+   the ACME challenge-response flow.  The integrity of the pre-
+   provisioned record therefore depends on the integrity of the channel
+   that delivered the accounturi value to the domain owner, such as the
+   ACME account creation response, a CA's subscriber portal, or CP/CPS
+   documentation.  Domain owners SHOULD obtain accounturi values only
+   through authenticated channels to the CA.  A value obtained through
+   an unauthenticated or unverifiable channel cannot be distinguished
+   from a substituted one, and validation may bind to an unintended
+   account.
 
    Organizations pre-provisioning records SHOULD maintain an inventory
    of _validation-persist records and the ACME accounts they reference.
@@ -845,7 +866,56 @@ Table of Contents
    DNS TXT records containing the accounturi parameter do not require
    modification when performing account key rotations.
 
-7.2.3.  Account URI Privacy
+7.2.3.  Substitution of the Account URI
+
+   The accounturi parameter binds validation to a specific account, but
+   the binding's verifiability varies across modes.  A client that pre-
+   provisioned a DNS record with one accounturi value may receive a
+   different value in the challenge object's accounturi field.  This
+   substitution is not inherently malicious — it is the mechanism by
+   which CAs communicate alternative URIs (mode 3b) or subscriber-
+   account URIs (mode 3c) to clients.  However, it creates a
+   verifiability gradient:
+
+   *  *Mode 3a (ACME account URL):* The client can verify the returned
+      URI against its own account URL using Simple String Comparison
+      ([RFC3986], Section 6.2.1).  A mismatch is detectable.
+
+   *  *Mode 3b (alternative URI):* The client may be able to verify the
+      returned URI if the CA exposes a URI-to-account mapping.
+      Otherwise, the client must trust the CA's assertion.
+
+   *  *Mode 3c (subscriber-account URI):* The client cannot
+      independently verify that the returned URI maps to its subscriber
+      relationship.  Verification depends entirely on the CA's account
+      management system, which also bounds the scope of emergency
+      mechanisms such as account deactivation (Section 7.11).
+
+   This gradient means that a CA operating in mode 3b or 3c can direct a
+   client to publish a DNS record binding validation to a URI the client
+   cannot independently verify.  The risk is bounded by the CA's
+   existing trust relationship with the subscriber: a CA that
+   substitutes a fraudulent URI has already violated its obligations
+   under its CP/CPS and the subscriber agreement.  The substitution does
+   not grant the CA capabilities it does not already possess — a CA can
+   issue certificates for any domain in its scope without dns-persist-01
+   validation.
+
+   For ACME account URLs specifically, [RFC8555], Section 7.3 defines
+   the account URL as the stable identifier returned in the Location
+   header at account creation.  This URL persists across key rollovers
+   ([RFC8555], Section 7.3.5), and the account's key authorization
+   ([RFC8555], Section 8.1) provides a verifiable cryptographic binding
+   to the current account key at any point in time.  Neither property is
+   available for modes 3b and 3c, where the URI is CA-assigned and
+   opaque.
+
+   Verification options for clients that pre-provisioned records
+   correspond to the verifiability gradient above; see Section 3.1 for
+   the normative requirements.  Clients unable to verify SHOULD log the
+   substitution for operator review.
+
+7.2.4.  Account URI Privacy
 
    Because _validation-persist TXT records are publicly queryable and
    long-lived, the accounturi value is visible to any party that queries
@@ -953,7 +1023,7 @@ Table of Contents
    Further security considerations regarding the revocation of these
    broad authorizations are discussed in Section 7.11, the semantic
    differences in account comparison are detailed in Section 4 (item 3),
-   the privacy implications are noted in Section 7.2.3, and the risks of
+   the privacy implications are noted in Section 7.2.4, and the risks of
    subscriber credential compromise are covered in Section 7.2.1.
 
 7.4.  Cross-CA Validation Reuse
