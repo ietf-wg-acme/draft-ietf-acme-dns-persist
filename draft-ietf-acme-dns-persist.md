@@ -175,7 +175,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
         4.  The CA MUST log which specific ACME account was used for each validation against a subscriber URI.
         5.  The CA SHOULD make subscriber-account URIs syntactically distinguishable from per-account URIs. If subscriber-account URIs are not distinguishable, clients and auditors cannot independently determine which verification model applies to a given `accounturi` value.
    
-    *   **(3d) ACME Public key**: CAs MAY accept a URI that starts with pubkey: and contains a Base64_URL encoded sha256 hash of the subscriber JWK public key as described in ({{!RFC7638}}, Section 3). If a CA supports this mode, it MUST enforce the following constraints:
+    *   **(3d) ACME Public key**: CAs MAY accept a URI that starts with pubkey: and contains a Base64_URL encoded sha256 hash of the account JWK public key as described in ({{!RFC7638}}, Section 3). If a CA supports this mode, it MUST enforce the following constraints:
 
         1.  The CA MUST verify that the requesting ACME account's public key is currently associated with the account in question and the base64_URL hash value matches the value after the pubkey: identifier.
         2.  The CA MUST deactivate any authorizations that have been validated using this mode if a successful keyChange as descibed in ({{!RFC8555}}, Section 7.3.5) is made.
