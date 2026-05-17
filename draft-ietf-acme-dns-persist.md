@@ -178,7 +178,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
     *   **(3d) ACME Public key**: CAs MAY accept a URI that starts with pubkey: and contains a Base64_URL encoded sha256 hash of the account JWK public key as described in ({{!RFC7638}}, Section 3). If a CA supports this mode, it MUST enforce the following constraints:
 
         1.  The CA MUST verify that the requesting ACME account's public key is currently associated with the account in question and the base64_URL hash value matches the value after the pubkey: identifier.
-        2.  The CA MUST deactivate any authorizations that have been validated using this mode if a successful keyChange as descibed in ({{!RFC8555}}, Section 7.3.5) is made.
+        2.  The CA MUST deactivate any authorizations that have been validated using this mode if a successful keyChange as described in ({{!RFC8555}}, Section 7.3.5) is made.
         3.  The CA MUST permit, in this mode, both invalid and valid records to co-exist, to allow for a key rollover where the new record is published prior to when a new key is taken into production.
         4.  The CA MUST reassign a public key to a new ACME account, provided the old account performs the keyChange action as described in ({{!RFC8555}}, Section 7.3.5) to take the key OFF the old account, and the new account subsequently performs the keyChange action to install the key ON the new ACME account. If a CA does NOT provide the keyChange endpoint in its directory as described in ({{!RFC8555}}, Section 7.1.1), the CA MUST NOT reassign a public key to a new ACME account.
 
