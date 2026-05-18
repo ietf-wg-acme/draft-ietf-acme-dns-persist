@@ -413,7 +413,7 @@ creates a verifiability gradient:
 - **Mode 3d (ACME Public key):** The client can verify the provisioned
   public key offline by performing the neccessary calculations offline.
   This can be done even if the client for the moment lacks network
-  connectiviity, for example before DHCP has been completed or before
+  connectivity, for example before DHCP has been completed or before
   802.11x authentication to the local network. 
 
 This gradient means that a CA operating in mode 3b or 3c can direct a client
