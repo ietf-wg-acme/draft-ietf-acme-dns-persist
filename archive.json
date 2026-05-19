@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-05-17T02:05:46.145010+00:00",
+  "timestamp": "2026-05-19T02:26:19.086139+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -3637,7 +3637,7 @@
       "labels": [],
       "body": "This PR adds a procedure for ACME clients to verify accounturis. The important step is to make a POST request to the accounturi endpoint, the token field/parameter is just so that ACME servers can force clients to implement the verification process.\r\n\r\nThis also requires the accounturi to be a valid ACME endpoint however I wasn't sure where it should be stated in the draft.",
       "createdAt": "2026-05-07T00:24:57Z",
-      "updatedAt": "2026-05-16T00:43:33Z",
+      "updatedAt": "2026-05-17T17:03:22Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "83f165bc0709dfdcd00e4ab66f3ac96a4b6d072d",
@@ -3655,8 +3655,168 @@
           "body": "My suggestion is that we should not overload the server with more requests that must be done.\r\n\r\nA better solution would be as I have suggested, allow the client to compute the \"accounturi\" value offline by using a pubkey: \"protocol\" which is the sha256 value of the public key computed using the SPKI format over the account key - which also makes it crypto agility since the algoritm is included in the SPKI.\r\n\r\nMeaning, a \"TLSA\" record calculator over the account public key would give the correct sha256 value.\r\n\r\nLike:\r\n_validation-persist.yourdomain.tld IN TXT \"letsencrypt.org;accounturi=pubkey:fa759db3816ab7387006c8fb5b887a6fc3dde2d77f593ec2a8bf6504524da26e\"\r\n\r\nor use the JWK thumbprint.\r\n\r\nBy permitting a offline-calculation, all security considerations with a compromised accounturi is erased - at the cost of requiring record update if you choose to rotate account keys.",
           "createdAt": "2026-05-07T20:10:33Z",
           "updatedAt": "2026-05-16T00:43:33Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "body": "I propose to reject this pull with the explanation that adding requirements that increases the number of a requests a subscriber has to do to the ACME server to facilitate a specific validation method should be avoided as it increases load on CA infrastructure.\r\n\r\nEspecially when it can be solved by this pull instead: https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/65\r\n\r\nat the cost of having to replace the record when doing a account key rollover.",
+          "createdAt": "2026-05-17T17:03:21Z",
+          "updatedAt": "2026-05-17T17:03:21Z"
         }
       ],
+      "reviews": []
+    },
+    {
+      "number": 65,
+      "id": "PR_kwDOO4VY2c7cZVqJ",
+      "title": "new mode to allow for public key.",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/65",
+      "state": "OPEN",
+      "author": "sebastiannielsen",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "Closes https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/64 if merged.",
+      "createdAt": "2026-05-17T15:34:39Z",
+      "updatedAt": "2026-05-18T01:47:54Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "80fee73a1100614c6acaaba6a0badeb8f90d3c3b",
+      "headRepository": "sebastiannielsen/draft-ietf-acme-dns-persist",
+      "headRefName": "patch-1",
+      "headRefOid": "49d347583bc62b2313fee310f3e72a76ee868f63",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABAKbPCQ",
+          "commit": {
+            "abbreviatedOid": "7321636"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-17T17:02:35Z",
+          "updatedAt": "2026-05-17T17:02:35Z",
+          "comments": [
+            {
+              "originalPosition": 8,
+              "body": "This would violate section 7.3.5 of RFC 8555 (https://www.rfc-editor.org/rfc/rfc8555#section-7.3.5) which states that\n```\n   Note that changing the account key for an account SHOULD NOT have any\n   other impact on the account.  For example, the server MUST NOT\n   invalidate pending orders or authorization transactions based on a\n   change of account key.\n```",
+              "createdAt": "2026-05-17T17:02:35Z",
+              "updatedAt": "2026-05-17T17:02:35Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABAKcJCA",
+          "commit": {
+            "abbreviatedOid": "7321636"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-17T17:08:07Z",
+          "updatedAt": "2026-05-17T17:08:07Z",
+          "comments": [
+            {
+              "originalPosition": 8,
+              "body": "note \"pending\". Meaning that completed authorizations may be invalidated for security purposes.\r\n\r\nThe security risk of leaving a valid authorization, after a keyChange has been performed, is that two accounts may be authorized to issue for a single DNS record, which violates CAB/F rules that explicitly state that each DNS record may only reference a single CA account.\r\n\r\nSo a pending authorization would still be valid, since the challenge has not been completed. A completed authorization would however be invalidated, which can result in a pending order being invalidated - but that does not mean the order was invalidated as a consequence of a keyChange, but a dependent (completed) authorization.\r\n\r\nThe reason to invalidate a authorization is also that the security status of the account has been changed, which may warrant the CA changing the status of completed authorizations or challenges, as they are no longer valid for issuance at issuance-time.\r\n\r\nThe rationale of not invalidating pending transactions is to not break the state in a client and thus cause a desync in the client, where a client believes the pending authorizations are still valid, and try to complete them, even tough the server have changed state. **For authorization reuse, the client re-checks the state of authorizations, and would see the state change and update its local state, so the risk of invalidting a completed authorization is less of a risk - because a CA may invalidate a authorization for other purposes (mississuance, etc) so the client MUST recheck a authorization before reusing its status.**",
+              "createdAt": "2026-05-17T17:08:07Z",
+              "updatedAt": "2026-05-17T17:13:25Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABAKduEA",
+          "commit": {
+            "abbreviatedOid": "7321636"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-17T17:18:15Z",
+          "updatedAt": "2026-05-17T17:18:15Z",
+          "comments": [
+            {
+              "originalPosition": 8,
+              "body": "Changed the pull to explicitly prohibit invalidating authorizations that have another state than \"valid\".",
+              "createdAt": "2026-05-17T17:18:15Z",
+              "updatedAt": "2026-05-17T17:18:15Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABAKqBOw",
+          "commit": {
+            "abbreviatedOid": "1d8be99"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-17T18:52:27Z",
+          "updatedAt": "2026-05-17T18:52:27Z",
+          "comments": [
+            {
+              "originalPosition": 10,
+              "body": "Why is this a MUST? CAs might decide that once a key has been used for an account, it can't be reused again for a different account.",
+              "createdAt": "2026-05-17T18:52:27Z",
+              "updatedAt": "2026-05-17T18:52:27Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABAKqxRw",
+          "commit": {
+            "abbreviatedOid": "1d8be99"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-05-17T19:02:29Z",
+          "updatedAt": "2026-05-17T19:02:29Z",
+          "comments": [
+            {
+              "originalPosition": 10,
+              "body": "I feel that a key should be able to be transferred between accounts at will of the subscriber. a CA should only blacklist a key if it believes the key has been compromised - OR if the key is already assigned to another account (ergo in use - 2 accounts may never share the same key ever at the same time).\r\n\r\nThats why I suggested the point 2 to avoid a CA falling into violation of the CAB/F rules by disallowing a authorization based on the old key to remain valid for issuance after the key has been moved to a new account.\r\n\r\nThere can be several reasons a subscriber wants to move a key to another account - for example if a subscriber sells his company but want to remain in control of other domains provisioned on the same key, - or an user leaving a web hotel where the web hotel manages the ACME accounts.\r\n\r\nThis doesn't prevent a CA from invalidating account keys that may be sensitive, or invalidating account keys as a result of a company going bankrupt. (to prevent computers and servers having the keys from being abused after they have been sold in a bankrupty auction).\r\n\r\n**What the MUST says is that the keyChange action may never cause a key to be blacklisted in itself. If a subscriber intentionally want to blacklist a key, they should invalidate the account instead, which will invalidate the key aswell forever.**\r\n\r\nThis creates 2 distinct actions - either you keyChange to keep the old key usable, or you invalidate account if you want to also block the old key.\r\n\r\nTheres little value in keeping the account itself, especially now when the new CAB/F rules that state that authorizations may only be valid for 7 hours when certificate validity goes down to 45 days.\r\n\r\n_Another reason to wanting to go back to a old key, is if a key rollover fails spectacularly, and the subscriber want to roll back the key and retry again at a later time.\r\nBlacklisting a key because it has been \"used\" would cause the subscriber to not be able to revert the key rollover if something goes south._\r\n\r\nOf course this means, that keys that may leak after a rollover could still be usable - thats why its important that a subscriber removes any old previous DNS-PERSIST-01 pubkey: records after having completed a key rollover process and also have verified everything works with the new key.",
+              "createdAt": "2026-05-17T19:02:29Z",
+              "updatedAt": "2026-05-17T19:11:20Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 66,
+      "id": "PR_kwDOO4VY2c7cZhGd",
+      "title": "Change language since issuer-domain-name is a opaque value",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/66",
+      "state": "OPEN",
+      "author": "sebastiannielsen",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "Closes https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/63 if merged\r\n\r\nThis because issuer-domain-name is just a opaque value, and \"protecting\" that value with DNSSEC - especially if its a legacy domain name that the CA does not own anymore, will not give any security advantage.\r\n\r\nIt would be analogous to protecting a sign outside a bank with heavy security but have glass doors to the vault.\r\n\r\nThe sensitive resource for a CA - that needs protecting - is the ACME Directory URL - also called Server URL. Thats the sensitive ACME resource the CA owns and is the root of trust for the ACME client.",
+      "createdAt": "2026-05-17T15:57:22Z",
+      "updatedAt": "2026-05-17T15:57:22Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "80fee73a1100614c6acaaba6a0badeb8f90d3c3b",
+      "headRepository": "sebastiannielsen/draft-ietf-acme-dns-persist",
+      "headRefName": "patch-2",
+      "headRefOid": "861ec2bccdcf81d899d92106ba49e85823207688",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
       "reviews": []
     }
   ]
