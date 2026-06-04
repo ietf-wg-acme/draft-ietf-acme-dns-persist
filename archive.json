@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-05-19T02:26:19.086139+00:00",
+  "timestamp": "2026-06-04T02:43:47.184897+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -3805,7 +3805,7 @@
       "labels": [],
       "body": "Closes https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/63 if merged\r\n\r\nThis because issuer-domain-name is just a opaque value, and \"protecting\" that value with DNSSEC - especially if its a legacy domain name that the CA does not own anymore, will not give any security advantage.\r\n\r\nIt would be analogous to protecting a sign outside a bank with heavy security but have glass doors to the vault.\r\n\r\nThe sensitive resource for a CA - that needs protecting - is the ACME Directory URL - also called Server URL. Thats the sensitive ACME resource the CA owns and is the root of trust for the ACME client.",
       "createdAt": "2026-05-17T15:57:22Z",
-      "updatedAt": "2026-05-17T15:57:22Z",
+      "updatedAt": "2026-06-03T12:24:13Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "80fee73a1100614c6acaaba6a0badeb8f90d3c3b",
@@ -3816,7 +3816,22 @@
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
-      "comments": [],
+      "comments": [
+        {
+          "author": "orangepizza",
+          "authorAssociation": "NONE",
+          "body": "doesn't CA/B rule require them to be included in CAAidentifer (from CCADB)?",
+          "createdAt": "2026-06-03T10:10:21Z",
+          "updatedAt": "2026-06-03T10:10:21Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "body": "> doesn't CA/B rule require them to be included in CAAidentifer (from CCADB)?\r\n\r\nCorrect, but the value itself is opaque from client's point of view. Meaning, the client doesn't use the value in a particular way - it doesn't fetch a document from the domain, it doesn't verify the domain, it doesn't use the domain at all. \r\nso lets say letsencrypt would have CAAIdentifier = \"letsencrypt.org, freecertificates.org\"\r\nand then letsencrypt loses control of freecertificates.org, maybe by losing the EPP transfer code to a malicious party.\r\n\r\nThat would not mean the security of the ACME protocol is compromised, since nobody uses the domain in the regular sense.\r\nYou could aswell have a number that identifies the CA in a public \"CA list\" or whatever:\r\n\r\n```\r\nexample.com IN CAA 0 issue \"534535;\"\r\nexample.com IN CAA 0 issuewild \"534535;\"\r\n```\r\nand\r\n`_validation-persist.example.com IN TXT \"534535; accounturi=https://letsencrypt.org/acme/acct/58358493; policy=wildcard\"`\r\n\r\n\r\nThe point im making is that the value itself doesn't have any meaning - its just a opaque string. It could be a sha256 hash of a public key or whatever. The value is only used in a string matching to the CAAIdentifier from CCADB.\r\n\r\nMEANING: as long as the value exist in CPS and CCADB - its ok. The value itself doesn't need to be secured with DNSSEC. **The CA doesn't even need to own the value.**\r\n\r\n\r\nThe value is only used to capture intent of the domain owner. In the same way voting systems in different countries can be different, some have you write down the number of the president you want to vote on, some have you tick a box at the president's name, some have you write the name of the president, and some have you put pre-filled ballots for your president.\r\n\r\n**Since the value doesn't have any meaning in itself, it doesn't matter if a third party owns the value. Even if a CA would call themselves \"sebbe.eu\" in CAAIdentifier, it would not matter. I would not gain something out of it.\r\nEven if the record would look super weird with:**\r\n\r\n`_validation-persist.example.com IN TXT \"sebbe.eu; accounturi=http://someca.org/acme/acct/3950359; policy=wildcard\"`\r\n\r\n**I would still not be able to \"compromise\" the CA in any way. I would not be able to subvert their ACME traffic, I would not be able to issue for the domain, I would gain nada, zip from a CA \"borrowing\" my domain as their CAAIdentifier.**\r\n",
+          "createdAt": "2026-06-03T12:08:21Z",
+          "updatedAt": "2026-06-03T12:24:13Z"
+        }
+      ],
       "reviews": []
     }
   ]
