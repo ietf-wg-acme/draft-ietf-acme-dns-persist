@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-06-07T02:35:54.638596+00:00",
+  "timestamp": "2026-06-21T02:44:37.287451+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -3700,7 +3700,7 @@
       "labels": [],
       "body": "This PR adds a procedure for ACME clients to verify accounturis. The important step is to make a POST request to the accounturi endpoint, the token field/parameter is just so that ACME servers can force clients to implement the verification process.\r\n\r\nThis also requires the accounturi to be a valid ACME endpoint however I wasn't sure where it should be stated in the draft.",
       "createdAt": "2026-05-07T00:24:57Z",
-      "updatedAt": "2026-05-17T17:03:22Z",
+      "updatedAt": "2026-06-19T12:37:30Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "83f165bc0709dfdcd00e4ab66f3ac96a4b6d072d",
@@ -3725,6 +3725,20 @@
           "body": "I propose to reject this pull with the explanation that adding requirements that increases the number of a requests a subscriber has to do to the ACME server to facilitate a specific validation method should be avoided as it increases load on CA infrastructure.\r\n\r\nEspecially when it can be solved by this pull instead: https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/65\r\n\r\nat the cost of having to replace the record when doing a account key rollover.",
           "createdAt": "2026-05-17T17:03:21Z",
           "updatedAt": "2026-05-17T17:03:21Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Yeah I am somewhat in favor of just locking down the syntax (see my comment on 65) to avoid needing the server and client to talk more.",
+          "createdAt": "2026-06-19T12:34:21Z",
+          "updatedAt": "2026-06-19T12:34:21Z"
+        },
+        {
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "body": "After considering the use cases for this procedure, I think that it might be worth pursuing this for mode 3c account URIs (multi-account), unless 3c account URIs will only be provided out of band.",
+          "createdAt": "2026-06-19T12:37:30Z",
+          "updatedAt": "2026-06-19T12:37:30Z"
         }
       ],
       "reviews": []
@@ -3734,25 +3748,47 @@
       "id": "PR_kwDOO4VY2c7cZVqJ",
       "title": "new mode to allow for public key.",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/65",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "sebastiannielsen",
       "authorAssociation": "NONE",
       "assignees": [],
       "labels": [],
       "body": "Closes https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/64 if merged.",
       "createdAt": "2026-05-17T15:34:39Z",
-      "updatedAt": "2026-05-18T01:47:54Z",
+      "updatedAt": "2026-06-19T23:50:26Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "80fee73a1100614c6acaaba6a0badeb8f90d3c3b",
       "headRepository": "sebastiannielsen/draft-ietf-acme-dns-persist",
       "headRefName": "patch-1",
       "headRefOid": "49d347583bc62b2313fee310f3e72a76ee868f63",
-      "closedAt": null,
+      "closedAt": "2026-06-19T12:28:46Z",
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
-      "comments": [],
+      "comments": [
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Hi all,\r\n\r\nWe are moving to decline this PR primarily on implementation grounds. We do want to move forward with a public-key hash mechanism, but we would like to take it in a slightly different direction. Internally we have aligned on the following format for hashing:\r\n\r\nSHA-256(pubkey || accountURL || domain)\r\n\r\n(|| for concatenation) This hash strategy has strong alignment with what is already required by the CA/Browser Forum and provides stronger security properties than pubkey alone.\r\n\r\nEssentially, the justification for putting both the standard account URL and the pubkey in the hash is that the pub key provides sufficient entropy to avoid the account URL enumeration hashing attack (i.e., just iterating through account URLs until finding one that hashes to the observed value) while the account URL ensures CA/B Forum compliance and avoids complications with multiple accounts that share keys.\r\n\r\nThe current wording from the CA/B Forum reads \"The `issue-value` MUST contain an `accounturi` parameter, where the parameter value is a unique URI (as described by RFC 8657, Section 3) identifying the account of the Applicant which requested validation for this FQDN; \". I feel that SHA-256(pubkey || accountURL || domain) satisfies this criteria because of the collision-resistant properties of hashes. There can only be one input that produces this hash so the hashed value can serve to uniquely identify the accountURL. SHA-256(pubkey) does not provide this same guarantee as two accounts could use the same key (potentially even between CAs). Obviously additional restrictions in the ecosystem like constraints on accounts reusing keys could be enforced, but I would argue that this comes at the cost of significantly more complexity (and could be a security risk, known bad keys could be tried during account registration to see if they are used by an ACME account).\r\n\r\nIn addition to stronger CA/B Forum language compliance, SHA-256(pubkey || accountURL || domain) solves the reused pubkey problem in a much more head on manner. Key reuse between accounts (or even accounts at different CAs) never risks overlaps in DCV.\r\n\r\nFinally, we felt there are some advantages to keeping it in the URL format. Although the URI specifier can be much more broad, keeping it to a URL simplifies string comparison (its always byte-for-byte identical), and has nice multi-CA namespace isolation. Right now I am considering a scheme somewhat like:\r\n\r\nhttps://<ca directory URL domain name>/.well-known/account-hash/<SHA-256(pubkey || accountURL || domain)>\r\n\r\n\r\nThank you again for this PR. I do think it is helping us move in the right direction by approaching these problems more head on, but we would prefer not to go with a special-purpose \"pubkey\" URI format.",
+          "createdAt": "2026-06-19T12:28:46Z",
+          "updatedAt": "2026-06-19T12:28:46Z"
+        },
+        {
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "body": "> Essentially, the justification for putting both the standard account URL and the pubkey in the hash is that the pub key provides sufficient entropy to avoid the account URL enumeration hashing attack (i.e., just iterating through account URLs until finding one that hashes to the observed value) while the account URL ensures CA/B Forum compliance and avoids complications with multiple accounts that share keys.\r\n\r\nJust to restate my issue with the privacy claim.\r\n\r\nAs I had stated in https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/61#issuecomment-4443182076, using SHA-256 as proposed still allows an attacker to determine if two domains were issued from the same account. Furthermore given knowledge of an account URI (maybe from a single CAA record or from brute forcing two domains) and a single SHA-256(pubkey || accountURL || domain) one can quickly (with a single hash operation) determine if that account is used for another domain.",
+          "createdAt": "2026-06-19T12:50:37Z",
+          "updatedAt": "2026-06-19T12:50:37Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@MaxHearnden am I correct in understanding that your attack is based on the assumption that the adversary knows the account URI or at least has a candidate account URI in mind that they want to test? I know you point out account URIs can be leaked via CAA record's accounturi parameter, but if the account URI is being leaked through this channel, I feel the adversary could perform the same infrastructure linkage through the CAA accounturi parameter.\r\n\r\nI see the goal of this system I think of as mostly to prevent bulk infrastructure linkage through internet-wide scanning done through platforms like Shodan and Censys. If an adversary digs deep I feel shared infrastructure can usually be uncovered (it was discussed on list if this entire privacy system had a point because of this reason) and if a victim's account URI is leaked I feel that is out of scope for this mechanism.\r\n\r\nI think even pairwise attacks (i.e., a function that can return True/False on two specific to tell if they use the same account URI) are sort of less of a concern as well. I think the only real risk comes from plaintext accountURIs as an adversary can just cheaply search for them in other places.\r\n\r\nWith that said, there is a potential approach of using an HMAC where the CA shares an HMAC key (say k) with the client (during new order or ideally account provisioning) and the client computes HMAC_k(pubkey || accountURL || domain). Collision resistance of hashes means that even if an adversary is between the CA and the ACME client, the adversary cannot construct a k' such that\r\n\r\nHMAC_k(pubkey_adversary || accountURL_adversary || domain) = HMAC_k'(pubkey_victim || accountURL_victim || domain)\r\n\r\nSince the adversary could never convince the victim to upload the HMAC to its account, this would still stop the MitM attack.\r\n\r\nThat said, this would hurt pre-provisioning unless it was communicated at account registration time which to me seems like an expensive lift for this system.",
+          "createdAt": "2026-06-19T23:49:32Z",
+          "updatedAt": "2026-06-19T23:50:26Z"
+        }
+      ],
       "reviews": [
         {
           "id": "PRR_kwDOO4VY2c8AAAABAKbPCQ",
@@ -3868,7 +3904,7 @@
       "labels": [],
       "body": "Closes https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/63 if merged\r\n\r\nThis because issuer-domain-name is just a opaque value, and \"protecting\" that value with DNSSEC - especially if its a legacy domain name that the CA does not own anymore, will not give any security advantage.\r\n\r\nIt would be analogous to protecting a sign outside a bank with heavy security but have glass doors to the vault.\r\n\r\nThe sensitive resource for a CA - that needs protecting - is the ACME Directory URL - also called Server URL. Thats the sensitive ACME resource the CA owns and is the root of trust for the ACME client.",
       "createdAt": "2026-05-17T15:57:22Z",
-      "updatedAt": "2026-06-07T00:53:23Z",
+      "updatedAt": "2026-06-19T12:31:31Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "80fee73a1100614c6acaaba6a0badeb8f90d3c3b",
@@ -3914,6 +3950,13 @@
           "body": "@birgelee Yeah, a cut would work if https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/65 is implemented.\r\nBut then Pull #65 must be mandatory support.\r\n\r\nSince #65 is optional support, I think the paragraph should be included - but correctly be referring to the ACME Server URI.\r\n\r\nThe security issue mentioned in the paragraph is only relevant for DNS-PERSIST-01 - since that relies on information solely from the ACME server. Not the ACME standard as a whole - since the other authentication methods rely on both a token AND client computed information (mandatory) - which means a malicious ACME server cannot in any way get a client to provision a valid record or file that would allow the malicious party to issue certificates for the domain.\r\n\r\n@MaxHearnden \r\nThe problem here is that while the other authentication methods specifically rely on client-computed information AND a token from the ACME server, the DNS-PERSIST-01 method ONLY relies on information from the ACME server. This is the security issue that the DNSSEC paragraph is intended to resolve - if the ACME Server (or its domain) is comrpomised, it means you could issue accounturi's that belongs to an attacker.\r\n\r\nNote that even if the ACME protocol is secure and designed to be secure unencrypted, its important that the ACME protocol ONLY focuses on server security. Meaning that the server verfies the client in everything. The client never verifies the server as you can see in the\r\nhttps://github.com/sebastiannielsen/acme-static\r\nproject - I can serve static data to a ACME client and it will happily accept it.\r\nThis is however a good thing (as seen in the acme-static project) but that means there must be additional protections against a \"malicious ACME server\". (attacker-controlled) - when it comes to DNS-PERSIST-01 since it relies solely on ACME-server-provided information.\r\n\r\nThis is why the security recommendation is only relevant for DNS-PERSIST-01 since that currently relies 100% on server-supplied information.\r\n\r\nSo I understand fully why the author of the document included that paragraph.\r\nThe problem is that the author incorrectly refers to issuer-domain-name, which is a opaque value that has zero meaning in the context.",
           "createdAt": "2026-06-07T00:31:30Z",
           "updatedAt": "2026-06-07T00:53:23Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I am fine going with this change and I see why keeping the language makes sense. Requiring the pub key stuff to be mandatory is something that has been floated but I feel is much larger in scope than this paragraph change.",
+          "createdAt": "2026-06-19T12:31:31Z",
+          "updatedAt": "2026-06-19T12:31:31Z"
         }
       ],
       "reviews": []
