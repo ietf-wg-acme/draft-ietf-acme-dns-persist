@@ -68,7 +68,7 @@ Examples include:
 
 This document defines a new ACME challenge type, "dns-persist-01". This method proves control over a Fully Qualified Domain Name (FQDN) by confirming the presence of a persistent DNS TXT record containing CA and account identification information.
 
-The record format is based on the "issue-value" syntax from {{!RFC8659}}, incorporating an `issuer-domain-name` and a mandatory `accounturi` parameter {{!RFC8657}} that uniquely identifies the applicant's account. This design provides strong binding between the domain, the CA, and the specific account requesting validation.
+The record format is based on the "issue-value" syntax from {{!RFC8659}}, incorporating an `issuer-domain-name` and a mandatory `accounturi` parameter {{!RFC8657}} that identifies the applicant's account or a subscriber account encompassing it. This design provides strong binding between the domain, the CA, and the entity requesting validation.
 
 ## Robustness and Alignment with Industry Best Practices {#robustness-and-alignment}
 
@@ -76,7 +76,7 @@ This validation method is designed to provide a robust and persistent mechanism 
 
 1.  The use of a well-defined, unique DNS label (e.g., "_validation-persist") for persistent validation records, minimizing potential conflicts.
 2.  Consideration of DNS TTL values when determining the effective validity period of an authorization, balancing persistence with responsiveness to DNS changes (see {{validation-data-reuse-and-ttl-handling}}).
-3.  Explicit binding of the domain validation to a specific ACME account through a unique identifier, establishing clear accountability and enhancing security against unauthorized use.
+3.  Explicit binding of the domain validation to an ACME account or subscriber account through a unique identifier, establishing clear accountability and enhancing security against unauthorized use.
 
 Certification Authorities operating under various trust program requirements will find this technical framework suitable for their domain validation needs, as its design inherently supports robust and auditable validation practices.
 
@@ -97,6 +97,9 @@ Certification Authorities operating under various trust program requirements wil
 
     Note: The `issuer-domain-names` provided in the challenge object MAY be drawn from the machine-readable `caaIdentities` array in the ACME server's directory object, as specified in {{!RFC8555}}, Section 7.1.1. This creates a clearer programmatic link between the server's advertised identities and the challenge object.
 
+**Subscriber Account**
+:   A "CA account" ({{!RFC8657}}, Section 3) that encompasses one or more ACME accounts and represents their common subscriber. A URI identifying a subscriber account is called a "subscriber-account URI." This document uses "subscriber account" in preference to the RFC 8657 term "CA account" because ACME accounts are also CA accounts, and the two must be distinguished.
+
 **Validation Data Reuse Period**
 :   The period during which a CA may rely on validation data, as defined by the CA's practices and applicable requirements.
 
@@ -105,7 +108,7 @@ Certification Authorities operating under various trust program requirements wil
 
 # The "dns-persist-01" Challenge {#dns-persist-01-challenge}
 
-The "dns-persist-01" challenge allows an ACME client to demonstrate control over an FQDN by proving it can provision a DNS TXT record containing specific, persistent validation information. The validation information links the FQDN to both the Certificate Authority performing the validation and the specific ACME account requesting the validation.
+The "dns-persist-01" challenge allows an ACME client to demonstrate control over an FQDN by proving it can provision a DNS TXT record containing specific, persistent validation information. The validation information links the FQDN to both the Certificate Authority performing the validation and the account requesting the validation.
 
 When an ACME client accepts a "dns-persist-01" challenge, it proves control by provisioning a DNS TXT record at the Validation Domain Name. Unlike the existing "dns-01" challenge, this record is designed to persist and may be reused for multiple certificate issuances over an extended period.
 
@@ -116,7 +119,7 @@ The challenge object for "dns-persist-01" contains the following fields:
 - **type** (required, string): The string "dns-persist-01"
 - **url** (required, string): The URL to which a response can be posted
 - **status** (required, string): The status of this challenge
-- **accounturi** (required, string): A URI identifying the ACME account requesting validation, using the identifier format specified in {{!RFC8657}}, Section 3. This is the URI the CA expects in the DNS record and the mechanism by which the CA communicates alternative URIs to the client. Clients that pre-provisioned a record using their ACME account URL ({{!RFC8555}}, Section 7.3) SHOULD verify the value identifies the same account.
+- **accounturi** (required, string): A URI identifying the specific ACME account requesting validation or a subscriber account encompassing it (see {{validation-record-format}}), using the identifier format specified in {{!RFC8657}}, Section 3. This is the URI the CA expects in the DNS record and the mechanism by which the CA communicates alternative URIs to the client. Clients that pre-provisioned a record using their ACME account URL ({{!RFC8555}}, Section 7.3) SHOULD verify the value identifies the same account. Note that independent verification is possible for mode 3a (Simple String Comparison), may be possible for mode 3b (if the CA exposes the URI-to-account mapping), and is not possible for mode 3c (clients must trust the CA's subscriber-account association).
 - **issuer-domain-names** (required, array of strings): A list of one or more Issuer Domain Names. The client MUST choose one of these domain names to include in the DNS TXT record. The challenge is successful if a valid TXT record is found that uses any one of the provided domain names.
 
   Each string in the array MUST be a domain name that complies with the following normalization rules:
@@ -156,9 +159,23 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
 2.  The `issuer-domain-name` portion of the issue-value MUST be one of the Issuer Domain Names provided by the CA in the `issuer-domain-names` array of the challenge object. If the `issuer-domain-name` does not match any of the provided values, the CA MUST reject the record.
 
-3.  The issue-value MUST contain an `accounturi` parameter whose value is a URI that identifies the ACME account requesting validation.
+3.  The issue-value MUST contain an `accounturi` parameter whose value is a URI that identifies the ACME account requesting validation, either directly or through a subscriber-account association.
 
-    CAs MUST accept the URI of the ACME account object ({{!RFC8555}}, Section 7.3) as a valid `accounturi` value. CAs MAY also accept other URIs, provided each such URI uniquely and permanently identifies a single ACME account and satisfies the uniqueness requirements of {{!RFC8657}}, Section 5.4. CAs MUST NOT reassign a URI to a different account. When an ACME account is deactivated, CAs MUST treat all URIs associated with that account as invalid for validation purposes. The CA MUST verify that the URI in the DNS record identifies the ACME account making the request; if it does not, the CA MUST reject the record. In the absence of more specific comparison rules, implementations MUST use Simple String Comparison as defined in {{!RFC3986}}, Section 6.2.1.
+    The `accounturi` value MUST conform to one of the following three modes:
+
+    *   **(3a) ACME account URL**: CAs SHOULD accept the URI of the ACME account object ({{!RFC8555}}, Section 7.3) as a valid `accounturi` value. A CA that does not accept the account URL directly MUST provide an alternative URI in the challenge `accounturi` field (mode 3b or 3c) and MUST document the accepted `accounturi` format in its Certificate Policy and/or Certification Practice Statement. A CA that advertises support for the dns-persist-01 challenge type MUST accept at least one form of `accounturi` value.
+
+    *   **(3b) Alternative URI**: CAs MAY accept other URIs, provided each such URI uniquely and permanently identifies a single ACME account and satisfies the uniqueness requirements of {{!RFC8657}}, Section 5.4. CAs MUST NOT reassign a URI to a different account. When an ACME account is deactivated, CAs MUST treat all alternative URIs associated with that account as invalid for validation purposes.
+
+    *   **(3c) Subscriber-account URI**: CAs MAY accept a URI that maps to multiple ACME accounts, provided the accounts constitute a "group of related entities" ({{!RFC8657}}, Section 3). If a CA supports subscriber-account URIs, it MUST enforce the following constraints:
+
+        1.  The CA MUST verify that the requesting ACME account is associated with the subscriber account through its own account management system.
+        2.  The CA MUST document the URI format and association model in its CP/CPS.
+        3.  The CA MUST NOT reassign a subscriber-account URI to a different subscriber. When a subscriber account is deactivated, the CA MUST treat the subscriber-account URI as invalid for validation purposes.
+        4.  The CA MUST log which specific ACME account was used for each validation against a subscriber URI.
+        5.  The CA SHOULD make subscriber-account URIs syntactically distinguishable from per-account URIs. If subscriber-account URIs are not distinguishable, clients and auditors cannot independently determine which verification model applies to a given `accounturi` value.
+
+    For all modes, the CA MUST verify that the URI in the DNS record authorizes the ACME account making the request; if it does not, the CA MUST reject the record.
 
 4.  The issue-value MAY contain a `policy` parameter. If present, this parameter modifies the validation scope. The `policy` parameter follows the 'tag=value' syntax from {{!RFC8659}}. Comparison of the values defined for this parameter MUST be case-insensitive (e.g., "WILDCARD" and "wildcard" are equivalent).
 
@@ -174,7 +191,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
 This specification defines the following case-handling rules for parameter values in dns-persist-01 records:
 
-- `accounturi`: The value is a URI. CAs MUST compare `accounturi` values using Simple String Comparison per {{!RFC3986}}, Section 6.2.1, with no case-folding or other normalization.
+- `accounturi`: The value is a URI. For ACME account URLs and alternative URIs, CAs MUST compare `accounturi` values using Simple String Comparison per {{!RFC3986}}, Section 6.2.1, with no case-folding or other normalization. For Subscriber-account URIs, CAs MUST perform CA-internal verification of the URI.
 - `policy`: Case-insensitive, as specified in item 4 above.
 - `persistUntil`: The value is a base-10 integer. Case does not apply.
 
@@ -188,7 +205,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 
 ## Verification Procedure {#verification-procedure}
 
-The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Validation Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its `issuer-domain-name` value MUST match one of the values provided in the `issuer-domain-names` array from the challenge object, and it MUST contain an `accounturi` parameter that identifies the requesting account. When comparing issuer domain names, the server MUST adhere to the normalization rules specified in {{challenge-object}}. The server also interprets any `policy` parameter values according to this specification. If no record meeting all requirements is found, the server MUST treat the challenge as failed.
+The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Validation Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its `issuer-domain-name` value MUST match one of the values provided in the `issuer-domain-names` array from the challenge object, and it MUST contain an `accounturi` parameter that identifies the requesting account, either directly (modes 3a and 3b) or through subscriber-account association (mode 3c), as defined in {{validation-record-format}}. When comparing issuer domain names, the server MUST adhere to the normalization rules specified in {{challenge-object}}. The server also interprets any `policy` parameter values according to this specification. If no record meeting all requirements is found, the server MUST treat the challenge as failed.
 
 ## Multiple Issuer Support {#multiple-issuer-support}
 
@@ -269,10 +286,12 @@ This mechanism enables efficient reuse of persistent validation records while ma
 
 ## Pre-Provisioning Records {#pre-provisioning-records}
 
-Domain owners MAY provision `_validation-persist` TXT records before any ACME interaction occurs. When constructing records without a challenge object, the following values MUST be used:
+Domain owners MAY provision `_validation-persist` TXT records before requesting any certificates, provided they have obtained an `accounturi` value. When constructing records without a challenge object, the following values MUST be used:
 
-- **accounturi**: The ACME account URL, as returned in the `Location` header of the account creation response ({{!RFC8555}}, Section 7.3).
+- **accounturi**: The ACME account URL, as returned in the `Location` header of the account creation response ({{!RFC8555}}, Section 7.3). If the CA supports subscriber-account URIs (mode 3c, see {{validation-record-format}}), a subscriber-account URI MAY be used instead. Domain owners pre-provisioning with a subscriber-account URI are advised that ACME accounts added to the subscriber relationship after provisioning will automatically inherit the record's validation rights. If the CA returns a different URI in the challenge `accounturi` field (mode 3b or 3c), the client SHOULD update its `_validation-persist` TXT record to use the returned value.
 - **issuer-domain-name**: Clients MAY use the `caaIdentities` array from the ACME directory metadata ({{!RFC8555}}, Section 7.1.1) as a hint for `issuer-domain-name` selection. CAs that populate `caaIdentities` SHOULD ensure these values are consistent with the `issuer-domain-name` values they accept in `dns-persist-01` records. If `caaIdentities` is unavailable, the `issuer-domain-name` MAY be obtained from the CA's Certificate Policy or Certification Practice Statement.
+
+The `accounturi` value used for pre-provisioning is obtained outside the ACME challenge-response flow. The integrity of the pre-provisioned record therefore depends on the integrity of the channel that delivered the `accounturi` value to the domain owner, such as the ACME account creation response, a CA's subscriber portal, or CP/CPS documentation. Domain owners SHOULD obtain `accounturi` values only through authenticated channels to the CA. A value obtained through an unauthenticated or unverifiable channel cannot be distinguished from a substituted one, and validation may bind to an unintended account.
 
 Organizations pre-provisioning records SHOULD maintain an inventory of `_validation-persist` records and the ACME accounts they reference. Records MAY include a `persistUntil` parameter to bound their effective lifetime (see {{persist-until-parameter-considerations}}). Domain owners SHOULD audit `_validation-persist` records after any DNS infrastructure security incident, as pre-provisioned records persist beyond the window of compromise.
 
@@ -336,9 +355,11 @@ Clients SHOULD protect validation records through appropriate DNS security measu
 
 ## Account Binding Security {#account-binding-security}
 
-The `accounturi` parameter provides strong binding between domain validation and specific ACME accounts. However, this binding depends on the security of the ACME account itself.
+The `accounturi` parameter provides strong binding between domain validation and the ACME account or subscriber account identified by the URI. However, this binding depends on the security of the account itself.
 
-The security of this method is fundamentally bound to the security of the ACME account's private key. If this key is compromised, an attacker can immediately use any pre-existing `dns-persist-01` authorizations associated with that account to issue certificates, without needing any further access to the domain's DNS infrastructure. This elevates the importance of secure key management for ACME clients far above that required for transient challenge methods, as the window of opportunity for an attacker is tied to the lifetime of the persistent authorization, not a momentary challenge.
+The security of this method is fundamentally bound to the security of the ACME account's private key. For validation records using an ACME account URL (mode 3a) or an alternative URI (mode 3b), if this key is compromised, an attacker can immediately use any pre-existing `dns-persist-01` authorizations associated with that account to issue certificates, without needing any further access to the domain's DNS infrastructure. This elevates the importance of secure key management for ACME clients far above that required for transient challenge methods, as the window of opportunity for an attacker is tied to the lifetime of the persistent authorization, not a momentary challenge.
+
+For records using a Subscriber-account URI (mode 3c), security is bound to *any* ACME account key associated with that subscriber relationship, plus the security of the subscriber account management system itself.
 
 CAs SHOULD implement robust account security measures, including:
 
@@ -350,9 +371,59 @@ CAs SHOULD implement robust account security measures, including:
 
 Clients SHOULD protect their ACME account keys with the same level of security as they would protect private keys for high-value certificates.
 
+### Subscriber Credential Compromise {#subscriber-credential-compromise}
+
+When a domain uses a Subscriber-account URI (mode 3c) for validation, a compromise of the CA's subscriber account management system (such as a customer portal or API) allows an attacker to add new ACME accounts to the subscriber relationship. These newly added accounts immediately inherit all persistent authorizations granted to the subscriber-account URI. This attack path is distinct from an ACME account key compromise, as it does not require compromising any existing ACME account private key. CAs supporting subscriber-account URIs MUST implement access controls and monitoring for their subscriber account management systems.
+
 ### Account Key Rotation
 
 The `accounturi` parameter is a stable identifier for the ACME account that persists across key rotations. When a client rotates their account key following the procedures defined in {{!RFC8555}}, Section 7.3.5, the `accounturi` remains unchanged. Therefore, existing DNS TXT records containing the `accounturi` parameter do not require modification when performing account key rotations.
+
+### Substitution of the Account URI {#account-uri-substitution}
+
+The `accounturi` parameter binds validation to a specific account, but the
+binding's verifiability varies across modes. A client that pre-provisioned a
+DNS record with one `accounturi` value may receive a different value in the
+challenge object's `accounturi` field. This substitution is not inherently
+malicious — it is the mechanism by which CAs communicate alternative URIs
+(mode 3b) or subscriber-account URIs (mode 3c) to clients. However, it
+creates a verifiability gradient:
+
+- **Mode 3a (ACME account URL):** The client can verify the returned URI
+  against its own account URL using Simple String Comparison
+  ({{!RFC3986}}, Section 6.2.1). A mismatch is detectable.
+
+- **Mode 3b (alternative URI):** The client may be able to verify the
+  returned URI if the CA exposes a URI-to-account mapping. Otherwise, the
+  client must trust the CA's assertion.
+
+- **Mode 3c (subscriber-account URI):** The client cannot independently
+  verify that the returned URI maps to its subscriber relationship.
+  Verification depends entirely on the CA's account management system,
+  which also bounds the scope of emergency mechanisms such as account
+  deactivation ({{revocation-and-invalidation}}).
+
+This gradient means that a CA operating in mode 3b or 3c can direct a client
+to publish a DNS record binding validation to a URI the client cannot
+independently verify. The risk is bounded by the CA's existing trust
+relationship with the subscriber: a CA that substitutes a fraudulent URI
+has already violated its obligations under its CP/CPS and the subscriber
+agreement. The substitution does not grant the CA capabilities it does not
+already possess — a CA can issue certificates for any domain in its scope
+without dns-persist-01 validation.
+
+For ACME account URLs specifically, {{!RFC8555}}, Section 7.3 defines the
+account URL as the stable identifier returned in the Location header at
+account creation. This URL persists across key rollovers ({{!RFC8555}},
+Section 7.3.5), and the account's key authorization ({{!RFC8555}},
+Section 8.1) provides a verifiable cryptographic binding to the current
+account key at any point in time. Neither property is available for
+modes 3b and 3c, where the URI is CA-assigned and opaque.
+
+Verification options for clients that pre-provisioned records correspond
+to the verifiability gradient above; see {{challenge-object}} for the
+normative requirements. Clients unable to verify SHOULD log the
+substitution for operator review.
 
 ### Account URI Privacy {#account-uri-privacy}
 
@@ -360,7 +431,7 @@ Because `_validation-persist` TXT records are publicly queryable and long-lived,
 
 CAs that accept alternative URIs (see item 3 of {{challenge-response-and-verification}}) can mitigate this risk by issuing distinct URIs for each domain or group of domains. Such URIs SHOULD be opaque and not easily enumerable. CAs MUST protect the integrity of any URI-to-account mapping with the same controls applied to other validation infrastructure. CAs that accept alternative URIs SHOULD document their URI issuance and lifecycle policies in their Certificate Policy or Certification Practice Statement.
 
-Domain owners who require privacy without CA cooperation can use separate ACME accounts for domains that should not be correlated. Domain owners and auditors who require independent verifiability SHOULD use the ACME account URL directly, since third parties cannot independently determine which account is bound to an alternative URI.
+Domain owners who require privacy without CA cooperation can use separate ACME accounts for domains that should not be correlated. Note that the use of a Subscriber-account URI (mode 3c) represents a privacy inversion compared to the privacy model of mode 3b: a single visible URI correlates all domains across all ACME accounts belonging to that subscriber. Domain owners who require privacy SHOULD use mode 3b or separate ACME accounts, rather than subscriber-account URIs. Domain owners and auditors who require independent verifiability SHOULD use the ACME account URL directly, since third parties cannot independently determine which account is bound to an alternative URI.
 
 ## Subdomain Validation Risks {#subdomain-validation-risks}
 
@@ -381,6 +452,18 @@ Organizations considering the use of subdomain validation SHOULD:
 - Consider limiting subdomain validation to specific, controlled scenarios
 - Provide clear governance policies for subdomain certificate authority
 
+### Subscriber URIs and Broad Authorization Scope {#subscriber-uris-and-broad-scope}
+
+The introduction of Subscriber-account URIs (mode 3c) creates several interactions that compound to significantly broaden the authorization scope of a single validation record. Domain owners and CAs must understand these combined risks:
+
+1. **Subscriber URIs with Wildcard Policy:** Combining `policy=wildcard` with a Subscriber-account URI creates the broadest possible authorization this protocol can express. It permits any ACME account associated with the subscriber to issue certificates for any subdomain of the validated domain, for the entire lifetime of the DNS record. If a single ACME account key under that subscriber is compromised out of potentially hundreds of thousands, the attacker gains unlimited subdomain issuance capability for the domain. Organizations using this combination are RECOMMENDED to strongly limit the record lifetime using the `persistUntil` parameter.
+2. **Subscriber URIs with Just-in-Time Validation:** Just-in-Time (JIT) validation eliminates the detection window inherent in challenge-response validation. When JIT validation is used with a Subscriber-account URI, any account under the subscriber gets immediate, undetectable JIT access to issue certificates, including accounts that did not exist when the validation record was originally provisioned.
+3. **Subscriber URIs and Pre-Provisioning:** As described in {{pre-provisioning-records}}, new ACME accounts created after a Subscriber-account URI is provisioned automatically inherit its validation rights. The domain owner relies entirely on the CA's subscriber account management system and has no direct visibility into which specific ACME accounts are being granted authorization by their DNS record.
+
+Note that once the `adn` response field is defined, it composes with `policy=wildcard` and subscriber URIs to further broaden authorization scope.
+
+Further security considerations regarding the revocation of these broad authorizations are discussed in {{revocation-and-invalidation}}, the semantic differences in account comparison are detailed in {{challenge-response-and-verification}} (item 3), the privacy implications are noted in {{account-uri-privacy}}, and the risks of subscriber credential compromise are covered in {{subscriber-credential-compromise}}.
+
 ## Cross-CA Validation Reuse {#cross-ca-validation-reuse}
 
 The persistent nature of validation records raises concerns about potential reuse across different Certificate Authorities. While the `issuer-domain-name` parameter is designed to prevent such reuse, implementations MUST validate that the `issuer-domain-name` in the DNS record matches the CA's disclosed Issuer Domain Name.
@@ -391,11 +474,19 @@ DNS records are generally not authenticated end-to-end, making them potentially 
 
 Additionally, CAs SHOULD protect their `ACME directory URL` with appropriate security measures. Using DNSSEC to protect the CA's `ACME directory URL` is RECOMMENDED. An attacker who compromises the DNS for a CA's `ACME directory URL` could disrupt validation or potentially impersonate the CA in certain scenarios. While this is a systemic DNS security risk that extends beyond this specification, it is amplified by any mechanism that relies on DNS for identity.
 
+### DNS Spoofing Amplification with Subscriber URIs {#dns-spoofing-amplification-with-subscriber-uris}
+
+The value of a spoofed `_validation-persist` TXT record to an attacker is significantly amplified when the spoofed record uses a Subscriber-account URI. If an attacker manages to spoof a DNS response containing a Subscriber-account URI, they can use *any* compromised ACME key associated with that subscriber to issue certificates for the spoofed domain. This amplification of risk further emphasizes the necessity of strong DNS security measures, such as DNSSEC, when operating ACME infrastructure.
+
 ## Issuer Domain Name Normalization and Limits
 
 The `issuer-domain-names` field requires domain names to be provided in a normalized form (lowercase A-labels, no trailing dot) to prevent errors and security issues arising from case-sensitivity differences or Unicode homograph attacks. By requiring a canonical representation, servers and clients can perform simple byte-for-byte comparisons, ensuring interoperability and deterministic validation. The order of names in the array has no significance.
 
 The server-side limit on the number of issuer domain names provided in a single challenge (e.g., 10) helps mitigate denial-of-service vectors where a client might be forced to perform an excessive number of DNS queries or a server might be burdened by validating against a large set of domains.
+
+## CAA Interaction {#caa-interaction}
+
+The `dns-persist-01` validation method is a valid `validationmethods` parameter value for CAA records per {{!RFC8657}}. Note that CAA `accounturi` and `dns-persist-01` `accounturi` are independent reinforcing checks — both can restrict issuance, and subscriber URIs in one do not automatically apply to the other.
 
 ## DNS Security Measures {#dns-security-measures}
 
@@ -430,11 +521,21 @@ The `persistUntil` parameter provides domain owners with direct control over the
 
 ## Revocation and Invalidation of Persistent Authorizations {#revocation-and-invalidation}
 
-The persistent nature of `dns-persist-01` authorizations means that a valid DNS TXT record can grant control for an extended period, potentially even if the domain owner's intent changes or if the associated ACME account key is compromised. Therefore, explicit mechanisms for revoking or invalidating these persistent authorizations are critical.
+The persistent nature of `dns-persist-01` authorizations means that a valid DNS TXT record can grant control for an extended period, potentially even if the domain owner's intent changes or if the associated account key is compromised. Therefore, explicit mechanisms for revoking or invalidating these persistent authorizations are critical. The available actions and their effects depend on the `accounturi` mode used in the validation record.
 
-The primary method for an Applicant to invalidate a `dns-persist-01` authorization for a domain is to **remove the corresponding DNS TXT record** from the Validation Domain Name. After the record is removed and resolver caches have expired, new validation attempts for the domain will fail. This behavior represents a deliberate design trade-off: any existing authorization obtained via this method will remain valid until it expires as per the CA's Validation Data Reuse Period. This persistence underscores the importance of protecting the ACME account key.
+There are three primary revocation and invalidation actions:
 
-For situations requiring immediate revocation of issuance capability, such as a suspected account key compromise, the primary and most effective mechanism is to **deactivate the ACME account** as specified in {{!RFC8555}}, Section 7.3.6. Deactivating the account immediately and irrevocably prevents it from being used for any further certificate issuance.
+1. **Remove DNS record:** Removing the corresponding DNS TXT record from the Validation Domain Name is the standard method for an Applicant to invalidate a `dns-persist-01` authorization. After the record is removed and resolver caches have expired, new validation attempts for the domain will fail. This action applies to all three `accounturi` modes.
+2. **Deactivate ACME account:** For situations requiring immediate revocation of issuance capability (e.g., suspected account key compromise), an ACME account can be deactivated as specified in {{!RFC8555}}, Section 7.3.6. For modes 3a (ACME URL) and 3b (Alternative URI), this serves as a full emergency measure, effectively invalidating the record's utility. For mode 3c (Subscriber-account URI), deactivating a single compromised ACME account prevents that ACME account from using the subscriber-level authorization, but does NOT affect other associated ACME accounts or invalidate the subscriber-level record.
+3. **Deactivate subscriber account:** For mode 3c only, an immediate deactivation of the entire subscriber account is required. When a subscriber account is deactivated, all associated ACME accounts immediately lose their validation rights derived from the subscriber-account URI. CAs supporting subscriber-account URIs MUST provide this mechanism.
+
+The following table summarizes the applicability and timing of these actions across the three modes:
+
+| Action | 3a (ACME URL) | 3b (Alt URI) | 3c (Subscriber) |
+|---|---|---|---|
+| Remove DNS record | ✓ (after cache expiry) | ✓ (after cache expiry) | ✓ (after cache expiry) |
+| Deactivate ACME account | ✓ (immediate) | ✓ (immediate) | ✗ (only that account) |
+| Deactivate subscriber account | N/A | N/A | ✓ (immediate, all accounts) |
 
 ACME Clients SHOULD provide clear mechanisms for users to:
 
@@ -535,7 +636,8 @@ When implementing the "dns-persist-01" validation method, Certificate Authoritie
 - CAs SHOULD return a `malformed` error (as defined in {{!RFC8555}}) when the TXT record has invalid syntax, such as duplicate parameters, invalid timestamp format in the `persistUntil` parameter, missing mandatory `accounturi` parameter, or other syntactic violations of the record format specified in this document.
 
 - CAs SHOULD return an `unauthorized` error (as defined in {{!RFC8555}}) when validation fails due to authorization issues, including:
-   - The `accounturi` parameter in the DNS TXT record does not identify the ACME account making the request
+   - The `accounturi` parameter in the DNS TXT record does not identify the ACME account making the request (modes 3a and 3b)
+   - The `accounturi` parameter contains a subscriber-account URI (mode 3c) but the requesting ACME account is not associated with the claimed subscriber in the CA's account management system
    - The `persistUntil` timestamp has expired, indicating that the validation record is no longer considered valid for new validation attempts
    - The `issuer-domain-name` in the DNS TXT record does not match any of the values provided in the `issuer-domain-names` array of the challenge object
 
