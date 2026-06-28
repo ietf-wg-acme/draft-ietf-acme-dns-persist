@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-06-21T02:44:37.287451+00:00",
+  "timestamp": "2026-06-28T02:33:39.495644+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -1455,7 +1455,7 @@
       "labels": [],
       "body": "Having the dns-persist-01 record contain only information provided by the ACME server opens the possibility for Meddler-in-the-Middle attacks. The attack flow would be something like:\n- Set up a malicious ACME server\n- Get a victim to configure your server's directory URL in their ACME client\n- When the victim registers an account with your server, register a new account with a real ACME server, and return _that_ account's URI verbatim\n- When the victim provisions a dns-persist-01 record, the record will actually authorize the attacker's ACME account at the real CA; the attacker can now issue arbitrary certificates for the victim's domain\n\nThe original RFC 8555 discusses this exact attack in its [Security Considerations section](https://datatracker.ietf.org/doc/html/rfc8555#section-10.2). The mitigation used by those original ACME challenges is that the token the Applicant needs to present consists of two parts:\n1. The random value provided by the server; and\n2. A hash of the applicant's ACME account public key\n\nImportantly, (2) is computed entirely offline -- both the ACME client and the ACME server compute it independently. And while the malicious actor _can_ compute the hash of the victim's pubkey (it's public, after all), the malicious actor _can't_ convince the ACME server that that's the Key Authorization it should be looking for. When the malicious actor tries to get a cert for the victim's domain from the real ACME server, that server will expect to see a hash of the _attacker's_ pubkey, and there's no reason for the victim to have provisioned that value.\n\nThus, I believe that dns-persist-01, in order to mitigate this same attack, must include a value computed over the applicant's ACME client pubkey.\n\nI will note that this introduces a tradeoff: improve security by keeping DNS API credentials far away from webservers and ACME clients, but impair security by preventing applicants from rotating their ACME client keys. If anyone has suggestions for how to prevent this attack without also preventing key rotation, I'd love to hear it.\n\nSee this thread on the ACME mailing list for further discussion: https://mailarchive.ietf.org/arch/msg/acme/i_kd1g7vFaWO8x3_Ukh6Iz3nems/",
       "createdAt": "2026-05-15T22:49:11Z",
-      "updatedAt": "2026-06-05T07:24:20Z",
+      "updatedAt": "2026-06-27T17:17:56Z",
       "closedAt": null,
       "comments": [
         {
@@ -1534,6 +1534,202 @@
           "body": "Another thing I want to point out, is that we do NOT have to register \"pubkey:\" with IANA or similiar.\n\nHere is why:\nThe scheme does not have any meaningful usage outside of DNS-PERSIST-01 records. Thus, a browser or similiar does not need to care about \"pubkey:\" scheme.\n\nIf \"pubkey:\" scheme is registred by another entity, that scheme would not have any meaningful usage inside ACME, so both ACME-\"pubkey:\" and non-ACME-\"pubkey:\" can coexist in the same space, in the same way a shoe and a router can choose the same trademarked name.",
           "createdAt": "2026-06-05T07:22:19Z",
           "updatedAt": "2026-06-05T07:24:20Z"
+        },
+        {
+          "author": "aarongable",
+          "authorAssociation": "NONE",
+          "body": "Apologies, I'm having a little difficulty understanding some of the back-and-forth here. Let me see if I can clarify things.\n\nSome of the discussion above seems to assume that there will be some dns-persist-01 mechanisms (3a and 3b?) which do not incorporate client-computed account key binding, and some mechanisms (3c) which do. In my opinion this is not acceptable. All forms of dns-persist-01 need to include this binding; as long as there is any way to complete dns-persist-01 without a key authorization equivalent, the security hole stands.\n\nI think that this hard line also resolves most of the debate above about whether a client can tell that the ACME server is providing them with a privacy URL or not. It shouldn't matter. The client must _always_ perform some local computation based on their account key before populating the dns-persist-01 record.",
+          "createdAt": "2026-06-25T15:43:52Z",
+          "updatedAt": "2026-06-25T15:43:52Z"
+        },
+        {
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "body": "@aarongable There appears to be an a proposal for a client generated record by computing SHA-256(pubkey || account-uri || domain), this would replace mode 3a (server provided ACME account URI) and mode 3b (per challenge server provided account URI).\n\nMode 3c (subscriber account URI) authorises multiple accounts and specifically allows an ACME account to be authorised by a record provisioned before the ACME account or its keypair has been created. I'm not sure how to secure this use case. See https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/57 for the motivations.\nhttps://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/blob/80fee73a1100614c6acaaba6a0badeb8f90d3c3b/draft-ietf-acme-dns-persist.md?plain=1#L170-L176",
+          "createdAt": "2026-06-25T16:22:46Z",
+          "updatedAt": "2026-06-25T16:22:46Z"
+        },
+        {
+          "author": "aarongable",
+          "authorAssociation": "NONE",
+          "body": "I'm sorry I didn't comment on that bug/PR while it was open, but I think it was a bad change for several reasons:\n- It places requirements on what a CA must document in their CP/CPS: that's the domain of PKI policy, not an IETF standard.\n- It adds a whole new account-coalescing mechanism that a) has no equivalent elsewhere in acme, and b) doesn't even take advantage of the mechanism acme already has for this, namely External Account Binding.\n- It seems focused on extending ACME to support non-ACME use-cases. If a Subscriber has 100k ACME accounts, that's an issue for the CA to solve, not an issue for ACME to solve. Having multiple ACME accounts is explicitly outside the ACME protocol, not within it.\n\nI think it is a mistake for us to view this draft as an attempt to standardize something _bigger and better than_ the existing DNS Persistent Validation in the BRs. Rather, we should be standardizing something _smaller and tighter_, with even simpler implementation and better security properties. That was the approach taken for all of the original validation methods in RFC 8555.",
+          "createdAt": "2026-06-25T16:34:30Z",
+          "updatedAt": "2026-06-25T16:34:30Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "body": "@aarongable I however, don't think we should FORCE privacy URLs (ergo domain-unique URLs) on everyone. It should be up to the end user if they want domain-unique URLs or not.\n\nThe proposed change means ACME clients must provision a unique value per domain. I think privacy URLs should be completely optional, meaning that if client-computed information is to be included, its either accounturi + publickey, or my proposed publickey mode.\n\nIn this way, a DNS operator can point multiple records against a single validation record (for example: _validation-persist.domain.tld CNAME validationrecord.masterdomain.com) which IS a supported mode according to the CAB/F rules.\n\nI also don't think there should be a requirement to create an order before you can provision a dns-persist-01 record, so no tokens or similiar things that have been proposed.\n\nSince we don't have any \"key rollover\" mechanism for HTTP-01 and DNS-01, I don't think we should have any for DNS-PERSIST-01 either. If the user wants to change account key, he have to provision new DNS-PERSIST-01 records, change account key, and then delete the old DNS-PERSIST-01 records. Thats how its done for DNSSEC.\n\nNo reason to save old account keys (which can both be a security implication, but also a problem if the removed account key is moved to a new account - so you suddenly have a key that is valid for multiple accounts accordin to DNS-PERSIST-01).\n\n\nOne way to solve this, so client-computed information is required, BUT allow non-privacy URLs would be to allow the URL to be:\n\n`sha256(pubkey || accounturi || *) - * as in asterisk, wildcard character.`\n\nSo if you want to use privacy URI, you use:\n\n`sha256(pubkey || accounturi || domain)`\n\nThis DO have privacy implications if you mix both non-privacy URLs and privacy URLs for the same account.\nAn attacker could then potentially find out the privacy URLs based on the non-privacy one - so a ACME user that wants privacy, must potentially ensure they use privacy URLs for all their domains.",
+          "createdAt": "2026-06-25T16:49:49Z",
+          "updatedAt": "2026-06-25T16:56:43Z"
+        },
+        {
+          "author": "aarongable",
+          "authorAssociation": "NONE",
+          "body": "I think this approach makes sense. Some nitpicks:\n- It feels like the final result of this is not an `accounturi=pubkey:...` scheme, but rather an `accounturi=keyauth:...` scheme. That seems good to me, but worth pointing out explicitly.\n- I don't think there's any reason to hash an asterisk into the non-privacy version?\n- What's the mechanism by which an attacker can find the privacy URLs based on the non-privacy one? For them to do that they'd need to be able to compute the preimage of the non-privacy URL's hash, which is assumed to be infeasible,.",
+          "createdAt": "2026-06-25T17:12:42Z",
+          "updatedAt": "2026-06-25T17:12:42Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "body": "@aarongable \n1: Keyauth means that there is a token value somewhere that needs to be fetched. So to provision the dns-persist-01 record, they must create a order. Im strongly against that idea, since that goes against the idea of persistent record.\n\n2: I think its good for consistency. A null value is fine aswell.\n\n3: @MaxHearnden showed some examples where you could back off sha256 one step only and then somehow find out two hashes belongs to the same account or key.",
+          "createdAt": "2026-06-25T17:17:07Z",
+          "updatedAt": "2026-06-25T17:17:07Z"
+        },
+        {
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "body": "I outlined the attack here, https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/61#issuecomment-4443182076. in short, given two keyauths from the same account for different domains or a keyauth + account URI (e.g. from a CAA record), you can determine SHA-256(pubkey || `https://acm`) and the account URI (if you don't already have it). This can then be stored in a table and other keyauths can be checked against the pair in one hash operation. I'm assuming a 2048 bit RSA key to calculate the key lengths.\n\nTo protect against this at the cost of one extra hash operation, HMAC(pubkey, account_uri || domain) could be used instead or another key could be used and shared between the CA and client.",
+          "createdAt": "2026-06-25T17:23:33Z",
+          "updatedAt": "2026-06-25T17:35:38Z"
+        },
+        {
+          "author": "aarongable",
+          "authorAssociation": "NONE",
+          "body": "> Keyauth means that there is a token value somewhere that needs to be fetched. So to provision the dns-persist-01 record, they must create a order. Im strongly against that idea, since that goes against the idea of persistent record.\n\nIt would, _if_ this were an RFC 8555 ACME Key Authorization. That's not what I said, though, I just used the work `keyauth` as a scheme identifier because the thing we're putting in there is clearly closely related to a Key Authorization (serves the exact same security purpose, though the construction is different). We can use something else. But it's definitely not a `pubkey:` anymore, either.\n\n> To protect against this at the cost of one extra hash operation, HMAC(pubkey, account_uri || domain) could be used instead or another key could be used and shared between the CA and client.\n\nNo need, just use two different-length domain separators. The normal one can be `base64url(sha256(\"dns-persist-01\" || pubkey || accounturl))` and the privacy one can be `base64url(sha256(\"dns-persist-01 privacy\" || pubkey || accounturi || domain))`. Right?\n",
+          "createdAt": "2026-06-25T17:42:00Z",
+          "updatedAt": "2026-06-25T17:42:42Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "body": "@aarongable now I understand. Of course you need a scheme to fulfill the CAB/F requirement that it must be a URL.\nBut it could be anything, and the scheme does NOT need to be registred with IANA since its unique for DNS-PERSIST-01 (The usage inside DNS-PERSIST-01 will never clash with usage outside of DNS-PERSIST-01 and any usage outside of DNS-PERSIST-01 will never clash with DNS-PERSIST-01).\n\nmaybe let the scheme be the hash function:\n\n`sha256:<hash>`\n\nMaking it agnostic and easy to upgrade hash algorim in the furure.\n\nI would suggest completely different labels however.\nNormal urls:\n`dns-persist-01`\nprivacy urls:\n`privacy-enhanced-persist`",
+          "createdAt": "2026-06-25T17:51:29Z",
+          "updatedAt": "2026-06-25T17:53:38Z"
+        },
+        {
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "body": "> No need, just use two different-length domain separators. The normal one can be `base64url(sha256(\"dns-persist-01\" || pubkey || accounturl))` and the privacy one can be `base64url(sha256(\"dns-persist-01 privacy\" || pubkey || accounturi || domain))`. Right?\n\nThe primary issue is that SHA-256 is reversible with regards to the state i.e. given a 64 byte block and the state immediately after that block (for the final block this is the full digest) the state before that block can be determined. HMAC solves this by making the second block unpredictable using a second keyed digest, dns-01 puts the token and public key in the same block to make that block hard to brute force.",
+          "createdAt": "2026-06-25T18:05:40Z",
+          "updatedAt": "2026-06-25T18:05:40Z"
+        },
+        {
+          "author": "orangepizza",
+          "authorAssociation": "NONE",
+          "body": "so we need something like sha384/sha512/256(that uses truncate result of 512 state machine)  here?",
+          "createdAt": "2026-06-26T05:45:52Z",
+          "updatedAt": "2026-06-26T05:45:52Z"
+        },
+        {
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "body": "That would effectively add (base hash length - truncation length) bits of length extension resistance that even for SHA-384 (128 bits truncated) would almost entirely stop the attack I've described. HMAC (or another MAC which offers collision resistance) where the key is the public key would give stronger length extension resistance if necessary.\n\nI've now got a new concern, there doesn't appear to be any separation between the account URI and the domain i.e. assuming two accounts have the same public key (not necessarily at the same time), an authorisation for e.g. https://acme-v02.api.letsencrypt.org/acme/acct/3330940296 for a domain e.g. www.example.com could authorise an account e.g. https://acme-v02.api.letsencrypt.org/acme/acct/333094029 for a domain e.g. 6www.example.com.",
+          "createdAt": "2026-06-26T08:23:44Z",
+          "updatedAt": "2026-06-26T08:23:44Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "body": "@MaxHearnden No. Because the domain is picked up from where the record is placed (ergo, strip `_validation-persist`), not the domain the requestor is asking for.\n\nSo a record placed at `_validation-persist.6www.example.com` would actually mean account 333094029, and a record placed at `_validation-persist.www.example.com` would actually mean account 3330940296.\n\nThere is no risk of \"cross contamination\" here.",
+          "createdAt": "2026-06-26T09:27:29Z",
+          "updatedAt": "2026-06-26T09:27:29Z"
+        },
+        {
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "body": "If a authoritative records for a domain e.g. www.example.com is served from a wildcard e.g. *.example.com, then the correct location for the TXT record would also be *.example.com to prevent www.example.com from becoming an empty non-terminal domain.\n\nIn this scenario, the account URI would not uniquely identify a single account and therefore might not meet CA/B requirements.",
+          "createdAt": "2026-06-26T09:39:17Z",
+          "updatedAt": "2026-06-26T09:39:17Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "body": "@MaxHearnden Thats not possible, due to the `_validation-persist` prefix.\nUnless your DNS server can synthetise wildcard records for `_validation-persist.*.example.com` (which usually requires LUA scripting or split-horizon configurations).\n\nAnd IF someone creates such a configuration, but does NOT tell the DNS engine to actually create a hash dynamically, then it can from the CAB/F point of view be seen as 2 separate records, one authorizing 333094029 for 6www.example.com and one authorizing 3330940296 for www.example.com.\n\nBecause thats whats its technically is - you have a server dynamically creating DNS responses on-the-fly (like a PHP script) instead of a static zonefile.",
+          "createdAt": "2026-06-26T09:44:06Z",
+          "updatedAt": "2026-06-26T09:44:06Z"
+        },
+        {
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "body": "_validation-persist.www.example.com would still be covered by a wildcard for *.example.com. To demonstrate this, I've setup a demo at wildcard.zandoodle.me.uk where all subdomains have a TXT record. Apart from dns.zandoodle.me.uk, the name servers get the zone contents via IXFR/AXFR and should show stock DNS behaviour.\n\nCurrently the CA/B forum baseline requirements require (https://cabforum.org/working-groups/server/baseline-requirements/requirements/#322422-dns-txt-record-with-persistent-value) that the accounturi parameter is a unique URI as described by [RFC 8657](https://www.rfc-editor.org/info/rfc8657/) section 3. [Section 5.4 paragraph 5](https://www.rfc-editor.org/info/rfc8657/#section-5.4-5) requires that the URI is unique across all domain names (issuer-domain-names) that the server recognises.\n\nHaving same account URI refer to different accounts, even in different contexts (but still using a recognised issuer-domain-name) would violate CA/B rules.",
+          "createdAt": "2026-06-26T10:44:29Z",
+          "updatedAt": "2026-06-26T10:44:29Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "body": "@MaxHearnden I tested it and I see now how you have done. This could actually be a issue. Not just with the hash, but overall, since it could be actually cause issues with CAA records aswell that have the same format as content.\n\nMight be solved by requiring the CA to look up `_validation-nonpersist._validation-persist.domain.tld` and that value MUST return NXDOMAIN for validation to succeed.\n\nThis means a domain owner can effectively block DNS-PERSIST-01 by putting a TXT at `_validation-nonpersist._validation-persist.domain.tld`.\n\nBy having a \"anti-validation record\", this prevents * from synthesising validation records, which could create this issue, because * would also match the anti-validation record.\nThis would completely solve the issue, since then it requires a deliberate configuration (to have a wildcard that returns NXDOMAIN for _validation-nonpersist._validation-persist) which then can from CAB/F point of view, be considered 2 separate records that authorizes both accounts to issue.\n\n",
+          "createdAt": "2026-06-26T11:02:42Z",
+          "updatedAt": "2026-06-26T11:11:48Z"
+        },
+        {
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "body": "That would cause issues if a domain uses a name server which uses Compact Denial of Existence (https://datatracker.ietf.org/doc/html/rfc9824) and the CA uses a DNSSEC validating resolver which doesn't support response code restoration.\n\nI also can't see how that would fix the regulatory issues.",
+          "createdAt": "2026-06-26T11:12:41Z",
+          "updatedAt": "2026-06-26T11:12:41Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "body": "@MaxHearnden It would fix the regulatory issue, because if you block validation records synthesising from a wildcard, then you CAN argue that the 2 different records that are returned, lets say from:\n\n`_validation-persist.6www.example.com`\nand\n`_validation-persist.www.example.com`\n\nwith the same hash, referring to 2 different accounts, is actually 2 separate records, and not the same record, because you have deliberately blocked the possibility that those are the same record.\n\nIf someone then configures a DNS server deliberately so it bypasses this blockage (by having a PowerDNS script return negative for _validation-nonpersist._validation-persist) then its from a external point of view, can be considered 2 separate records.",
+          "createdAt": "2026-06-26T11:15:52Z",
+          "updatedAt": "2026-06-26T11:15:52Z"
+        },
+        {
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "body": "My regulatory concerns are not with the reuse of a record, but with the reuse of an account URI. Having the same account URI validate different accounts would violate the requirements in RFC 8657 for an accounturi paramenter.\n\nIn addition a CNAME (maybe synthesised from a DNAME record) could be setup at _validation-persist.6www.example.com pointing at _validation-persist.www.example.com so the _validation-nonpersist test wouldn't work in this situation.",
+          "createdAt": "2026-06-26T11:51:32Z",
+          "updatedAt": "2026-06-26T11:51:32Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "body": "@MaxHearnden Correct, but if that \"reuse\" comes from the reuse of a record, and you block the UNINTENTIONAL reuse of a record, then you have mitigated the reuse of account URI. Then its acceptable from the CAB/F rules.\n\nAnd your second concern - thats a deliberate config, that means the intention from the domain owner is that the second account should be authorized to issue for the domain.\n\nThe _validation-nonpersist is to specifically prevent wildcards from  reusing validation records without intention from the domain owner.\n\nIt could be done with a separator, but then it becomes ambigious what domain should be in case of a non-privacy URL.\nShould it end with a separator?\n\nMaybe its better to actually use * then?\n\nSo a non-privacy url is:\n\n`sha256('dns-persist-01|' || public_key || \"|\" || accounturi || \"|*\")`\n\nand a privacy url is:\n\n`sha256('privacy-enhanced-persist|' || public_key || \"|\" || accounturi || \"|\" || domain)`",
+          "createdAt": "2026-06-26T14:59:52Z",
+          "updatedAt": "2026-06-26T14:59:52Z"
+        },
+        {
+          "author": "orangepizza",
+          "authorAssociation": "NONE",
+          "body": "How server can verify something unknown hashed? It is this * literal  star character?\r\n\r\nOn 2026\ub144 6\uc6d4 27\uc77c \uc624\uc804 12\uc2dc 0\ubd84 16\ucd08 GMT+09:00, Sebastian Nielsen ***@***.***> \uc791\uc131\ud568:\r\n>sebastiannielsen left a comment (ietf-wg-acme/draft-ietf-acme-dns-persist#64)\r\n>\r\n>@MaxHearnden Correct, but if that \"reuse\" comes from the reuse of a record, and you block the UNINTENTIONAL reuse of a record, then you have mitigated the reuse of account URI. Then its acceptable from the CAB/F rules.\r\n>\r\n>And your second concern - thats a deliberate config, that means the intention from the domain owner is that the second account should be authorized to issue for the domain.\r\n>\r\n>The _validation-nonpersist is to specifically prevent wildcards from  reusing validation records without intention from the domain owner.\r\n>\r\n>It could be done with a separator, but then it becomes ambigious what domain should be in case of a non-privacy URL.\r\n>Should it end with a separator?\r\n>\r\n>Maybe its better to actually use * then?\r\n>\r\n>So a non-privacy url is:\r\n>\r\n>`sha256('dns-persist-01|' || public_key || \"|\" || accounturi || \"|*\")`\r\n>\r\n>and a privacy url is:\r\n>\r\n>`sha256('privacy-enhanced-persist|' || public_key || \"|\" || accounturi || \"|\" || domain)`\r\n>\r\n>-- \r\n>Reply to this email directly or view it on GitHub:\r\n>https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/64#issuecomment-4810744634\r\n>You are receiving this because you commented.\r\n>\r\n>Message ID: ***@***.***>",
+          "createdAt": "2026-06-26T15:03:36Z",
+          "updatedAt": "2026-06-26T15:03:36Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "body": "@orangepizza yes in the non-privacy version it is the literal * character.\n\nThats why its between the \" along with the separator.",
+          "createdAt": "2026-06-26T15:05:16Z",
+          "updatedAt": "2026-06-26T15:05:16Z"
+        },
+        {
+          "author": "orangepizza",
+          "authorAssociation": "NONE",
+          "body": "Maybe c like null terminated strings could work; or some reordering loke\nlike hash( domain || \"dns-persist\" || account url || pubkey) so we can use dns-persist string itself as saparater, and pubkey itself should be fixed size so it doesn't need saparater",
+          "createdAt": "2026-06-26T15:14:07Z",
+          "updatedAt": "2026-06-26T15:14:07Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "body": "@orangepizza that would work very well aswell.\n\nSince pubkey is part of the account, there is no risk of a partial account uri pointing somewhere else.\n\nSo that becomes:\n\nnon-privacy:\n`hash( \"dns-persist\" || account url || pubkey)`\n\nprivacy\n`hash( domain || \"privacy-enhanced-persist\" || account url || pubkey)`\n\n\nand lets agree that the scheme should be `sha256:` (so other hash algoritms can be added in the future).\n\n\nLets agree that pubkey should be in JWK thumbprint format (since most ACME software already have functions to calculate that today)",
+          "createdAt": "2026-06-26T15:41:12Z",
+          "updatedAt": "2026-06-26T15:41:12Z"
+        },
+        {
+          "author": "webprofusion-chrisc",
+          "authorAssociation": "NONE",
+          "body": "TLDR; We appear to be debating how to prevent issuance within an already compromised client system/process. If the client system is already compromised why doesn't it just grab the account key or trick the user into supplying it.\n\nAm I missing something obvious?",
+          "createdAt": "2026-06-27T03:07:35Z",
+          "updatedAt": "2026-06-27T03:07:35Z"
+        },
+        {
+          "author": "orangepizza",
+          "authorAssociation": "NONE",
+          "body": "This is about malicious actor that can control acme server but nothing else (Ex: acme.sh RCE thing https://groups.google.com/a/mozilla.org/g/dev-security-policy/c/heXVr8o83Ys )\nOr mitm attacker sitting at CDN of acme CA",
+          "createdAt": "2026-06-27T04:03:32Z",
+          "updatedAt": "2026-06-27T04:03:32Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "body": "@orangepizza Partially correct. Its not about a attacker sitting in the CDN of the CA. If the CA is compromised, the attacker can go in into the admin panel and push \"issue certificate\" button for any domain he sees fit, even google.com\n\nThats why CAs need strong firewalls (like those for PCI DSS enviroments) and their physical datacenters have multiple access control gateways with mantraps/airlocks to get into sensitive areas. Just because of this, if the ACME server - which is part of the issuance infrastructure - gets comrpomised, you can really just go in and push \"issue certificate\" for anything in the world. So the CAs need to undergo audits to ensure their physical and digital security is so top notch they can't get comrpomised.\n\nIts more about where the link between client and server is compromised somehow. Either by DNS manipulation, MITM, or even so simple as \"typosquatting\" where the attacker registers a similiar domain, lets say \"leysencrypt.org\" (y is close to t on keyboard) and creates a malicious ACME server, who returns values belongning to the real ACME account of a attacker. Or even a supply chain attack where the binary of a ACME client is modified in a undetectable way so the adress to the CA is replaced with a malicious directory URL.\n\nThe problem here with DNS-PERSIST-01 is that the client have to fully trust the server, as opposed to all other validation methods where client makes a local calculation, and thus foils any attack where the server is returning attacker-belonging values to the ACME client. In this way, by remaking DNS-PERSIST-01 so it includes a client-calculated value based on account key - it completely prevents any attack where a client is fooled into accepting attacker-supplied values.",
+          "createdAt": "2026-06-27T17:02:35Z",
+          "updatedAt": "2026-06-27T17:17:56Z"
         }
       ]
     }
@@ -3904,13 +4100,13 @@
       "labels": [],
       "body": "Closes https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/63 if merged\r\n\r\nThis because issuer-domain-name is just a opaque value, and \"protecting\" that value with DNSSEC - especially if its a legacy domain name that the CA does not own anymore, will not give any security advantage.\r\n\r\nIt would be analogous to protecting a sign outside a bank with heavy security but have glass doors to the vault.\r\n\r\nThe sensitive resource for a CA - that needs protecting - is the ACME Directory URL - also called Server URL. Thats the sensitive ACME resource the CA owns and is the root of trust for the ACME client.",
       "createdAt": "2026-05-17T15:57:22Z",
-      "updatedAt": "2026-06-19T12:31:31Z",
+      "updatedAt": "2026-06-26T09:56:09Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "80fee73a1100614c6acaaba6a0badeb8f90d3c3b",
       "headRepository": "sebastiannielsen/draft-ietf-acme-dns-persist",
       "headRefName": "patch-2",
-      "headRefOid": "861ec2bccdcf81d899d92106ba49e85823207688",
+      "headRefOid": "c5d0b626ac76e24af406e98c02a0378937d9285d",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -3957,6 +4153,13 @@
           "body": "I am fine going with this change and I see why keeping the language makes sense. Requiring the pub key stuff to be mandatory is something that has been floated but I feel is much larger in scope than this paragraph change.",
           "createdAt": "2026-06-19T12:31:31Z",
           "updatedAt": "2026-06-19T12:31:31Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "NONE",
+          "body": "@birgelee Now I replied to the question if it should be merged into main or rebased (I choose to merge into main) so now it should be all set to actually approve and merge completely when you want.\r\n\r\nThere is a discussion making key authorization mandatory for DNS-PERSIST-01 so might be better to wait until that is completed - and actually scrap the portion about DNSSEC and DNS Security if its changed so Key Authorization is always mandatory.",
+          "createdAt": "2026-06-26T09:52:10Z",
+          "updatedAt": "2026-06-26T09:56:09Z"
         }
       ],
       "reviews": []
