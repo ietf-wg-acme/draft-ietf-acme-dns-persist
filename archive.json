@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-06-28T02:33:39.495644+00:00",
+  "timestamp": "2026-06-30T02:28:15.540021+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -1455,7 +1455,7 @@
       "labels": [],
       "body": "Having the dns-persist-01 record contain only information provided by the ACME server opens the possibility for Meddler-in-the-Middle attacks. The attack flow would be something like:\n- Set up a malicious ACME server\n- Get a victim to configure your server's directory URL in their ACME client\n- When the victim registers an account with your server, register a new account with a real ACME server, and return _that_ account's URI verbatim\n- When the victim provisions a dns-persist-01 record, the record will actually authorize the attacker's ACME account at the real CA; the attacker can now issue arbitrary certificates for the victim's domain\n\nThe original RFC 8555 discusses this exact attack in its [Security Considerations section](https://datatracker.ietf.org/doc/html/rfc8555#section-10.2). The mitigation used by those original ACME challenges is that the token the Applicant needs to present consists of two parts:\n1. The random value provided by the server; and\n2. A hash of the applicant's ACME account public key\n\nImportantly, (2) is computed entirely offline -- both the ACME client and the ACME server compute it independently. And while the malicious actor _can_ compute the hash of the victim's pubkey (it's public, after all), the malicious actor _can't_ convince the ACME server that that's the Key Authorization it should be looking for. When the malicious actor tries to get a cert for the victim's domain from the real ACME server, that server will expect to see a hash of the _attacker's_ pubkey, and there's no reason for the victim to have provisioned that value.\n\nThus, I believe that dns-persist-01, in order to mitigate this same attack, must include a value computed over the applicant's ACME client pubkey.\n\nI will note that this introduces a tradeoff: improve security by keeping DNS API credentials far away from webservers and ACME clients, but impair security by preventing applicants from rotating their ACME client keys. If anyone has suggestions for how to prevent this attack without also preventing key rotation, I'd love to hear it.\n\nSee this thread on the ACME mailing list for further discussion: https://mailarchive.ietf.org/arch/msg/acme/i_kd1g7vFaWO8x3_Ukh6Iz3nems/",
       "createdAt": "2026-05-15T22:49:11Z",
-      "updatedAt": "2026-06-27T17:17:56Z",
+      "updatedAt": "2026-06-28T03:12:07Z",
       "closedAt": null,
       "comments": [
         {
@@ -1730,6 +1730,13 @@
           "body": "@orangepizza Partially correct. Its not about a attacker sitting in the CDN of the CA. If the CA is compromised, the attacker can go in into the admin panel and push \"issue certificate\" button for any domain he sees fit, even google.com\n\nThats why CAs need strong firewalls (like those for PCI DSS enviroments) and their physical datacenters have multiple access control gateways with mantraps/airlocks to get into sensitive areas. Just because of this, if the ACME server - which is part of the issuance infrastructure - gets comrpomised, you can really just go in and push \"issue certificate\" for anything in the world. So the CAs need to undergo audits to ensure their physical and digital security is so top notch they can't get comrpomised.\n\nIts more about where the link between client and server is compromised somehow. Either by DNS manipulation, MITM, or even so simple as \"typosquatting\" where the attacker registers a similiar domain, lets say \"leysencrypt.org\" (y is close to t on keyboard) and creates a malicious ACME server, who returns values belongning to the real ACME account of a attacker. Or even a supply chain attack where the binary of a ACME client is modified in a undetectable way so the adress to the CA is replaced with a malicious directory URL.\n\nThe problem here with DNS-PERSIST-01 is that the client have to fully trust the server, as opposed to all other validation methods where client makes a local calculation, and thus foils any attack where the server is returning attacker-belonging values to the ACME client. In this way, by remaking DNS-PERSIST-01 so it includes a client-calculated value based on account key - it completely prevents any attack where a client is fooled into accepting attacker-supplied values.",
           "createdAt": "2026-06-27T17:02:35Z",
           "updatedAt": "2026-06-27T17:17:56Z"
+        },
+        {
+          "author": "webprofusion-chrisc",
+          "authorAssociation": "NONE",
+          "body": "Thanks @sebastiannielsen that's a great illustrative example, given that domain is in fact available.",
+          "createdAt": "2026-06-28T03:12:07Z",
+          "updatedAt": "2026-06-28T03:12:07Z"
         }
       ]
     }
