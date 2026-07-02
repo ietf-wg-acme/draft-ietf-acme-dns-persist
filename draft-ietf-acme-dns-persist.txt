@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 14 November 2026                          Crosslayer Labs, Inc.
+Expires: 3 January 2027                            Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                             13 May 2026
+                                                             2 July 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -63,7 +63,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 14 November 2026.
+   This Internet-Draft will expire on 3 January 2027.
 
 Copyright Notice
 
@@ -1042,13 +1042,13 @@ Table of Contents
    posture of the DNS infrastructure when relying on persistent
    validation records.
 
-   Additionally, CAs SHOULD protect their issuer-domain-name with
-   appropriate security measures.  Using DNSSEC to protect the CA's
-   issuer-domain-name is RECOMMENDED.  An attacker who compromises the
-   DNS for a CA's issuer-domain-name could disrupt validation or
-   potentially impersonate the CA in certain scenarios.  While this is a
-   systemic DNS security risk that extends beyond this specification, it
-   is amplified by any mechanism that relies on DNS for identity.
+   Additionally, CAs SHOULD protect their ACME directory URL with
+   appropriate security measures.  Using DNSSEC to protect the CA's ACME
+   directory URL is RECOMMENDED.  An attacker who compromises the DNS
+   for a CA's ACME directory URL could disrupt validation or potentially
+   impersonate the CA in certain scenarios.  While this is a systemic
+   DNS security risk that extends beyond this specification, it is
+   amplified by any mechanism that relies on DNS for identity.
 
 7.5.1.  DNS Spoofing Amplification with Subscriber URIs
 
