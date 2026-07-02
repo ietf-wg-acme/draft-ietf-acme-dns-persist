@@ -472,7 +472,7 @@ The persistent nature of validation records raises concerns about potential reus
 
 DNS records are generally not authenticated end-to-end, making them potentially vulnerable to tampering. CAs SHOULD implement additional integrity checks where possible and consider the overall security posture of the DNS infrastructure when relying on persistent validation records.
 
-Additionally, CAs SHOULD protect their `issuer-domain-name` with appropriate security measures. Using DNSSEC to protect the CA's `issuer-domain-name` is RECOMMENDED. An attacker who compromises the DNS for a CA's `issuer-domain-name` could disrupt validation or potentially impersonate the CA in certain scenarios. While this is a systemic DNS security risk that extends beyond this specification, it is amplified by any mechanism that relies on DNS for identity.
+Additionally, CAs SHOULD protect their `ACME directory URL` with appropriate security measures. Using DNSSEC to protect the CA's `ACME directory URL` is RECOMMENDED. An attacker who compromises the DNS for a CA's `ACME directory URL` could disrupt validation or potentially impersonate the CA in certain scenarios. While this is a systemic DNS security risk that extends beyond this specification, it is amplified by any mechanism that relies on DNS for identity.
 
 ### DNS Spoofing Amplification with Subscriber URIs {#dns-spoofing-amplification-with-subscriber-uris}
 
