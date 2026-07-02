@@ -119,7 +119,7 @@ The challenge object for "dns-persist-01" contains the following fields:
 - **type** (required, string): The string "dns-persist-01"
 - **url** (required, string): The URL to which a response can be posted
 - **status** (required, string): The status of this challenge
-- **accounturi** (required, string): A URI identifying the specific ACME account requesting validation or a subscriber account encompassing it (see {{validation-record-format}}), using the identifier format specified in {{!RFC8657}}, Section 3. This is the URI the CA expects in the DNS record and the mechanism by which the CA communicates alternative URIs to the client. Clients that pre-provisioned a record using their ACME account URL ({{!RFC8555}}, Section 7.3) SHOULD verify the value identifies the same account. Note that independent verification is possible for mode 3a (Simple String Comparison), may be possible for mode 3b (if the CA exposes the URI-to-account mapping), and is not possible for mode 3c (clients must trust the CA's subscriber-account association).
+- **accounturis** (required, array of strings): A list of URIs identifying the specific ACME account requesting validation or a subscriber account encompassing it (see {{validation-record-format}}), using the identifier format specified in {{!RFC8657}}, Section 3. The list MAY contain the subscriber's account URL, a hashed account URI (defined in Section X), and/or a URI representing an authorized subscriber account that this ACME account is operating under.
 - **issuer-domain-names** (required, array of strings): A list of one or more Issuer Domain Names. The client MUST choose one of these domain names to include in the DNS TXT record. The challenge is successful if a valid TXT record is found that uses any one of the provided domain names.
 
   Each string in the array MUST be a domain name that complies with the following normalization rules:
@@ -165,7 +165,23 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
     *   **(3a) ACME account URL**: CAs SHOULD accept the URI of the ACME account object ({{!RFC8555}}, Section 7.3) as a valid `accounturi` value. A CA that does not accept the account URL directly MUST provide an alternative URI in the challenge `accounturi` field (mode 3b or 3c) and MUST document the accepted `accounturi` format in its Certificate Policy and/or Certification Practice Statement. A CA that advertises support for the dns-persist-01 challenge type MUST accept at least one form of `accounturi` value.
 
-    *   **(3b) Alternative URI**: CAs MAY accept other URIs, provided each such URI uniquely and permanently identifies a single ACME account and satisfies the uniqueness requirements of {{!RFC8657}}, Section 5.4. CAs MUST NOT reassign a URI to a different account. When an ACME account is deactivated, CAs MUST treat all alternative URIs associated with that account as invalid for validation purposes.
+    *   **(3b) Hashed URI**: CAs MAY accept hashed URIs using this schema. A hashed URI is constructed via the following syntax:
+
+    ~~~
+    https://<ACME directory server host domain name>/.well-known/acme-account-hash/<Base64_URL hash value>
+    ~~~
+
+    Here `<ACME directory server host domain name>` is the DNS hostname of the ACME account URL used by the subscriber. `<Base64_URL hash value>` is the Base64_URL encoding of the sha256 hash digest constructed with the following inputs:
+
+    ~~~
+    sha256(domain_name || key || account URL)
+    ~~~
+
+    Where:
+    1. domain_name is the domain where the dns-persist record is being placed (no trailing dot) with the leading "_dns-persist" label pruned.
+    2. key is the JWK public key associated with that ACME account.
+    3. account URL is the ACME subscriber's account URL.
+
 
     *   **(3c) Subscriber-account URI**: CAs MAY accept a URI that maps to multiple ACME accounts, provided the accounts constitute a "group of related entities" ({{!RFC8657}}, Section 3). If a CA supports subscriber-account URIs, it MUST enforce the following constraints:
 
@@ -393,9 +409,8 @@ creates a verifiability gradient:
   against its own account URL using Simple String Comparison
   ({{!RFC3986}}, Section 6.2.1). A mismatch is detectable.
 
-- **Mode 3b (alternative URI):** The client may be able to verify the
-  returned URI if the CA exposes a URI-to-account mapping. Otherwise, the
-  client must trust the CA's assertion.
+- **Mode 3b (hashed URI):** The client can compute the hashed URI independently using its own account URL, account public key, and domain name where the DNS-persist record is placed. Simple String Comparison
+  ({{!RFC3986}}, Section 6.2.1) can be used to detect a mismatch.
 
 - **Mode 3c (subscriber-account URI):** The client cannot independently
   verify that the returned URI maps to its subscriber relationship.
@@ -569,6 +584,13 @@ IANA is requested to register the following entry in the "Underscored and Global
 
 - **RR Type**: TXT
 - **_NODE NAME**: _validation-persist
+- **Reference**: This document
+
+## Well-Known URIs Names Registry {#well-known-uris}
+
+IANA is requested to register the following entry in the "Well-Known URIs Names" registry defined in {{!RFC8615}}:
+
+- **URI Suffix**: acme-account-hash
 - **Reference**: This document
 
 # Implementation Considerations {#implementation-considerations}
