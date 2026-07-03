@@ -119,7 +119,7 @@ The challenge object for "dns-persist-01" contains the following fields:
 - **type** (required, string): The string "dns-persist-01"
 - **url** (required, string): The URL to which a response can be posted
 - **status** (required, string): The status of this challenge
-- **accounturis** (required, array of strings): A list of URIs identifying the specific ACME account requesting validation or a subscriber account encompassing it (see {{validation-record-format}}), using the identifier format specified in {{!RFC8657}}, Section 3. The list MAY contain the subscriber's account URL, a hashed account URI (defined in Section X), and/or a URI representing an authorized subscriber account that this ACME account is operating under.
+- **accounturis** (required, array of strings): A list of URIs identifying the specific ACME account requesting validation or a subscriber account encompassing it (see {{validation-record-format}}), using the identifier format specified in {{!RFC8657}}, Section 3. The list MAY contain the subscriber's account URL, a hashed account URI (mode 3b, defined in {{validation-record-format}}), and/or a URI representing an authorized subscriber account that this ACME account is operating under.
 - **issuer-domain-names** (required, array of strings): A list of one or more Issuer Domain Names. The client MUST choose one of these domain names to include in the DNS TXT record. The challenge is successful if a valid TXT record is found that uses any one of the provided domain names.
 
   Each string in the array MUST be a domain name that complies with the following normalization rules:
@@ -137,7 +137,7 @@ The following shows an example challenge object:
   "type": "dns-persist-01",
   "url": "https://ca.example/acme/authz/1234/0",
   "status": "pending",
-  "accounturi": "https://ca.example/acct/123",
+  "accounturis": ["https://ca.example/acct/123"],
   "issuer-domain-names": ["authority.example", "ca.example.net"]
 }
 ~~~
@@ -163,25 +163,25 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
     The `accounturi` value MUST conform to one of the following three modes:
 
-    *   **(3a) ACME account URL**: CAs SHOULD accept the URI of the ACME account object ({{!RFC8555}}, Section 7.3) as a valid `accounturi` value. A CA that does not accept the account URL directly MUST provide an alternative URI in the challenge `accounturi` field (mode 3b or 3c) and MUST document the accepted `accounturi` format in its Certificate Policy and/or Certification Practice Statement. A CA that advertises support for the dns-persist-01 challenge type MUST accept at least one form of `accounturi` value.
+    *   **(3a) ACME account URL**: CAs SHOULD accept the URI of the ACME account object ({{!RFC8555}}, Section 7.3) as a valid `accounturi` value. A CA that does not accept the account URL directly MUST provide an alternative URI in the challenge `accounturis` field (mode 3b or 3c) and MUST document the accepted `accounturi` format in its Certificate Policy and/or Certification Practice Statement. A CA that advertises support for the dns-persist-01 challenge type MUST accept at least one form of `accounturi` value.
 
-    *   **(3b) Hashed URI**: CAs MAY accept hashed URIs using this schema. A hashed URI is constructed via the following syntax:
+    *   **(3b) Hashed URI**: CAs MAY accept hashed URIs. A hashed URI is constructed via the following syntax:
 
-    ~~~
-    https://<ACME directory server host domain name>/.well-known/acme-account-hash/<Base64_URL hash value>
-    ~~~
+        ~~~
+        https://<ACME account URL host>/.well-known/acme-account-hash/<base64url hash value>
+        ~~~
 
-    Here `<ACME directory server host domain name>` is the DNS hostname of the ACME account URL used by the subscriber. `<Base64_URL hash value>` is the Base64_URL encoding of the sha256 hash digest constructed with the following inputs:
+        Here `<ACME account URL host>` is the DNS hostname of the ACME account URL used by the subscriber. `<base64url hash value>` is the base64url encoding {{!RFC4648}} of the SHA-256 {{!RFC6234}} hash digest computed over the following inputs:
 
-    ~~~
-    sha256(domain_name || key || account URL)
-    ~~~
+        ~~~
+        SHA-256(domain_name || 0x00 || key || account_URL)
+        ~~~
 
-    Where:
-    1. domain_name is the domain where the dns-persist record is being placed (no trailing dot) with the leading "_dns-persist" label pruned.
-    2. key is the JWK public key associated with that ACME account.
-    3. account URL is the ACME subscriber's account URL.
+        where `||` denotes octet-string concatenation and `0x00` is a single NUL octet separating `domain_name` from the fields that follow. A NUL octet cannot appear in `domain_name`, so it unambiguously marks the end of that field; `key` is a fixed 32 octets, so the boundary between `key` and `account_URL` is unambiguous as well. The inputs are:
 
+        1. `domain_name` is the FQDN being validated (the Validation Domain Name with its leading `_validation-persist` label removed, no trailing dot), in the normalized lowercase A-label form produced by {{normalization-algorithm}}. This form is US-ASCII.
+        2. `key` is the 32-octet SHA-256 JWK Thumbprint {{!RFC7638}} of the public key associated with that ACME account, as raw digest octets (not base64url-encoded).
+        3. `account_URL` is the ACME account URL used by the subscriber ({{!RFC8555}}, Section 7.3). A URI is US-ASCII per {{!RFC3986}}, so it is encoded as those US-ASCII octets.
 
     *   **(3c) Subscriber-account URI**: CAs MAY accept a URI that maps to multiple ACME accounts, provided the accounts constitute a "group of related entities" ({{!RFC8657}}, Section 3). If a CA supports subscriber-account URIs, it MUST enforce the following constraints:
 
@@ -207,7 +207,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
 This specification defines the following case-handling rules for parameter values in dns-persist-01 records:
 
-- `accounturi`: The value is a URI. For ACME account URLs and alternative URIs, CAs MUST compare `accounturi` values using Simple String Comparison per {{!RFC3986}}, Section 6.2.1, with no case-folding or other normalization. For Subscriber-account URIs, CAs MUST perform CA-internal verification of the URI.
+- `accounturi`: The value is a URI. For ACME account URLs and hashed URIs, CAs MUST compare `accounturi` values using Simple String Comparison per {{!RFC3986}}, Section 6.2.1, with no case-folding or other normalization. For Subscriber-account URIs, CAs MUST perform CA-internal verification of the URI.
 - `policy`: Case-insensitive, as specified in item 4 above.
 - `persistUntil`: The value is a base-10 integer. Case does not apply.
 
@@ -304,7 +304,7 @@ This mechanism enables efficient reuse of persistent validation records while ma
 
 Domain owners MAY provision `_validation-persist` TXT records before requesting any certificates, provided they have obtained an `accounturi` value. When constructing records without a challenge object, the following values MUST be used:
 
-- **accounturi**: The ACME account URL, as returned in the `Location` header of the account creation response ({{!RFC8555}}, Section 7.3). If the CA supports subscriber-account URIs (mode 3c, see {{validation-record-format}}), a subscriber-account URI MAY be used instead. Domain owners pre-provisioning with a subscriber-account URI are advised that ACME accounts added to the subscriber relationship after provisioning will automatically inherit the record's validation rights. If the CA returns a different URI in the challenge `accounturi` field (mode 3b or 3c), the client SHOULD update its `_validation-persist` TXT record to use the returned value.
+- **accounturi**: The ACME account URL, as returned in the `Location` header of the account creation response ({{!RFC8555}}, Section 7.3). If the CA supports subscriber-account URIs (mode 3c, see {{validation-record-format}}), a subscriber-account URI MAY be used instead. Domain owners pre-provisioning with a subscriber-account URI are advised that ACME accounts added to the subscriber relationship after provisioning will automatically inherit the record's validation rights. If the challenge `accounturis` field does not contain the URI the client pre-provisioned (mode 3b or 3c), the client SHOULD update its `_validation-persist` TXT record to use one of the returned values.
 - **issuer-domain-name**: Clients MAY use the `caaIdentities` array from the ACME directory metadata ({{!RFC8555}}, Section 7.1.1) as a hint for `issuer-domain-name` selection. CAs that populate `caaIdentities` SHOULD ensure these values are consistent with the `issuer-domain-name` values they accept in `dns-persist-01` records. If `caaIdentities` is unavailable, the `issuer-domain-name` MAY be obtained from the CA's Certificate Policy or Certification Practice Statement.
 
 The `accounturi` value used for pre-provisioning is obtained outside the ACME challenge-response flow. The integrity of the pre-provisioned record therefore depends on the integrity of the channel that delivered the `accounturi` value to the domain owner, such as the ACME account creation response, a CA's subscriber portal, or CP/CPS documentation. Domain owners SHOULD obtain `accounturi` values only through authenticated channels to the CA. A value obtained through an unauthenticated or unverifiable channel cannot be distinguished from a substituted one, and validation may bind to an unintended account.
@@ -373,7 +373,7 @@ Clients SHOULD protect validation records through appropriate DNS security measu
 
 The `accounturi` parameter provides strong binding between domain validation and the ACME account or subscriber account identified by the URI. However, this binding depends on the security of the account itself.
 
-The security of this method is fundamentally bound to the security of the ACME account's private key. For validation records using an ACME account URL (mode 3a) or an alternative URI (mode 3b), if this key is compromised, an attacker can immediately use any pre-existing `dns-persist-01` authorizations associated with that account to issue certificates, without needing any further access to the domain's DNS infrastructure. This elevates the importance of secure key management for ACME clients far above that required for transient challenge methods, as the window of opportunity for an attacker is tied to the lifetime of the persistent authorization, not a momentary challenge.
+The security of this method is fundamentally bound to the security of the ACME account's private key. For validation records using an ACME account URL (mode 3a) or a hashed URI (mode 3b), if this key is compromised, an attacker can immediately use any pre-existing `dns-persist-01` authorizations associated with that account to issue certificates, without needing any further access to the domain's DNS infrastructure. This elevates the importance of secure key management for ACME clients far above that required for transient challenge methods, as the window of opportunity for an attacker is tied to the lifetime of the persistent authorization, not a momentary challenge.
 
 For records using a Subscriber-account URI (mode 3c), security is bound to *any* ACME account key associated with that subscriber relationship, plus the security of the subscriber account management system itself.
 
@@ -399,9 +399,9 @@ The `accounturi` parameter is a stable identifier for the ACME account that pers
 
 The `accounturi` parameter binds validation to a specific account, but the
 binding's verifiability varies across modes. A client that pre-provisioned a
-DNS record with one `accounturi` value may receive a different value in the
-challenge object's `accounturi` field. This substitution is not inherently
-malicious — it is the mechanism by which CAs communicate alternative URIs
+DNS record with one `accounturi` value may receive different values in the
+challenge object's `accounturis` field. This substitution is not inherently
+malicious — it is the mechanism by which CAs communicate hashed URIs
 (mode 3b) or subscriber-account URIs (mode 3c) to clients. However, it
 creates a verifiability gradient:
 
@@ -444,9 +444,9 @@ substitution for operator review.
 
 Because `_validation-persist` TXT records are publicly queryable and long-lived, the `accounturi` value is visible to any party that queries DNS. When the same URI appears in records for multiple domains, third parties can infer that those domains share the same ACME account and likely share infrastructure. This correlation risk is noted in {{!RFC8657}}, Section 5.9.
 
-CAs that accept alternative URIs (see item 3 of {{challenge-response-and-verification}}) can mitigate this risk by issuing distinct URIs for each domain or group of domains. Such URIs SHOULD be opaque and not easily enumerable. CAs MUST protect the integrity of any URI-to-account mapping with the same controls applied to other validation infrastructure. CAs that accept alternative URIs SHOULD document their URI issuance and lifecycle policies in their Certificate Policy or Certification Practice Statement.
+CAs that accept hashed URIs (see item 3 of {{challenge-response-and-verification}}) can mitigate this risk by issuing distinct URIs for each domain or group of domains. Such URIs SHOULD be opaque and not easily enumerable. CAs MUST protect the integrity of any URI-to-account mapping with the same controls applied to other validation infrastructure. CAs that accept hashed URIs SHOULD document their URI issuance and lifecycle policies in their Certificate Policy or Certification Practice Statement.
 
-Domain owners who require privacy without CA cooperation can use separate ACME accounts for domains that should not be correlated. Note that the use of a Subscriber-account URI (mode 3c) represents a privacy inversion compared to the privacy model of mode 3b: a single visible URI correlates all domains across all ACME accounts belonging to that subscriber. Domain owners who require privacy SHOULD use mode 3b or separate ACME accounts, rather than subscriber-account URIs. Domain owners and auditors who require independent verifiability SHOULD use the ACME account URL directly, since third parties cannot independently determine which account is bound to an alternative URI.
+Domain owners who require privacy without CA cooperation can use separate ACME accounts for domains that should not be correlated. Note that the use of a Subscriber-account URI (mode 3c) represents a privacy inversion compared to the privacy model of mode 3b: a single visible URI correlates all domains across all ACME accounts belonging to that subscriber. Domain owners who require privacy SHOULD use mode 3b or separate ACME accounts, rather than subscriber-account URIs. Domain owners and auditors who require independent verifiability SHOULD use the ACME account URL directly, since third parties cannot independently determine which account is bound to a hashed URI.
 
 ## Subdomain Validation Risks {#subdomain-validation-risks}
 
@@ -541,12 +541,12 @@ The persistent nature of `dns-persist-01` authorizations means that a valid DNS 
 There are three primary revocation and invalidation actions:
 
 1. **Remove DNS record:** Removing the corresponding DNS TXT record from the Validation Domain Name is the standard method for an Applicant to invalidate a `dns-persist-01` authorization. After the record is removed and resolver caches have expired, new validation attempts for the domain will fail. This action applies to all three `accounturi` modes.
-2. **Deactivate ACME account:** For situations requiring immediate revocation of issuance capability (e.g., suspected account key compromise), an ACME account can be deactivated as specified in {{!RFC8555}}, Section 7.3.6. For modes 3a (ACME URL) and 3b (Alternative URI), this serves as a full emergency measure, effectively invalidating the record's utility. For mode 3c (Subscriber-account URI), deactivating a single compromised ACME account prevents that ACME account from using the subscriber-level authorization, but does NOT affect other associated ACME accounts or invalidate the subscriber-level record.
+2. **Deactivate ACME account:** For situations requiring immediate revocation of issuance capability (e.g., suspected account key compromise), an ACME account can be deactivated as specified in {{!RFC8555}}, Section 7.3.6. For modes 3a (ACME URL) and 3b (Hashed URI), this serves as a full emergency measure, effectively invalidating the record's utility. For mode 3c (Subscriber-account URI), deactivating a single compromised ACME account prevents that ACME account from using the subscriber-level authorization, but does NOT affect other associated ACME accounts or invalidate the subscriber-level record.
 3. **Deactivate subscriber account:** For mode 3c only, an immediate deactivation of the entire subscriber account is required. When a subscriber account is deactivated, all associated ACME accounts immediately lose their validation rights derived from the subscriber-account URI. CAs supporting subscriber-account URIs MUST provide this mechanism.
 
 The following table summarizes the applicability and timing of these actions across the three modes:
 
-| Action | 3a (ACME URL) | 3b (Alt URI) | 3c (Subscriber) |
+| Action | 3a (ACME URL) | 3b (Hashed URI) | 3c (Subscriber) |
 |---|---|---|---|
 | Remove DNS record | ✓ (after cache expiry) | ✓ (after cache expiry) | ✓ (after cache expiry) |
 | Deactivate ACME account | ✓ (immediate) | ✓ (immediate) | ✗ (only that account) |
@@ -586,12 +586,15 @@ IANA is requested to register the following entry in the "Underscored and Global
 - **_NODE NAME**: _validation-persist
 - **Reference**: This document
 
-## Well-Known URIs Names Registry {#well-known-uris}
+## Well-Known URIs Registry {#well-known-uris}
 
-IANA is requested to register the following entry in the "Well-Known URIs Names" registry defined in {{!RFC8615}}:
+IANA is requested to register the following entry in the "Well-Known URIs" registry defined in {{!RFC8615}}:
 
 - **URI Suffix**: acme-account-hash
-- **Reference**: This document
+- **Change Controller**: IETF
+- **Specification Document(s)**: This document
+- **Status**: permanent
+- **Related Information**: None
 
 # Implementation Considerations {#implementation-considerations}
 
@@ -699,7 +702,7 @@ For validation of "example.com" by a CA using "authority.example" as its Issuer 
       "type": "dns-persist-01",
       "url": "https://ca.example/acme/authz/1234/0",
       "status": "pending",
-      "accounturi": "https://ca.example/acct/123",
+      "accounturis": ["https://ca.example/acct/123"],
       "issuer-domain-names": ["authority.example", "ca.example.net"]
     }
     ~~~
