@@ -180,7 +180,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
         where `||` denotes octet-string concatenation and `0x00` is a single NUL octet separating `domain_name` from the fields that follow. A NUL octet cannot appear in `domain_name`, so it unambiguously marks the end of that field; `key` is a fixed 32 octets, so the boundary between `key` and `account_URL` is unambiguous as well. The inputs are:
 
         1. `domain_name` is the FQDN being validated (the Validation Domain Name with its leading `_validation-persist` label removed, no trailing dot), in the normalized lowercase A-label form produced by {{normalization-algorithm}}. This form is US-ASCII.
-        2. `key` is the 32-octet SHA-256 JWK Thumbprint {{!RFC7638}} of the public key associated with that ACME account, as raw digest octets (not base64url-encoded).
+        2. `key` is the 32-octet SHA-256 JWK Thumbprint {{!RFC7638}} of the public key associated with that ACME account, as raw digest octets (not base64url-encoded). If an ACME account has previously rotated keys, a prior account key that was previously associated with this account MAY be used. A CA MUST accept Hashed URIs generated with previous ACME account keys.
         3. `account_URL` is the ACME account URL used by the subscriber ({{!RFC8555}}, Section 7.3). A URI is US-ASCII per {{!RFC3986}}, so it is encoded as those US-ASCII octets.
 
     *   **(3c) Subscriber-account URI**: CAs MAY accept a URI that maps to multiple ACME accounts, provided the accounts constitute a "group of related entities" ({{!RFC8657}}, Section 3). If a CA supports subscriber-account URIs, it MUST enforce the following constraints:
@@ -222,6 +222,8 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 ## Verification Procedure {#verification-procedure}
 
 The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Validation Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its `issuer-domain-name` value MUST match one of the values provided in the `issuer-domain-names` array from the challenge object, and it MUST contain an `accounturi` parameter that identifies the requesting account, either directly (modes 3a and 3b) or through subscriber-account association (mode 3c), as defined in {{validation-record-format}}. When comparing issuer domain names, the server MUST adhere to the normalization rules specified in {{challenge-object}}. The server also interprets any `policy` parameter values according to this specification. If no record meeting all requirements is found, the server MUST treat the challenge as failed.
+
+To verify a mode-3b (Hashed URI) `accounturi` value, the CA already knows the requesting account's URL and the FQDN being validated. The CA computes the expected hashed URI as defined in {{validation-record-format}} for each key associated with that account since the CA began accepting persistent DNS validation. The CA treats the record as satisfying mode 3b if its `accounturi` value equals one of these computed hashed URIs under Simple String Comparison ({{!RFC3986}}, Section 6.2.1). Retaining an account's prior key thumbprints allows records provisioned before a key rotation to continue validating.
 
 ## Multiple Issuer Support {#multiple-issuer-support}
 
@@ -391,7 +393,7 @@ Clients SHOULD protect their ACME account keys with the same level of security a
 
 When a domain uses a Subscriber-account URI (mode 3c) for validation, a compromise of the CA's subscriber account management system (such as a customer portal or API) allows an attacker to add new ACME accounts to the subscriber relationship. These newly added accounts immediately inherit all persistent authorizations granted to the subscriber-account URI. This attack path is distinct from an ACME account key compromise, as it does not require compromising any existing ACME account private key. CAs supporting subscriber-account URIs MUST implement access controls and monitoring for their subscriber account management systems.
 
-### Account Key Rotation
+### Account Key Rotation {#account-key-rotation}
 
 The `accounturi` parameter is a stable identifier for the ACME account that persists across key rotations. When a client rotates their account key following the procedures defined in {{!RFC8555}}, Section 7.3.5, the `accounturi` remains unchanged. Therefore, existing DNS TXT records containing the `accounturi` parameter do not require modification when performing account key rotations.
 
@@ -444,9 +446,21 @@ substitution for operator review.
 
 Because `_validation-persist` TXT records are publicly queryable and long-lived, the `accounturi` value is visible to any party that queries DNS. When the same URI appears in records for multiple domains, third parties can infer that those domains share the same ACME account and likely share infrastructure. This correlation risk is noted in {{!RFC8657}}, Section 5.9.
 
-CAs that accept hashed URIs (see item 3 of {{challenge-response-and-verification}}) can mitigate this risk by issuing distinct URIs for each domain or group of domains. Such URIs SHOULD be opaque and not easily enumerable. CAs MUST protect the integrity of any URI-to-account mapping with the same controls applied to other validation infrastructure. CAs that accept hashed URIs SHOULD document their URI issuance and lifecycle policies in their Certificate Policy or Certification Practice Statement.
-
 Domain owners who require privacy without CA cooperation can use separate ACME accounts for domains that should not be correlated. Note that the use of a Subscriber-account URI (mode 3c) represents a privacy inversion compared to the privacy model of mode 3b: a single visible URI correlates all domains across all ACME accounts belonging to that subscriber. Domain owners who require privacy SHOULD use mode 3b or separate ACME accounts, rather than subscriber-account URIs. Domain owners and auditors who require independent verifiability SHOULD use the ACME account URL directly, since third parties cannot independently determine which account is bound to a hashed URI.
+
+### Hashed Account URIs (Mode 3b) {#hashed-uri-security}
+
+A hashed URI (mode 3b, {{validation-record-format}}) lets a subscriber commit to an ACME account URL in a `_validation-persist` record without publishing that account URL in cleartext. Its purpose is to reduce the correlation and mass-surveillance exposure described in {{account-uri-privacy}}. It does not hide the account from the CA, which necessarily learns the account URL when it validates the record.
+
+**Source of the authorization binding.** The security of mode 3b derives entirely from the subscriber's commitment to the account URL, exactly as in mode 3a. Because SHA-256 is collision resistant, publishing a digest computed over `account_URL` in a DNS record is a statement of intent to authorize that account that is comparable to publishing the account URL directly.
+
+**Role of the account key.** ACME account URLs are frequently low in entropy — for example, a short, sequential account identifier of only a handful of digits. An adversary who knows a CA's account-URL structure could enumerate all plausible account URLs, hash each against a target domain, and recover the account URL behind a published digest, defeating the privacy goal. The account key's JWK Thumbprint is included solely as a high-entropy input that raises the cost of this enumeration. The key is an obfuscation input, not an authorization factor.
+
+Including `domain_name` in the digest additionally causes the same account to produce a different value in every domain's record, so a bulk observer cannot correlate domains by matching identical `accounturi` strings, as it could with a shared cleartext account URL.
+
+**Acceptance of prior keys.** Because the key serves only as entropy and not as an authorization factor, a digest computed with any key ever associated with the account expresses the same commitment to the account URL. CAs therefore accept digests generated with an account's previous keys ({{validation-record-format}}, item 3b), which allows records to survive account key rotation ({{!RFC8555}}, Section 7.3.5) without republication.
+
+**Limits of the privacy protection.** This construction is a best-effort obfuscation, not a cryptographically-strong privacy mechanism. It resists bulk correlation and casual enumeration of account URLs, but a determined adversary or one with a-priori knowledge of candidate account URLs and their account keys can recover the true account URL. Domain owners who require stronger unlinkability SHOULD use separate ACME accounts for domains that must not be correlated.
 
 ## Subdomain Validation Risks {#subdomain-validation-risks}
 
