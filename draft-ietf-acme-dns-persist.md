@@ -163,7 +163,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
     The `accounturi` value MUST conform to one of the following three modes:
 
-    *   **(3a) ACME account URL**: CAs SHOULD accept the URI of the ACME account object ({{!RFC8555}}, Section 7.3) as a valid `accounturi` value. A CA that does not accept the account URL directly MUST document the accepted `accounturi` format (mode 3b or 3c) in its Certificate Policy and/or Certification Practice Statement. A CA that advertises support for the dns-persist-01 challenge type MUST accept at least one form of `accounturi` value.
+    *   **(3a) ACME account URL**: CAs SHOULD accept the URI of the ACME account object ({{!RFC8555}}, Section 7.3) as a valid `accounturi` value. A CA that does not accept the account URL directly MUST accept mode 3b or mode 3c and make its accepted `accounturi` format discoverable to clients as specified for that mode: via the `accountHashPrefix` directory metadata field (mode 3b) or Certificate Policy and/or Certification Practice Statement documentation (mode 3c). A CA that advertises support for the dns-persist-01 challenge type MUST accept at least one form of `accounturi` value.
 
     *   **(3b) Hashed URI**: CAs MAY accept hashed URIs. A hashed URI is the concatenation of the CA's `accountHashPrefix` and a base64url hash value:
 
@@ -171,7 +171,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
         <accountHashPrefix><base64url hash value>
         ~~~
 
-        A CA that accepts hashed URIs MUST advertise an `accountHashPrefix` string in the `meta` object of its directory ({{!RFC8555}}, Section 7.1.1). This prefix places hashed account URIs under the CA's infrastructure and lets a client construct them from the directory without a per-provisioning request to the CA. The CA MUST choose a prefix such that appending the base64url hash value yields a valid URI (for example, `https://acme.example/account-hash/`). `<base64url hash value>` is the base64url encoding {{!RFC4648}}, with trailing padding (`=`) omitted, of the SHA-256 {{!RFC6234}} hash digest computed over the following inputs:
+        A CA that accepts hashed URIs MUST advertise an `accountHashPrefix` string in the `meta` object of its directory ({{!RFC8555}}, Section 7.1.1). This prefix places hashed account URIs under the CA's infrastructure and lets a client construct them from the directory without a per-provisioning request to the CA. The CA MUST choose a prefix such that appending the base64url hash value yields a valid URI (for example, `https://ca.example/account-hash/`). `<base64url hash value>` is the base64url encoding {{!RFC4648}}, with trailing padding (`=`) omitted, of the SHA-256 {{!RFC6234}} hash digest computed over the following inputs:
 
         ~~~
         SHA-256(domain_name || 0x00 || key || account_URL)
@@ -685,6 +685,29 @@ For validation of "example.com" by a CA using "authority.example" as its Issuer 
     ~~~
 
 3.  CA validates the record through DNS queries. This validation is sufficient only for "example.com".
+
+
+## Mode 3b Hashed-URI Example {#mode-3b-example}
+
+This example validates "example.com" using a mode-3b hashed URI ({{validation-record-format}}) and serves as a test vector. The hash inputs are:
+
+- `domain_name`: `example.com`
+- `key`: the 32 octets of the account's current SHA-256 JWK Thumbprint {{!RFC7638}}, whose base64url form is `NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs` (the example thumbprint from {{!RFC7638}}, Section 3.1; the 32 octets it decodes to are the hash input)
+- `account_URL`: `https://ca.example/acct/123`
+
+Computing `SHA-256(domain_name || 0x00 || key || account_URL)` and applying unpadded base64url encoding to the 32-octet digest yields:
+
+~~~
+eF1Jd068rG9PLzhW3jKdJLqssluSbfALu5GvJmzbYH8
+~~~
+
+With a CA `accountHashPrefix` of `https://ca.example/account-hash/`, the hashed URI is `https://ca.example/account-hash/eF1Jd068rG9PLzhW3jKdJLqssluSbfALu5GvJmzbYH8`. Using issuer domain name "authority.example", the client provisions:
+
+~~~ dns
+_validation-persist.example.com. IN TXT ("authority.example;"
+" accounturi=https://ca.example/account-hash/eF1Jd068rG9PLzhW3jKdJLqssluSbfALu5GvJmzbYH8")
+~~~
+{: #ex-mode-3b title="Mode 3b Hashed-URI Validation Record"}
 
 
 ## Wildcard Validation Example {#wildcard-validation-example}
