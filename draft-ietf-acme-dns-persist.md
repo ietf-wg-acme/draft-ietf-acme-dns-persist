@@ -129,8 +129,6 @@ The challenge object for "dns-persist-01" contains the following fields:
 
   The server MUST ensure the array is not empty. Servers MUST NOT send more than 10 issuer domain names. This limit serves as a practical measure to prevent denial-of-service vectors against clients. Clients MUST consider a challenge malformed if the `issuer-domain-names` array is empty or if it contains more than 10 entries, and MUST reject such challenges. Each domain name MUST NOT exceed 253 octets in length.
 
-The challenge object does not carry an `accounturi` value. The client determines the value to publish in the DNS record according to the mode the CA accepts (see {{validation-record-format}}): its own account URL (mode 3a) or a hashed URI it computes (mode 3b). Subscriber-account URIs (mode 3c) are obtained out-of-band from the CA and are not conveyed by the ACME protocol.
-
 The following shows an example challenge object:
 
 ~~~json
