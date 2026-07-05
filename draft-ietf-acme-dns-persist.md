@@ -165,13 +165,13 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
     *   **(3a) ACME account URL**: CAs SHOULD accept the URI of the ACME account object ({{!RFC8555}}, Section 7.3) as a valid `accounturi` value. A CA that does not accept the account URL directly MUST document the accepted `accounturi` format (mode 3b or 3c) in its Certificate Policy and/or Certification Practice Statement. A CA that advertises support for the dns-persist-01 challenge type MUST accept at least one form of `accounturi` value.
 
-    *   **(3b) Hashed URI**: CAs MAY accept hashed URIs. A hashed URI is constructed via the following syntax:
+    *   **(3b) Hashed URI**: CAs MAY accept hashed URIs. A hashed URI is the concatenation of the CA's `accountHashPrefix` and a base64url hash value:
 
         ~~~
-        https://<ACME account URL host>/.well-known/acme-account-hash/<base64url hash value>
+        <accountHashPrefix><base64url hash value>
         ~~~
 
-        Here `<ACME account URL host>` is the DNS hostname of the ACME account URL used by the subscriber. `<base64url hash value>` is the base64url encoding {{!RFC4648}}, with trailing padding (`=`) omitted, of the SHA-256 {{!RFC6234}} hash digest computed over the following inputs:
+        A CA that accepts hashed URIs MUST advertise an `accountHashPrefix` string in the `meta` object of its directory ({{!RFC8555}}, Section 7.1.1). This prefix places hashed account URIs under the CA's infrastructure and lets a client construct them from the directory without a per-provisioning request to the CA. The CA MUST choose a prefix such that appending the base64url hash value yields a valid URI (for example, `https://acme.example/account-hash/`). `<base64url hash value>` is the base64url encoding {{!RFC4648}}, with trailing padding (`=`) omitted, of the SHA-256 {{!RFC6234}} hash digest computed over the following inputs:
 
         ~~~
         SHA-256(domain_name || 0x00 || key || account_URL)
@@ -180,7 +180,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
         where `||` denotes octet-string concatenation and `0x00` is a single NUL octet separating `domain_name` from the fields that follow. A NUL octet cannot appear in `domain_name`, so it unambiguously marks the end of that field; `key` is a fixed 32 octets, so the boundary between `key` and `account_URL` is unambiguous as well. The inputs are:
 
         1. `domain_name` is the FQDN being validated (the Validation Domain Name with its leading `_validation-persist` label removed, no trailing dot), in the normalized lowercase A-label form produced by {{normalization-algorithm}}. This form is US-ASCII.
-        2. `key` is the 32-octet SHA-256 JWK Thumbprint {{!RFC7638}} of the public key associated with that ACME account, as raw digest octets (not base64url-encoded). If an ACME account has previously rotated keys, a prior account key that was previously associated with this account MAY be used. A CA MUST accept Hashed URIs generated with previous ACME account keys.
+        2. `key` is the 32-octet SHA-256 JWK Thumbprint {{!RFC7638}} of a public key associated with the ACME account, as raw digest octets (not base64url-encoded). When provisioning a `_validation-persist` record, the client MUST use the account's current key. A CA MUST accept a hashed URI generated with the current key associated with the account. Additionally, a CA MUST accept a hashed URI generated with a prior key previously associated with the account that is know to the CA per the key hash retention guidance in {{verification-procedure}}. This allows a record provisioned before a key rotation to continue to validate. The rationale for both requirements is given in {{hashed-uri-security}}.
         3. `account_URL` is the ACME account URL used by the subscriber ({{!RFC8555}}, Section 7.3). A URI is US-ASCII per {{!RFC3986}}, so it is encoded as those US-ASCII octets.
 
     *   **(3c) Subscriber-account URI**: CAs MAY accept a URI that maps to multiple ACME accounts, provided the accounts constitute a "group of related entities" ({{!RFC8657}}, Section 3). If a CA supports subscriber-account URIs, it MUST enforce the following constraints:
@@ -225,7 +225,7 @@ The ACME server verifies the challenge by performing a DNS lookup for TXT record
 
 To verify a mode-3b (Hashed URI) `accounturi` value, the CA already knows the requesting account's URL and the FQDN being validated. The CA computes the expected hashed URI as defined in {{validation-record-format}} for each ACME public key known to be associated with that account since the CA began accepting persistent DNS validation. The CA treats the record as satisfying mode 3b if its `accounturi` value equals one of these computed hashed URIs under Simple String Comparison ({{!RFC3986}}, Section 6.2.1). Retaining an account's prior key thumbprints allows records provisioned before a key rotation to continue validating.
 
-A CA SHOULD retain the SHA-256 JWK Thumbprint of every public key an account has used since the CA began accepting `dns-persist-01` records, so that a mode-3b record computed under any of those keys continues to validate. Independent of that guidance, a CA MUST retain the thumbprint of the key used to compute the hashed URI of any mode-3b `_validation-persist` record that most recently validated a domain for a currently valid certificate. Such a thumbprint MUST NOT be pruned while that certificate remains valid, regardless of the key's age, so that a mode-3b record backing an in-use certificate never ceases to validate. Once no currently valid certificate depends on a given key's hashed URI the CA MAY prune that key's thumbprint. Subscribers SHOULD publish publish mode-3b records using the SHA-256 JWK Thumbprint of their most-recent ACME account public key.
+A CA SHOULD retain the SHA-256 JWK Thumbprint of every public key an account has used since the CA began accepting `dns-persist-01` records, so that a mode-3b record computed under any of those keys continues to validate. Independent of that guidance, a CA MUST retain the thumbprint of the key used to compute the hashed URI of any mode-3b `_validation-persist` record that most recently validated a domain for a currently valid certificate. Such a thumbprint MUST NOT be pruned while that certificate remains valid, regardless of the key's age, so that a mode-3b record backing an in-use certificate never ceases to validate. Once no currently valid certificate depends on a given key's hashed URI the CA MAY prune that key's thumbprint.
 
 ## Multiple Issuer Support {#multiple-issuer-support}
 
@@ -308,7 +308,7 @@ This mechanism enables efficient reuse of persistent validation records while ma
 
 Domain owners MAY provision `_validation-persist` TXT records before requesting any certificates, provided they have obtained an `accounturi` value. When constructing records without a challenge object, the following values MUST be used:
 
-- **accounturi**: The ACME account URL, as returned in the `Location` header of the account creation response ({{!RFC8555}}, Section 7.3). If the CA supports subscriber-account URIs (mode 3c, see {{validation-record-format}}), a subscriber-account URI MAY be used instead. Domain owners pre-provisioning with a subscriber-account URI are advised that ACME accounts added to the subscriber relationship after provisioning will automatically inherit the record's validation rights. If the CA accepts hashed URIs (mode 3b, see {{validation-record-format}}), the client MAY instead compute and publish the hashed URI itself.
+- **accounturi**: The ACME account URL, as returned in the `Location` header of the account creation response ({{!RFC8555}}, Section 7.3). If the CA supports subscriber-account URIs (mode 3c, see {{validation-record-format}}), a subscriber-account URI MAY be used instead. Domain owners pre-provisioning with a subscriber-account URI are advised that ACME accounts added to the subscriber relationship after provisioning will automatically inherit the record's validation rights. If the CA accepts hashed URIs (mode 3b, see {{validation-record-format}}), the client MAY instead compute and publish the hashed URI itself, using the account's current key.
 - **issuer-domain-name**: Clients MAY use the `caaIdentities` array from the ACME directory metadata ({{!RFC8555}}, Section 7.1.1) as a hint for `issuer-domain-name` selection. CAs that populate `caaIdentities` SHOULD ensure these values are consistent with the `issuer-domain-name` values they accept in `dns-persist-01` records. If `caaIdentities` is unavailable, the `issuer-domain-name` MAY be obtained from the CA's Certificate Policy or Certification Practice Statement.
 
 The `accounturi` value used for pre-provisioning is obtained outside the ACME challenge-response flow. The integrity of the pre-provisioned record therefore depends on the integrity of the channel that delivered the `accounturi` value to the domain owner, such as the ACME account creation response, a CA's subscriber portal, or CP/CPS documentation. Domain owners SHOULD obtain `accounturi` values only through authenticated channels to the CA. A value obtained through an unauthenticated or unverifiable channel cannot be distinguished from a substituted one, and validation may bind to an unintended account.
@@ -409,13 +409,15 @@ Domain owners who require privacy without CA cooperation can use separate ACME a
 
 A hashed URI (mode 3b, {{validation-record-format}}) lets a subscriber commit to an ACME account URL in a `_validation-persist` record without publishing that account URL in cleartext. Its purpose is to reduce the correlation and mass-surveillance exposure described in {{account-uri-privacy}}. It does not hide the account from the CA, which necessarily learns the account URL when it validates the record.
 
-**Source of the authorization binding.** The security of mode 3b derives entirely from the subscriber's commitment to the account URL, exactly as in mode 3a. Because SHA-256 is collision resistant, publishing a digest computed over `account_URL` in a DNS record is a statement of intent to authorize that account that is comparable to publishing the account URL directly.
+**Source of the authorization binding.** The core of mode 3b's security is the subscriber's commitment to the account URL, as in mode 3a. Because SHA-256 is collision resistant, publishing a digest computed over `account_URL` in a DNS record is a statement of intent to authorize that account that is comparable to publishing the account URL directly.
 
-**Role of the account key.** ACME account URLs are frequently low in entropy — for example, a short, sequential account identifier of only a handful of digits. An adversary who knows a CA's account-URL structure could enumerate all plausible account URLs, hash each against a target domain, and recover the account URL behind a published digest, defeating the privacy goal. The account key's JWK Thumbprint is included solely as a high-entropy input that raises the cost of this enumeration. The key is an obfuscation input, not an authorization factor.
+**Role of the account key.** ACME account URLs are frequently low in entropy — for example, a short, sequential account identifier of only a handful of digits. An adversary who knows a CA's account-URL structure could enumerate all plausible account URLs, hash each against a target domain, and recover the account URL behind a published digest, defeating the privacy goal. The account key's JWK Thumbprint is included as a high-entropy input that raises the cost of this enumeration. Beyond this privacy role, binding to the key also provides a proof-of-possession property, discussed below.
 
 Including `domain_name` in the digest additionally causes the same account to produce a different value in every domain's record, so a bulk observer cannot correlate domains by matching identical `accounturi` strings, as it could with a shared cleartext account URL.
 
-**Acceptance of prior keys.** Because the key serves only as entropy and not as an authorization factor, a digest computed with any key ever associated with the account expresses the same commitment to the account URL. CAs therefore accept digests generated with an account's previous keys ({{validation-record-format}}, item 3b), which allows records to survive account key rotation ({{!RFC8555}}, Section 7.3.5) without republication.
+**Robustness to substitution; current-key requirement.** Binding to the account key also ties a mode-3b record to proof of possession of that key: obtaining a certificate requires authenticating as an ACME account, and that account's key thumbprint is part of the digest. An adversary cannot authenticate with a victim's current key. Thus an honestly provisioned record cannot be made to authorize the adversary, even by an adversary that controls the advertised `accountHashPrefix`. This protection holds only for the current key, so the current ACME account key MUST be used for the provisioning of new mode-3b records.
+
+**Acceptance of prior keys.** A CA nonetheless accepts digests generated with an account's prior keys so that records provisioned before a rotation survive without republication ({{!RFC8555}}, Section 7.3.5). Such records committed to the account's real URL when they were provisioned, so accepting the prior key preserves continuity without enabling substitution.
 
 **Limits of the privacy protection.** This construction is a best-effort obfuscation, not a cryptographically-strong privacy mechanism. It resists bulk correlation and casual enumeration of account URLs, but a determined adversary or one with a-priori knowledge of candidate account URLs and their account keys can recover the true account URL. Domain owners who require stronger unlinkability SHOULD use separate ACME accounts for domains that must not be correlated.
 
@@ -557,15 +559,13 @@ IANA is requested to register the following entry in the "Underscored and Global
 - **_NODE NAME**: _validation-persist
 - **Reference**: This document
 
-## Well-Known URIs Registry {#well-known-uris}
+## ACME Directory Metadata Field {#acme-directory-metadata-field}
 
-IANA is requested to register the following entry in the "Well-Known URIs" registry defined in {{!RFC8615}}:
+IANA is requested to register the following entry in the "Fields in the 'meta' Object within a Directory Object" registry defined in {{!RFC8555}}, Section 9.7.6:
 
-- **URI Suffix**: acme-account-hash
-- **Change Controller**: IETF
-- **Specification Document(s)**: This document
-- **Status**: permanent
-- **Related Information**: None
+- **Field Name**: accountHashPrefix
+- **Field Type**: string
+- **Reference**: This document
 
 # Implementation Considerations {#implementation-considerations}
 
