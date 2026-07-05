@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-06-30T02:28:15.540021+00:00",
+  "timestamp": "2026-07-05T02:04:46.425125+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -1088,7 +1088,7 @@
       "labels": [],
       "body": "Hi everyone,\n\nI'm maintainer of an ACME Server Implementation and I stumbled over the naming convention in this draft.\n\nTake a look at (for example) https://www.rfc-editor.org/rfc/rfc8555#section-7.1.2 - naming is all camelCase and that's valid throughout RFC8555.\nThis draft adds new challenge objects and seems to follow no convention:\n\n- `accounturi` neither matches the kebab-cased `issuer-domain-names` nor does it align with ACMEs camelCase (should probably be `accountUri`)\n- `issuer-domain-names` does not align with ACMEs camelCase (should probably be `issuerDomainNames`)\n",
       "createdAt": "2026-04-02T19:12:35Z",
-      "updatedAt": "2026-04-30T00:55:07Z",
+      "updatedAt": "2026-07-03T16:11:35Z",
       "closedAt": null,
       "comments": [
         {
@@ -1097,6 +1097,48 @@
           "body": "@glatzert Good catch. The draft has two serialization contexts with different established conventions, and it follows neither cleanly.\n\nDNS TXT record parameters use flat lowercase per RFC 8657/8659 convention: `accounturi`, `policy`. But `persistUntil` breaks the pattern: it should be `persistuntil` to match.\n\nChallenge object JSON fields follow RFC 8555's camelCase: `validationRecord`, `caaIdentities`, etc. The current `issuer-domain-names` (kebab-case) and `accounturi` (flat lowercase) should be `issuerDomainNames` and `accountUri` to align.\n\nThat produces a deliberate split for the account identifier: `accountUri` in the JSON challenge object, `accounturi` in the DNS TXT record. Each format follows its own convention. The JSON field tells the client what value to place in the record's `accounturi` parameter; they are different fields in different serialization contexts.\n\nI'll fix both in the next revision:\n\n- DNS record parameters: `accounturi`, `policy`, `persistuntil` (flat lowercase, RFC 8657/8659 convention)\n- Challenge object JSON: `accountUri`, `issuerDomainNames`, `persistUntil` (camelCase, RFC 8555 convention)\n",
           "createdAt": "2026-04-30T00:55:06Z",
           "updatedAt": "2026-04-30T00:55:06Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I don't think we can trivially fix \"persistuntil\" in the DNS record param. Its baked into the Baseline Requirements as \"persistUntil\" and right now we are drafting the I-D to be permitted for TLS server cert issuance via 3.2.2.4.22 DNS TXT Record with Persistent Value. If we move to \"persistuntil\" it breaks that and we need a CA/B F vote to fix it. Until we get alignment from CA/B F I suggest we keep the current language.\n\n@slghtr-says do you have any insight on what the CA/B F's position is?\n\nPart of me feels like the cat is already out of the bag (some CAs might be using \"persistUntil\" today) and making it \"persistUntil\" or \"persistuntil\" sort of just makes things worse. We also can't truly obsolete \"persistUntil\" because it could break clients.",
+          "createdAt": "2026-07-02T21:29:57Z",
+          "updatedAt": "2026-07-02T21:29:57Z"
+        },
+        {
+          "author": "glatzert",
+          "authorAssociation": "NONE",
+          "body": "As per https://www.rfc-editor.org/rfc/rfc8659.html#name-syntax\nThe RFC states, tags need to be parsed case insensitve.\nIt also states.\n> Tags submitted for registration by IANA MUST NOT contain any characters other than the (lowercase) ASCII characters \"a\" through \"z\" and the numbers 0 through 9.\n",
+          "createdAt": "2026-07-03T07:00:43Z",
+          "updatedAt": "2026-07-03T07:00:43Z"
+        },
+        {
+          "author": "slghtr-says",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "> I don't think we can trivially fix \"persistuntil\" in the DNS record param. Its baked into the Baseline Requirements as \"persistUntil\" and right now we are drafting the I-D to be permitted for TLS server cert issuance via 3.2.2.4.22 DNS TXT Record with Persistent Value. If we move to \"persistuntil\" it breaks that and we need a CA/B F vote to fix it. Until we get alignment from CA/B F I suggest we keep the current language.\n> \n> @slghtr-says do you have any insight on what the CA/B F's position is?\n> \n> Part of me feels like the cat is already out of the bag (some CAs might be using \"persistUntil\" today) and making it \"persistUntil\" or \"persistuntil\" sort of just makes things worse. We also can't truly obsolete \"persistUntil\" because it could break clients.\n\nUnder the BRs, my take is that a CA could choose to recognize a `persistuntil` tag and still be compliant under the precedent of these tags historically being case sensitive OR alternatively interpreting the lower case variant as a \"separate tag\" recognized under the forward compatibility clause (similar to the policy tag). The CA in that case would choose to honor both. \n\nThat said I do think it's worthwhile to consider getting this corrected in the BRs as part of a \"method 22 fixes for ACME\" (where we also pull in the alignment language to clarify and explicitly cover the ca account use case) or perhaps as part of a clean up ballot (since I firmly believe we would just be clarifying already allowed behaviors and not introducing new normative requirements). \n\nMy preference would probably be to shift the tag in the BRs to the lowercase variant and explicitly state case insensitivity for the tags (which as stated above by @glatzert is already implicitly true).\n\nWould love your thoughts on that @birgelee?",
+          "createdAt": "2026-07-03T14:16:46Z",
+          "updatedAt": "2026-07-03T14:16:46Z"
+        },
+        {
+          "author": "CBonnell",
+          "authorAssociation": "NONE",
+          "body": "> As per https://www.rfc-editor.org/rfc/rfc8659.html#name-syntax The RFC states, tags need to be parsed case insensitve. It also states.\n> \n> > Tags submitted for registration by IANA MUST NOT contain any characters other than the (lowercase) ASCII characters \"a\" through \"z\" and the numbers 0 through 9.\n\nThe case insensitive processing requirement is for property tags only. `persistUntil` is not a property tag but rather a parameter.\n\nIn addition, the TLS Baseline Requirements only require that the RDATA conform to `issue-value` syntax; it is not impose any specific processing/matching requirements on the parameter values. It would be best to explicitly mandate case-insensitive matching in the TLS BRs (similar to https://github.com/letsencrypt/boulder/issues/8614), but the current TLS BR language allows CAs to match exactly and ignore any parameter names that differ by case.\n\n",
+          "createdAt": "2026-07-03T14:19:14Z",
+          "updatedAt": "2026-07-03T14:19:14Z"
+        },
+        {
+          "author": "slghtr-says",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Thanks for the clarification, @CBonnell ! Makes total sense. I agree that a strict CA might just drop it under the current language, which is exactly the fragmentation we want to avoid.\n\nI'm now even more inclined to make case-insensitivity a MUST for the parameter keys in the Method 22. As a gut check, do you see any sharp edges with explicitly defining that in the BRs? ",
+          "createdAt": "2026-07-03T14:58:12Z",
+          "updatedAt": "2026-07-03T14:58:12Z"
+        },
+        {
+          "author": "CBonnell",
+          "authorAssociation": "NONE",
+          "body": "> As a gut check, do you see any sharp edges with explicitly defining that in the BRs?\n\nAs long as there's a future effective date (to adjust existing implementations), I don't think there's any downside to mandating case-insensitive matching. The ABNF restricts `issue-value`s to ASCII, so there's no worry about dealing with Unicode/language-specific complexity (e.g., the Turkish \"I\").\n\n... But I'm no longer a representative of a member of CABF nor an Interested Party, so take that all with a grain of salt :smile:",
+          "createdAt": "2026-07-03T16:11:35Z",
+          "updatedAt": "2026-07-03T16:11:35Z"
         }
       ]
     },
@@ -1417,15 +1459,15 @@
       "id": "I_kwDOO4VY2c8AAAABBlioNA",
       "title": "Suggestion: Change wording of the \"Record tampering\" to not link to issuer-domain-name",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/63",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "sebastiannielsen",
-      "authorAssociation": "NONE",
+      "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
       "body": "I suggest the following:\n\n```\nDNS records are generally not authenticated end-to-end, making them potentially vulnerable to tampering. CAs SHOULD implement additional integrity checks where possible and consider the overall security posture of the DNS infrastructure when relying on persistent validation records.\n\nAdditionally, CAs SHOULD protect their issuer-domain-name with appropriate security measures. Using DNSSEC to protect the CA's issuer-domain-name is RECOMMENDED. An attacker who compromises the DNS for a CA's issuer-domain-name could disrupt validation or potentially impersonate the CA in certain scenarios. While this is a systemic DNS security risk that extends beyond this specification, it is amplified by any mechanism that relies on DNS for identity.\n```\n\nare changed to:\n\n```\nDNS records are generally not authenticated end-to-end, making them potentially vulnerable to tampering. CAs SHOULD implement additional integrity checks where possible and consider the overall security posture of the DNS infrastructure when relying on persistent validation records.\n\nAdditionally, CAs SHOULD protect their ACME Server URL with appropriate security measures. Using DNSSEC to protect the CA's ACME Server URL is RECOMMENDED. An attacker who compromises the DNS for a CA's ACME Server URL could disrupt validation or potentially impersonate the CA in certain scenarios. While this is a systemic DNS security risk that extends beyond this specification, it is amplified by any mechanism that relies on DNS for identity.\n```\n\n\nMy reasoning:\nThe \"issuer-domain-name\" is a opaque value, that a client should not make requests to.\nIt could aswell be a non-existent value like:\n`4d434f6d36c01ca04fc932a0bb77442fd2471a3ff82d3684798d99ae19f88eea.invalid`\n\nSince the client are not supposed to make requests to, or verify the authenticy of the \"issuer-domain-name\" - a spoofed or compromised \"issuer-domain-name\" would not have any security implications - apart from that one CA might fraudulently identify himself as another CA - which would be a violation of CAB/F forum.\n\nIts just a opaque value that are meant to separate for example DigiCert from Letsencrypt from Certum from Google Trust Services.\nIt does only identify the issuer, it does not AUTHENTICATE the issuer. It could be a digit aswell that marks the CA's index in a public record.\n\n\nThe sensitive part here is the ACME Server URL - which could be fundamentally different from the issuer-domain-name.\nIf a attacker gains control of the ACME Server URL - the attacker could impersonate the CA, and give the subscriber a \"accounturi\" he is in control over regardless of which public key the subscriber submits.\nAnd then use that accounturi to issue certificates to the real ACME Server URL.\n\nSo I would suggest the wording is changed from \"issuer-domain-name\" to \"ACME Server URL\".",
       "createdAt": "2026-05-07T19:29:04Z",
-      "updatedAt": "2026-05-07T20:21:46Z",
-      "closedAt": null,
+      "updatedAt": "2026-07-02T21:22:02Z",
+      "closedAt": "2026-07-02T21:22:02Z",
       "comments": [
         {
           "author": "MaxHearnden",
@@ -1436,7 +1478,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "Yes, but those URLs are provisioned by the ACME server, so the ACME server URL is only whats actually needs protecting.\n\nThere is a potential attack if the newAccount URL points to a different domain than the ACME server URL (directory URL), and that newAccount URL have been comrpomised.\n\nHowever, protecting the newAccount URL ONLY would mean a comrpomise of the ACME Server URL (directory) would mean an attacker could point newAccount at a malicious server.\n\nBy using the ACME server URL (also called directory URL) as a \"trust anchor\", its up to the CA to ensure any domains emitted in newAccount is not compromised.\n\nI also think it would be a pretty weird configuration if a CA has a ACME server URL that emits different newAccount domain than the ACME server URL.\n\n\nHOWEVER it would not be a weird configuration if a CA has issuer-domain-names that are old legacy domains that the CA no longer owns - but had owned in the past and saves them to avoid old DNS-PERSIST-01 recordsf from going invalid.\n\n\nThe acccount URL itself does not need to be protected, as the client is not supposed to do requests to it unless they want to retrieve their account object. Requiring a client to retrieve their account object is also a bad idea in my opinion.",
           "createdAt": "2026-05-07T20:20:04Z",
           "updatedAt": "2026-05-07T20:21:46Z"
@@ -3896,35 +3938,35 @@
       "id": "PR_kwDOO4VY2c7Y930W",
       "title": "Add procedure for accounturi verification",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/62",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "MaxHearnden",
       "authorAssociation": "NONE",
       "assignees": [],
       "labels": [],
       "body": "This PR adds a procedure for ACME clients to verify accounturis. The important step is to make a POST request to the accounturi endpoint, the token field/parameter is just so that ACME servers can force clients to implement the verification process.\r\n\r\nThis also requires the accounturi to be a valid ACME endpoint however I wasn't sure where it should be stated in the draft.",
       "createdAt": "2026-05-07T00:24:57Z",
-      "updatedAt": "2026-06-19T12:37:30Z",
+      "updatedAt": "2026-07-02T21:22:50Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "83f165bc0709dfdcd00e4ab66f3ac96a4b6d072d",
       "headRepository": "MaxHearnden/draft-ietf-acme-dns-persist",
       "headRefName": "account-uri-verification",
       "headRefOid": "a52d7e78fde6e993d269746241c43ac3f1c69e00",
-      "closedAt": null,
+      "closedAt": "2026-07-02T21:22:49Z",
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
       "comments": [
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "My suggestion is that we should not overload the server with more requests that must be done.\r\n\r\nA better solution would be as I have suggested, allow the client to compute the \"accounturi\" value offline by using a pubkey: \"protocol\" which is the sha256 value of the public key computed using the SPKI format over the account key - which also makes it crypto agility since the algoritm is included in the SPKI.\r\n\r\nMeaning, a \"TLSA\" record calculator over the account public key would give the correct sha256 value.\r\n\r\nLike:\r\n_validation-persist.yourdomain.tld IN TXT \"letsencrypt.org;accounturi=pubkey:fa759db3816ab7387006c8fb5b887a6fc3dde2d77f593ec2a8bf6504524da26e\"\r\n\r\nor use the JWK thumbprint.\r\n\r\nBy permitting a offline-calculation, all security considerations with a compromised accounturi is erased - at the cost of requiring record update if you choose to rotate account keys.",
           "createdAt": "2026-05-07T20:10:33Z",
           "updatedAt": "2026-05-16T00:43:33Z"
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "I propose to reject this pull with the explanation that adding requirements that increases the number of a requests a subscriber has to do to the ACME server to facilitate a specific validation method should be avoided as it increases load on CA infrastructure.\r\n\r\nEspecially when it can be solved by this pull instead: https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/65\r\n\r\nat the cost of having to replace the record when doing a account key rollover.",
           "createdAt": "2026-05-17T17:03:21Z",
           "updatedAt": "2026-05-17T17:03:21Z"
@@ -4100,24 +4142,26 @@
       "id": "PR_kwDOO4VY2c7cZhGd",
       "title": "Change language since issuer-domain-name is a opaque value",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/66",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "sebastiannielsen",
-      "authorAssociation": "NONE",
+      "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
       "body": "Closes https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/63 if merged\r\n\r\nThis because issuer-domain-name is just a opaque value, and \"protecting\" that value with DNSSEC - especially if its a legacy domain name that the CA does not own anymore, will not give any security advantage.\r\n\r\nIt would be analogous to protecting a sign outside a bank with heavy security but have glass doors to the vault.\r\n\r\nThe sensitive resource for a CA - that needs protecting - is the ACME Directory URL - also called Server URL. Thats the sensitive ACME resource the CA owns and is the root of trust for the ACME client.",
       "createdAt": "2026-05-17T15:57:22Z",
-      "updatedAt": "2026-06-26T09:56:09Z",
+      "updatedAt": "2026-07-02T21:22:01Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "80fee73a1100614c6acaaba6a0badeb8f90d3c3b",
       "headRepository": "sebastiannielsen/draft-ietf-acme-dns-persist",
       "headRefName": "patch-2",
       "headRefOid": "c5d0b626ac76e24af406e98c02a0378937d9285d",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2026-07-02T21:22:01Z",
+      "mergedAt": "2026-07-02T21:22:01Z",
+      "mergedBy": "birgelee",
+      "mergeCommit": {
+        "oid": "355fb4f6218c3a3856dbcf16d73b13870d4461c5"
+      },
       "comments": [
         {
           "author": "orangepizza",
@@ -4128,7 +4172,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "> doesn't CA/B rule require them to be included in CAAidentifer (from CCADB)?\r\n\r\nCorrect, but the value itself is opaque from client's point of view. Meaning, the client doesn't use the value in a particular way - it doesn't fetch a document from the domain, it doesn't verify the domain, it doesn't use the domain at all. \r\nso lets say letsencrypt would have CAAIdentifier = \"letsencrypt.org, freecertificates.org\"\r\nand then letsencrypt loses control of freecertificates.org, maybe by losing the EPP transfer code to a malicious party.\r\n\r\nThat would not mean the security of the ACME protocol is compromised, since nobody uses the domain in the regular sense.\r\nYou could aswell have a number that identifies the CA in a public \"CA list\" or whatever:\r\n\r\n```\r\nexample.com IN CAA 0 issue \"534535;\"\r\nexample.com IN CAA 0 issuewild \"534535;\"\r\n```\r\nand\r\n`_validation-persist.example.com IN TXT \"534535; accounturi=https://letsencrypt.org/acme/acct/58358493; policy=wildcard\"`\r\n\r\n\r\nThe point im making is that the value itself doesn't have any meaning - its just a opaque string. It could be a sha256 hash of a public key or whatever. The value is only used in a string matching to the CAAIdentifier from CCADB.\r\n\r\nMEANING: as long as the value exist in CPS and CCADB - its ok. The value itself doesn't need to be secured with DNSSEC. **The CA doesn't even need to own the value.**\r\n\r\n\r\nThe value is only used to capture intent of the domain owner. In the same way voting systems in different countries can be different, some have you write down the number of the president you want to vote on, some have you tick a box at the president's name, some have you write the name of the president, and some have you put pre-filled ballots for your president.\r\n\r\n**Since the value doesn't have any meaning in itself, it doesn't matter if a third party owns the value. Even if a CA would call themselves \"sebbe.eu\" in CAAIdentifier, it would not matter. I would not gain something out of it.\r\nEven if the record would look super weird with:**\r\n\r\n`_validation-persist.example.com IN TXT \"sebbe.eu; accounturi=http://someca.org/acme/acct/3950359; policy=wildcard\"`\r\n\r\n**I would still not be able to \"compromise\" the CA in any way. I would not be able to subvert their ACME traffic, I would not be able to issue for the domain, I would gain nada, zip from a CA \"borrowing\" my domain as their CAAIdentifier.**\r\n",
           "createdAt": "2026-06-03T12:08:21Z",
           "updatedAt": "2026-06-03T12:24:13Z"
@@ -4149,7 +4193,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@birgelee Yeah, a cut would work if https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/65 is implemented.\r\nBut then Pull #65 must be mandatory support.\r\n\r\nSince #65 is optional support, I think the paragraph should be included - but correctly be referring to the ACME Server URI.\r\n\r\nThe security issue mentioned in the paragraph is only relevant for DNS-PERSIST-01 - since that relies on information solely from the ACME server. Not the ACME standard as a whole - since the other authentication methods rely on both a token AND client computed information (mandatory) - which means a malicious ACME server cannot in any way get a client to provision a valid record or file that would allow the malicious party to issue certificates for the domain.\r\n\r\n@MaxHearnden \r\nThe problem here is that while the other authentication methods specifically rely on client-computed information AND a token from the ACME server, the DNS-PERSIST-01 method ONLY relies on information from the ACME server. This is the security issue that the DNSSEC paragraph is intended to resolve - if the ACME Server (or its domain) is comrpomised, it means you could issue accounturi's that belongs to an attacker.\r\n\r\nNote that even if the ACME protocol is secure and designed to be secure unencrypted, its important that the ACME protocol ONLY focuses on server security. Meaning that the server verfies the client in everything. The client never verifies the server as you can see in the\r\nhttps://github.com/sebastiannielsen/acme-static\r\nproject - I can serve static data to a ACME client and it will happily accept it.\r\nThis is however a good thing (as seen in the acme-static project) but that means there must be additional protections against a \"malicious ACME server\". (attacker-controlled) - when it comes to DNS-PERSIST-01 since it relies solely on ACME-server-provided information.\r\n\r\nThis is why the security recommendation is only relevant for DNS-PERSIST-01 since that currently relies 100% on server-supplied information.\r\n\r\nSo I understand fully why the author of the document included that paragraph.\r\nThe problem is that the author incorrectly refers to issuer-domain-name, which is a opaque value that has zero meaning in the context.",
           "createdAt": "2026-06-07T00:31:30Z",
           "updatedAt": "2026-06-07T00:53:23Z"
@@ -4163,10 +4207,17 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@birgelee Now I replied to the question if it should be merged into main or rebased (I choose to merge into main) so now it should be all set to actually approve and merge completely when you want.\r\n\r\nThere is a discussion making key authorization mandatory for DNS-PERSIST-01 so might be better to wait until that is completed - and actually scrap the portion about DNSSEC and DNS Security if its changed so Key Authorization is always mandatory.",
           "createdAt": "2026-06-26T09:52:10Z",
           "updatedAt": "2026-06-26T09:56:09Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I understand mandatory key authorization is an ongoing discussion, but I think it is safe to move forward with this language change and if we go there we can remove the language in that push.\r\n\r\n(FWIW I am against mandatory key authorization and I would like to keep the non-ACME options available so I think this is good language to have in there).",
+          "createdAt": "2026-07-02T21:21:34Z",
+          "updatedAt": "2026-07-02T21:21:34Z"
         }
       ],
       "reviews": []
