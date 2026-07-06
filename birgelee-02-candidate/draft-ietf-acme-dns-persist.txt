@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 6 January 2027                            Crosslayer Labs, Inc.
+Expires: 7 January 2027                            Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                             5 July 2026
+                                                             6 July 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -63,7 +63,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 6 January 2027.
+   This Internet-Draft will expire on 7 January 2027.
 
 Copyright Notice
 
@@ -934,10 +934,7 @@ Table of Contents
    visible URI correlates all domains across all ACME accounts belonging
    to that subscriber.  Domain owners who require privacy SHOULD use
    mode 3b or separate ACME accounts, rather than subscriber-account
-   URIs.  Domain owners and auditors who require independent
-   verifiability SHOULD use the ACME account URL directly, since third
-   parties cannot independently determine which account is bound to a
-   hashed URI.
+   URIs.
 
 7.2.4.  Hashed Account URIs (Mode 3b)
 
@@ -956,37 +953,27 @@ Table of Contents
    URL directly.
 
    *Role of the account key.* ACME account URLs are frequently low in
-   entropy — for example, a short, sequential account identifier of only
-   a handful of digits.  An adversary who knows a CA's account-URL
+   entropy (e.g., a short, sequential account identifier of only a
+   handful of digits).  An adversary who knows a CA's account-URL
    structure could enumerate all plausible account URLs, hash each
    against a target domain, and recover the account URL behind a
    published digest, defeating the privacy goal.  The account key's JWK
    Thumbprint is included as a high-entropy input that raises the cost
-   of this enumeration.  Beyond this privacy role, binding to the key
-   also provides a proof-of-possession property, discussed below.
+   of this enumeration.
 
    Including domain_name in the digest additionally causes the same
    account to produce a different value in every domain's record, so a
    bulk observer cannot correlate domains by matching identical
    accounturi strings, as it could with a shared cleartext account URL.
 
-   *Robustness to substitution; current-key requirement.* Binding to the
-   account key also ties a mode-3b record to proof of possession of that
-   key: obtaining a certificate requires authenticating as an ACME
-   account, and that account's key thumbprint is part of the digest.  An
-   adversary cannot authenticate with a victim's current key.  Thus an
-   honestly provisioned record cannot be made to authorize the
-   adversary, even by an adversary that controls the advertised
-   accountHashPrefix.  This protection holds only for the current key,
-   so the current ACME account key MUST be used for the provisioning of
-   new mode-3b records.
-
-   *Acceptance of prior keys.* A CA nonetheless accepts digests
-   generated with an account's prior keys so that records provisioned
-   before a rotation survive without republication ([RFC8555],
-   Section 7.3.5).  Such records committed to the account's real URL
-   when they were provisioned, so accepting the prior key preserves
-   continuity without enabling substitution.
+   *Acceptance of prior keys.* A CA accepts digests generated with an
+   account's prior keys so that records provisioned before a rotation
+   survive without republication ([RFC8555], Section 7.3.5).  Such
+   records are committed to the account's URL when they were
+   provisioned.  Thus, even if the public key hash in the record is the
+   hash of a compromised key (or key that was rotated to another ACME
+   account), the domain owner's intent to authorize the ACME account is
+   still preserved and security is comparable to mode-3a account URLs.
 
    *Limits of the privacy protection.* This construction is a best-
    effort obfuscation, not a cryptographically-strong privacy mechanism.

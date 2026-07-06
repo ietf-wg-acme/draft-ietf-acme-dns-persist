@@ -1053,7 +1053,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Heurich, et al.</td>
-<td class="center">Expires 6 January 2027</td>
+<td class="center">Expires 7 January 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1066,12 +1066,12 @@ svg {
 <dd class="internet-draft">draft-ietf-acme-dns-persist-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-07-05" class="published">5 July 2026</time>
+<time datetime="2026-07-06" class="published">6 July 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-01-06">6 January 2027</time></dd>
+<dd class="expires"><time datetime="2027-01-07">7 January 2027</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -1128,7 +1128,7 @@ svg {
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 6 January 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 7 January 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1995,7 +1995,7 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
 <a href="#section-7.2.3" class="section-number selfRef">7.2.3. </a><a href="#name-account-uri-privacy" class="section-name selfRef">Account URI Privacy</a>
           </h4>
 <p id="section-7.2.3-1">Because <code>_validation-persist</code> TXT records are publicly queryable and long-lived, the <code>accounturi</code> value is visible to any party that queries DNS. When the same URI appears in records for multiple domains, third parties can infer that those domains share the same ACME account and likely share infrastructure. This correlation risk is noted in <span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>, Section 5.9.<a href="#section-7.2.3-1" class="pilcrow">¶</a></p>
-<p id="section-7.2.3-2">Domain owners who require privacy without CA cooperation can use separate ACME accounts for domains that should not be correlated. Note that the use of a Subscriber-account URI (mode 3c) represents a privacy inversion compared to the privacy model of mode 3b: a single visible URI correlates all domains across all ACME accounts belonging to that subscriber. Domain owners who require privacy <span class="bcp14">SHOULD</span> use mode 3b or separate ACME accounts, rather than subscriber-account URIs. Domain owners and auditors who require independent verifiability <span class="bcp14">SHOULD</span> use the ACME account URL directly, since third parties cannot independently determine which account is bound to a hashed URI.<a href="#section-7.2.3-2" class="pilcrow">¶</a></p>
+<p id="section-7.2.3-2">Domain owners who require privacy without CA cooperation can use separate ACME accounts for domains that should not be correlated. Note that the use of a Subscriber-account URI (mode 3c) represents a privacy inversion compared to the privacy model of mode 3b: a single visible URI correlates all domains across all ACME accounts belonging to that subscriber. Domain owners who require privacy <span class="bcp14">SHOULD</span> use mode 3b or separate ACME accounts, rather than subscriber-account URIs.<a href="#section-7.2.3-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="hashed-uri-security">
@@ -2005,11 +2005,10 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
           </h4>
 <p id="section-7.2.4-1">A hashed URI (mode 3b, <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>) lets a subscriber commit to an ACME account URL in a <code>_validation-persist</code> record without publishing that account URL in cleartext. Its purpose is to reduce the correlation and mass-surveillance exposure described in <a href="#account-uri-privacy" class="auto internal xref">Section 7.2.3</a>. It does not hide the account from the CA, which necessarily learns the account URL when it validates the record.<a href="#section-7.2.4-1" class="pilcrow">¶</a></p>
 <p id="section-7.2.4-2"><strong>Source of the authorization binding.</strong> The core of mode 3b's security is the subscriber's commitment to the account URL, as in mode 3a. Because SHA-256 is collision resistant, publishing a digest computed over <code>account_URL</code> in a DNS record is a statement of intent to authorize that account that is comparable to publishing the account URL directly.<a href="#section-7.2.4-2" class="pilcrow">¶</a></p>
-<p id="section-7.2.4-3"><strong>Role of the account key.</strong> ACME account URLs are frequently low in entropy — for example, a short, sequential account identifier of only a handful of digits. An adversary who knows a CA's account-URL structure could enumerate all plausible account URLs, hash each against a target domain, and recover the account URL behind a published digest, defeating the privacy goal. The account key's JWK Thumbprint is included as a high-entropy input that raises the cost of this enumeration. Beyond this privacy role, binding to the key also provides a proof-of-possession property, discussed below.<a href="#section-7.2.4-3" class="pilcrow">¶</a></p>
+<p id="section-7.2.4-3"><strong>Role of the account key.</strong> ACME account URLs are frequently low in entropy (e.g., a short, sequential account identifier of only a handful of digits). An adversary who knows a CA's account-URL structure could enumerate all plausible account URLs, hash each against a target domain, and recover the account URL behind a published digest, defeating the privacy goal. The account key's JWK Thumbprint is included as a high-entropy input that raises the cost of this enumeration.<a href="#section-7.2.4-3" class="pilcrow">¶</a></p>
 <p id="section-7.2.4-4">Including <code>domain_name</code> in the digest additionally causes the same account to produce a different value in every domain's record, so a bulk observer cannot correlate domains by matching identical <code>accounturi</code> strings, as it could with a shared cleartext account URL.<a href="#section-7.2.4-4" class="pilcrow">¶</a></p>
-<p id="section-7.2.4-5"><strong>Robustness to substitution; current-key requirement.</strong> Binding to the account key also ties a mode-3b record to proof of possession of that key: obtaining a certificate requires authenticating as an ACME account, and that account's key thumbprint is part of the digest. An adversary cannot authenticate with a victim's current key. Thus an honestly provisioned record cannot be made to authorize the adversary, even by an adversary that controls the advertised <code>accountHashPrefix</code>. This protection holds only for the current key, so the current ACME account key <span class="bcp14">MUST</span> be used for the provisioning of new mode-3b records.<a href="#section-7.2.4-5" class="pilcrow">¶</a></p>
-<p id="section-7.2.4-6"><strong>Acceptance of prior keys.</strong> A CA nonetheless accepts digests generated with an account's prior keys so that records provisioned before a rotation survive without republication (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3.5). Such records committed to the account's real URL when they were provisioned, so accepting the prior key preserves continuity without enabling substitution.<a href="#section-7.2.4-6" class="pilcrow">¶</a></p>
-<p id="section-7.2.4-7"><strong>Limits of the privacy protection.</strong> This construction is a best-effort obfuscation, not a cryptographically-strong privacy mechanism. It resists bulk correlation and casual enumeration of account URLs, but a determined adversary or one with a-priori knowledge of candidate account URLs and their account keys can recover the true account URL. Domain owners who require stronger unlinkability <span class="bcp14">SHOULD</span> use separate ACME accounts for domains that must not be correlated.<a href="#section-7.2.4-7" class="pilcrow">¶</a></p>
+<p id="section-7.2.4-5"><strong>Acceptance of prior keys.</strong> A CA accepts digests generated with an account's prior keys so that records provisioned before a rotation survive without republication (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3.5). Such records are committed to the account's URL when they were provisioned. Thus, even if the public key hash in the record is the hash of a compromised key (or key that was rotated to another ACME account), the domain owner's intent to authorize the ACME account is still preserved and security is comparable to mode-3a account URLs.<a href="#section-7.2.4-5" class="pilcrow">¶</a></p>
+<p id="section-7.2.4-6"><strong>Limits of the privacy protection.</strong> This construction is a best-effort obfuscation, not a cryptographically-strong privacy mechanism. It resists bulk correlation and casual enumeration of account URLs, but a determined adversary or one with a-priori knowledge of candidate account URLs and their account keys can recover the true account URL. Domain owners who require stronger unlinkability <span class="bcp14">SHOULD</span> use separate ACME accounts for domains that must not be correlated.<a href="#section-7.2.4-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
