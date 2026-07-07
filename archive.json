@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-07-05T02:04:46.425125+00:00",
+  "timestamp": "2026-07-07T02:05:53.534312+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -4221,6 +4221,53 @@
         }
       ],
       "reviews": []
+    },
+    {
+      "number": 67,
+      "id": "PR_kwDOO4VY2c7ulRjf",
+      "title": "Birgelee 02 candidate and hashed URIs",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/67",
+      "state": "OPEN",
+      "author": "birgelee",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2026-07-06T23:14:18Z",
+      "updatedAt": "2026-07-07T00:27:17Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "355fb4f6218c3a3856dbcf16d73b13870d4461c5",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "birgelee-02-candidate",
+      "headRefOid": "63b2eade2afc00563f7b68fe52d3159152a2d9e7",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABFJs1pQ",
+          "commit": {
+            "abbreviatedOid": "63b2ead"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-07T00:27:16Z",
+          "updatedAt": "2026-07-07T00:27:17Z",
+          "comments": [
+            {
+              "originalPosition": 36,
+              "body": "Unless there's some ACME restriction I'm missing, domain names can actually contain NUL bytes. Domain labels (e.g. www, example and com) are represented in DNS as length + value and can contain any octet including dots, spaces and null bytes (DNS is also case insensitive).\n\nNull bytes cannot appear in base64url encoded data or a URI so the last null byte does unambiguously mark the end of the domain name.\n\nEdit: The key is not base64url encoded and so can contain null bytes. Maybe null bytes in domains should just be prohibited for this method.",
+              "createdAt": "2026-07-07T00:27:17Z",
+              "updatedAt": "2026-07-07T00:59:49Z"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
