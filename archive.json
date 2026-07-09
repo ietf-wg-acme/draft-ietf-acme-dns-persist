@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-07-07T02:05:53.534312+00:00",
+  "timestamp": "2026-07-09T01:58:50.226798+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -4234,7 +4234,7 @@
       "labels": [],
       "body": "",
       "createdAt": "2026-07-06T23:14:18Z",
-      "updatedAt": "2026-07-07T00:27:17Z",
+      "updatedAt": "2026-07-08T18:42:07Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "355fb4f6218c3a3856dbcf16d73b13870d4461c5",
@@ -4264,6 +4264,46 @@
               "body": "Unless there's some ACME restriction I'm missing, domain names can actually contain NUL bytes. Domain labels (e.g. www, example and com) are represented in DNS as length + value and can contain any octet including dots, spaces and null bytes (DNS is also case insensitive).\n\nNull bytes cannot appear in base64url encoded data or a URI so the last null byte does unambiguously mark the end of the domain name.\n\nEdit: The key is not base64url encoded and so can contain null bytes. Maybe null bytes in domains should just be prohibited for this method.",
               "createdAt": "2026-07-07T00:27:17Z",
               "updatedAt": "2026-07-07T00:59:49Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABFONFPw",
+          "commit": {
+            "abbreviatedOid": "63b2ead"
+          },
+          "author": "CBonnell",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-07T13:08:31Z",
+          "updatedAt": "2026-07-07T13:08:32Z",
+          "comments": [
+            {
+              "originalPosition": 36,
+              "body": "> Unless there's some ACME restriction I'm missing\n\nIt's not an ACME restriction, but the normalization algorithm prescribed by this spec will fail if the domain name contains ASCII control characters. Specifically, ToASCII will fail as U+0000 is DISALLOWED by RFC 5892.\n\nThere's also the RFC 5280 requirement that dNSName GeneralNames be in \"preferred name syntax\", which would implicitly disallow NUL-containing hostnames to appear in the final certificate.\n\nGiven these, the ACME server should reject dns identifiers containing NULs.",
+              "createdAt": "2026-07-07T13:08:31Z",
+              "updatedAt": "2026-07-07T13:08:32Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABFZSUsQ",
+          "commit": {
+            "abbreviatedOid": "63b2ead"
+          },
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-08T18:42:07Z",
+          "updatedAt": "2026-07-08T18:42:07Z",
+          "comments": [
+            {
+              "originalPosition": 36,
+              "body": "In general I agree with @CBonnell that both the normalization and the guidance on \"preferred name syntax\" will both ensure that a domain containing a null byte would not make it this far into the processing (essentially the fact that the hashes are no longer unique is irrelevant as one could not practically get a certificate for this domain anyways via this method).\n\nHowever, I do tend to prefer standards that are as self-contained as possible and don't rely on restrictions published in other documents. Given that in this encoding the length of the domain name cannot be more than 255 bytes, this single null byte terminator could just be replaced by a length byte leading the domain name. I will probably do that in a commit just to avoid confusion. From my perspective this change has a negligible impact on the implementation.",
+              "createdAt": "2026-07-08T18:42:07Z",
+              "updatedAt": "2026-07-08T18:42:08Z"
             }
           ]
         }
