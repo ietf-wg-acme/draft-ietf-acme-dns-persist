@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-07-09T01:58:50.226798+00:00",
+  "timestamp": "2026-07-12T01:47:33.432611+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -1088,7 +1088,7 @@
       "labels": [],
       "body": "Hi everyone,\n\nI'm maintainer of an ACME Server Implementation and I stumbled over the naming convention in this draft.\n\nTake a look at (for example) https://www.rfc-editor.org/rfc/rfc8555#section-7.1.2 - naming is all camelCase and that's valid throughout RFC8555.\nThis draft adds new challenge objects and seems to follow no convention:\n\n- `accounturi` neither matches the kebab-cased `issuer-domain-names` nor does it align with ACMEs camelCase (should probably be `accountUri`)\n- `issuer-domain-names` does not align with ACMEs camelCase (should probably be `issuerDomainNames`)\n",
       "createdAt": "2026-04-02T19:12:35Z",
-      "updatedAt": "2026-07-03T16:11:35Z",
+      "updatedAt": "2026-07-09T14:42:33Z",
       "closedAt": null,
       "comments": [
         {
@@ -1139,6 +1139,20 @@
           "body": "> As a gut check, do you see any sharp edges with explicitly defining that in the BRs?\n\nAs long as there's a future effective date (to adjust existing implementations), I don't think there's any downside to mandating case-insensitive matching. The ABNF restricts `issue-value`s to ASCII, so there's no worry about dealing with Unicode/language-specific complexity (e.g., the Turkish \"I\").\n\n... But I'm no longer a representative of a member of CABF nor an Interested Party, so take that all with a grain of salt :smile:",
           "createdAt": "2026-07-03T16:11:35Z",
           "updatedAt": "2026-07-03T16:11:35Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "HI all,\n\nGood points. I think the cleanest solution is probably a CA/B F ballot that 1) clarifies processing needs to be case insensitive for these parameter names and 2) updates the recommended canonical wording to be lower case.\n\npoint 1 ensures subscribers that may have already made records labeled \"persistUntil\" will still have those records honored. point 2 moves towards consistency with RFC 8657.\n\nA concern I sometimes have (that I will reiterate here), is that subscribers often do not understand that RFCs (unless referenced in the BRs) are not normative to CA operations. If an RFC says \"persistuntil\", a subscriber will likely expect CAs to strictly honor that and its unlikely the subscriber will realize that the BRs only require CAs to honor \"persistUntil\". Thus, to respect the security interests of subscribers, its important to keep this IETF work in sync with the CA/B F.",
+          "createdAt": "2026-07-09T04:56:48Z",
+          "updatedAt": "2026-07-09T04:56:58Z"
+        },
+        {
+          "author": "slghtr-says",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Related CABF Issue: https://github.com/cabforum/servercert/issues/675",
+          "createdAt": "2026-07-09T14:42:20Z",
+          "updatedAt": "2026-07-09T14:42:33Z"
         }
       ]
     },
@@ -4234,7 +4248,7 @@
       "labels": [],
       "body": "",
       "createdAt": "2026-07-06T23:14:18Z",
-      "updatedAt": "2026-07-08T18:42:07Z",
+      "updatedAt": "2026-07-09T16:44:31Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "355fb4f6218c3a3856dbcf16d73b13870d4461c5",
@@ -4245,7 +4259,36 @@
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
-      "comments": [],
+      "comments": [
+        {
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "body": "> An attacker can't make an honest CA accept a victim's digest for the attacker's account without the victim's private key.\r\n\r\nAn attacker could still get a client to use their mode 3b (digest) URI as a client's ACME account URI (mode 3a).",
+          "createdAt": "2026-07-09T14:44:47Z",
+          "updatedAt": "2026-07-09T14:44:47Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@sheurich thanks for the review. Regarding your blocking concerns:\r\n1. My apologies on removing that language. I think I am used to CA/B F documents that contain much less security considerations. Instead of putting the self check back in, it seems people are increasingly in favor of moving towards a system where only 3b is allowed in the draft. I propose doing that in the next update.\r\n2. This was a mistake on my part. Happy to add normative text allowing for deactivate to override acceptance of prior keys.\r\n3. CA data obligation makes sense\r\n\r\nother: \r\nSHA-256 agility: seems to make sense to just put it into the URL like: <ca account URL prefix>sha-256/<hash>\r\nThen alternative algorithms can have cleanly separated URLs. Obviously CAs will need to document which algorithms they are willing to support (either through directory metadata or in CPS)\r\n\r\nThe change log sounds like a good idea, although I am thinking the next version will not have hashed URLs as \"3b\". Hashed URLs will just be the primary mode of operating.\r\n\r\nRFC 6234 -> FIPS 180-4: Nice catch\r\n\r\n1:1 -> \"each hashed URI uniquely identifies one account\"",
+          "createdAt": "2026-07-09T16:20:18Z",
+          "updatedAt": "2026-07-09T16:20:18Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@MaxHearnden \r\n\r\n> > An attacker can't make an honest CA accept a victim's digest for the attacker's account without the victim's private key.\r\n> \r\n> An attacker could still get a client to use their mode 3b (digest) URI as a client's ACME account URI (mode 3a).\r\n\r\nTrue, probably best to just remove 3a.",
+          "createdAt": "2026-07-09T16:21:54Z",
+          "updatedAt": "2026-07-09T16:21:54Z"
+        },
+        {
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "body": "> SHA-256 agility: seems to make sense to just put it into the URL like: sha-256/\r\n\r\nI know this is mostly bikeshedding, however the URL scheme should have support for hash algorithms with a slash in their name, e.g. SHA-512/256 (which can have better performance on 64 bit processors compared to SHA-256).",
+          "createdAt": "2026-07-09T16:44:31Z",
+          "updatedAt": "2026-07-09T16:44:31Z"
+        }
+      ],
       "reviews": [
         {
           "id": "PRR_kwDOO4VY2c8AAAABFJs1pQ",
@@ -4304,6 +4347,148 @@
               "body": "In general I agree with @CBonnell that both the normalization and the guidance on \"preferred name syntax\" will both ensure that a domain containing a null byte would not make it this far into the processing (essentially the fact that the hashes are no longer unique is irrelevant as one could not practically get a certificate for this domain anyways via this method).\n\nHowever, I do tend to prefer standards that are as self-contained as possible and don't rely on restrictions published in other documents. Given that in this encoding the length of the domain name cannot be more than 255 bytes, this single null byte terminator could just be replaced by a length byte leading the domain name. I will probably do that in a commit just to avoid confusion. From my perspective this change has a negligible impact on the implementation.",
               "createdAt": "2026-07-08T18:42:07Z",
               "updatedAt": "2026-07-08T18:42:08Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABFfNCeA",
+          "commit": {
+            "abbreviatedOid": "63b2ead"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "Reviewed the hashed-URI construction and the surrounding changes. The core is sound: `SHA-256(domain_name || 0x00 || key || account_URL)`, recomputed by the CA over the requesting account's key, restores RFC 8555 non-transferability for mode 3b. An attacker can't make an honest CA accept a victim's digest for the attacker's account without the victim's private key. The test vector checks out and the privacy framing is honest about being best-effort.\n\nI have three blocking concerns and a set of smaller ones. The largest is that this adds a verifiable mode but leaves the default path (mode 3a, raw account URL) unbound, and deletes the text that documented that gap.\n\nSeparately, I've come around to Aaron's position: the binding should be mandatory for the default account path, and mode 3c should be cut from this draft. 3c can't carry the client-computed binding by construction, and the subscriber-account capability survives under BR method 3.2.2.4.22 and CP/CPS without being specified here. That's an authors' decision rather than a line comment, so I've raised it by mail; the inline comments below assume the current mode structure and flag where each item changes if we cut 3c.\n\nBlocking:\n\n1. Mode 3a is still `SHOULD accept` with no client-computed binding, so the substitution attack still succeeds against it, and this PR removes the \"Substitution of the Account URI\" subsection and the 3a self-check that documented it. We shouldn't ship the deletion without a replacement, whatever we decide on mandatory binding.\n2. The revocation table keeps \"Deactivate ACME account -> 3b immediate,\" but the normative text that backed it was removed and the prior-key retention rule would keep a deactivated account's records validating. Deactivation needs to override retention in normative text.\n3. The key-retention requirement needs to be stated as an explicit CA data obligation (retain {account, key-thumbprint} plus the cert-to-validating-key link), with deactivation ranked above the MUST-not-prune rule.\n\nNon-blocking: hard-coded SHA-256 with no agility signal; the \"3b\" label is silently redefined from the published -01 meaning (alternative URI), which is a real changelog hazard since -01 is public on the Datatracker; RFC 6234 is an Informational downref on a standards-track normative reference; and the one-to-one binding claim from the cover note should be stated in the text as the property RFC 8657 Section 5.4 actually needs (each hashed URI uniquely identifies one account, which holds under collision resistance because account_URL is a hash input). Details inline.",
+          "createdAt": "2026-07-09T13:09:33Z",
+          "updatedAt": "2026-07-09T13:09:33Z",
+          "comments": [
+            {
+              "originalPosition": 38,
+              "body": "Tighten this so it's unambiguous under wildcard/subdomain validation: the hash must bind the FQDN where the record is provisioned (the Validation Domain Name minus the `_validation-persist` label), not the requested certificate FQDN. \"the FQDN being validated\" invites the wrong reading. Binding the record's own domain is also what neutralizes the wildcard/CNAME uniqueness concern from #64 \u2014 worth stating as a positive property here.",
+              "createdAt": "2026-07-09T13:09:33Z",
+              "updatedAt": "2026-07-09T13:09:33Z"
+            },
+            {
+              "originalPosition": 30,
+              "body": "The algorithm is fixed to SHA-256 with no agility path. The mitigating factor is real (the CA recomputes rather than a consumer parsing a prefix, unlike the old `pubkey:` proposal), so a CA could migrate by changing `accountHashPrefix` and the algorithm together. Either say that explicitly as the migration story, or add an algorithm identifier. This will come up in WG review given the history.",
+              "createdAt": "2026-07-09T13:09:33Z",
+              "updatedAt": "2026-07-09T13:09:33Z"
+            },
+            {
+              "originalPosition": 39,
+              "body": "Two fixes here. First, typo: \"that is know to the CA\" -> \"known.\" Second, the prior-key acceptance needs to be subordinate to account deactivation \u2014 as written, retention would keep a deactivated account's records validating. Add: \"A CA MUST NOT accept a hashed URI computed from the keys of a deactivated account, regardless of retention.\" See the revocation-table comment.",
+              "createdAt": "2026-07-09T13:09:33Z",
+              "updatedAt": "2026-07-09T13:09:33Z"
+            },
+            {
+              "originalPosition": 59,
+              "body": "State this as an explicit CA data-retention obligation, not just a pruning rule: the CA retains {account, key-thumbprint} associations and the link from a currently-valid certificate to the key that validated its backing record. And rank the rules: deactivation overrides the MUST-not-prune-while-cert-valid requirement, so a compromised-key deactivation stops validation immediately even if a valid cert depends on that key.",
+              "createdAt": "2026-07-09T13:09:33Z",
+              "updatedAt": "2026-07-09T13:09:33Z"
+            },
+            {
+              "originalPosition": 135,
+              "body": "This PR removed the \"Substitution of the Account URI\" subsection that used to sit around here, and the challenge-object 3a self-check. Don't drop that content without a replacement: after this change, mode 3a's substitution weakness is both unmitigated and undocumented. At minimum, keep a subsection stating (a) mode 3b is the substitution-resistant path via key binding, and (b) raw mode 3a is a URL commitment only as good as the channel that delivered the account URL, and does not preserve RFC 8555 non-transferability when that URL was poisoned. (If we adopt mandatory binding on the default path, this changes accordingly, but we still need it.)",
+              "createdAt": "2026-07-09T13:09:33Z",
+              "updatedAt": "2026-07-09T13:09:33Z"
+            },
+            {
+              "originalPosition": 151,
+              "body": "Two things for this security subsection. (1) Add a sentence closing Max's length-extension concern on the record: because the digest is compared for exact equality against a CA-recomputed value with fixed field structure, there's no attacker-controlled suffix to exploit, and `domain_name` as the leading field blocks cross-domain linkage. Bare SHA-256 is fine here; HMAC wouldn't help since both sides use only public inputs. (2) The one-to-one binding you describe in the cover note is worth stating precisely here: what RFC 8657 Section 5.4 requires is reverse-direction uniqueness \u2014 a URI must not identify two accounts \u2014 which holds because `account_URL` is a hash input and SHA-256 is collision resistant. Say \"each hashed URI uniquely identifies one account\" rather than \"1-1 binding.\"",
+              "createdAt": "2026-07-09T13:09:33Z",
+              "updatedAt": "2026-07-09T13:09:33Z"
+            },
+            {
+              "originalPosition": 177,
+              "body": "This \"immediate\" for 3b is currently unbacked \u2014 the normative text that enforced it was removed with the old mode-3b definition. Either restore an equivalent normative rule (see the deactivation comment on the mode-3b definition, line 181) or the table overstates what the spec guarantees. Related: if we cut 3c (see the review body and my mail to the authors), the row below and the 3c column come out entirely, which also resolves the deactivation-semantics gap for that mode \u2014 so let's settle the 3c question before reworking this table.",
+              "createdAt": "2026-07-09T13:09:33Z",
+              "updatedAt": "2026-07-09T13:09:33Z"
+            },
+            {
+              "originalPosition": 186,
+              "body": "Changelog flag: -01 was published to the Datatracker with mode 3b meaning \"alternative URI.\" This PR silently repurposes \"3b\" for the hashed URI. Add an explicit \"mode 3b redefined\" note in the document, or give the hashed URI a fresh label and retire the old 3b, so implementers tracking -01 aren't caught out. (Also: RFC 6234, cited normatively for SHA-256, is Informational \u2014 a downref the IESG will flag at Last Call. Cite FIPS 180-4 or be ready to note the downref.)",
+              "createdAt": "2026-07-09T13:09:33Z",
+              "updatedAt": "2026-07-09T13:09:33Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABFfR36A",
+          "commit": {
+            "abbreviatedOid": "63b2ead"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-09T13:20:26Z",
+          "updatedAt": "2026-07-09T13:20:26Z",
+          "comments": [
+            {
+              "originalPosition": 186,
+              "body": "The URI classification is not in draft-ietf-acme-dns-persist-01. However this would be the first URI in the spec which isn't provided by the server so it might still be note worthy.",
+              "createdAt": "2026-07-09T13:20:26Z",
+              "updatedAt": "2026-07-09T13:20:26Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABFfTZHg",
+          "commit": {
+            "abbreviatedOid": "63b2ead"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-09T13:23:32Z",
+          "updatedAt": "2026-07-09T13:23:33Z",
+          "comments": [
+            {
+              "originalPosition": 38,
+              "body": "My concern wasn't with the use of wildcards, it was with the lack of separation between a domain and the ACME account URI which introduced ambiguity when using wildcards. The separator is what mitigates my concern.",
+              "createdAt": "2026-07-09T13:23:32Z",
+              "updatedAt": "2026-07-09T13:23:33Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABFgv_Hg",
+          "commit": {
+            "abbreviatedOid": "63b2ead"
+          },
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-09T16:23:48Z",
+          "updatedAt": "2026-07-09T16:23:48Z",
+          "comments": [
+            {
+              "originalPosition": 38,
+              "body": "I am still leaning towards going to a length byte at the beginning instead of the separator so the separation is clearly self contained and not dependent on the precondition that there are no null bytes in the domain name.",
+              "createdAt": "2026-07-09T16:23:48Z",
+              "updatedAt": "2026-07-09T16:23:49Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABFg3iCA",
+          "commit": {
+            "abbreviatedOid": "63b2ead"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-09T16:40:46Z",
+          "updatedAt": "2026-07-09T16:40:46Z",
+          "comments": [
+            {
+              "originalPosition": 38,
+              "body": "A length byte would also be effective in separating the domain from other fields, [RFC 1035 Section 2.3.4](https://www.rfc-editor.org/info/rfc1035/#section-2.3.4) already limits domain names to 255 bytes.",
+              "createdAt": "2026-07-09T16:40:46Z",
+              "updatedAt": "2026-07-09T16:40:46Z"
             }
           ]
         }
