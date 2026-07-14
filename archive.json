@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-07-12T01:47:33.432611+00:00",
+  "timestamp": "2026-07-14T01:27:01.475409+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -4248,7 +4248,7 @@
       "labels": [],
       "body": "",
       "createdAt": "2026-07-06T23:14:18Z",
-      "updatedAt": "2026-07-09T16:44:31Z",
+      "updatedAt": "2026-07-12T22:55:07Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "355fb4f6218c3a3856dbcf16d73b13870d4461c5",
@@ -4287,6 +4287,13 @@
           "body": "> SHA-256 agility: seems to make sense to just put it into the URL like: sha-256/\r\n\r\nI know this is mostly bikeshedding, however the URL scheme should have support for hash algorithms with a slash in their name, e.g. SHA-512/256 (which can have better performance on 64 bit processors compared to SHA-256).",
           "createdAt": "2026-07-09T16:44:31Z",
           "updatedAt": "2026-07-09T16:44:31Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "> moving towards a system where only 3b is allowed in the draft. I propose doing that in the next update.\r\n\r\nIn that case, I think support for omitting the domain should be added.\r\n\r\nMy suggestion is then that a client who wishes to opt out of privacy, then  sets domain_name to the wildcard character \"*\" (0x2a) before hashing.\r\nThis will allow a client to opt out of privacy, but still have full security by the other armaments.\r\n\r\nA client may wish to provision the same record to multiple domains, or even synthesize using wildcard or use CNAME to point multiple domains to the same validation record.\r\n\r\n",
+          "createdAt": "2026-07-12T22:54:28Z",
+          "updatedAt": "2026-07-12T22:55:07Z"
         }
       ],
       "reviews": [
@@ -4489,6 +4496,26 @@
               "body": "A length byte would also be effective in separating the domain from other fields, [RFC 1035 Section 2.3.4](https://www.rfc-editor.org/info/rfc1035/#section-2.3.4) already limits domain names to 255 bytes.",
               "createdAt": "2026-07-09T16:40:46Z",
               "updatedAt": "2026-07-09T16:40:46Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABFwErXA",
+          "commit": {
+            "abbreviatedOid": "63b2ead"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-12T22:44:39Z",
+          "updatedAt": "2026-07-12T22:44:39Z",
+          "comments": [
+            {
+              "originalPosition": 33,
+              "body": "I do not think we should use null character as terminating character. In some programming languages this character can be hard to produce.\r\n\r\nIf a termination character is needed, I would instead suggest a character which are prohibited in a domain, like the pipe character ( |, 0x7c ) - but still can be printed using a regular keyboard, and which is identical in both ISO-8859-1 and UTF-8.\r\n\r\nThe JWK thumbprint I think should be in base64url - not raw sha256 - most ACME tools already have functions that return a JWK thumbprint in base64url to append to key authorizations, so its benefical if these tools and functions can be reused.",
+              "createdAt": "2026-07-12T22:44:39Z",
+              "updatedAt": "2026-07-12T22:49:01Z"
             }
           ]
         }
