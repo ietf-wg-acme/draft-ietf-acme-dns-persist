@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-07-14T01:27:01.475409+00:00",
+  "timestamp": "2026-07-19T01:45:13.654703+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -4163,7 +4163,7 @@
       "labels": [],
       "body": "Closes https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/63 if merged\r\n\r\nThis because issuer-domain-name is just a opaque value, and \"protecting\" that value with DNSSEC - especially if its a legacy domain name that the CA does not own anymore, will not give any security advantage.\r\n\r\nIt would be analogous to protecting a sign outside a bank with heavy security but have glass doors to the vault.\r\n\r\nThe sensitive resource for a CA - that needs protecting - is the ACME Directory URL - also called Server URL. Thats the sensitive ACME resource the CA owns and is the root of trust for the ACME client.",
       "createdAt": "2026-05-17T15:57:22Z",
-      "updatedAt": "2026-07-02T21:22:01Z",
+      "updatedAt": "2026-07-16T09:40:10Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "80fee73a1100614c6acaaba6a0badeb8f90d3c3b",
@@ -4248,13 +4248,13 @@
       "labels": [],
       "body": "",
       "createdAt": "2026-07-06T23:14:18Z",
-      "updatedAt": "2026-07-12T22:55:07Z",
+      "updatedAt": "2026-07-18T10:14:25Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "355fb4f6218c3a3856dbcf16d73b13870d4461c5",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "birgelee-02-candidate",
-      "headRefOid": "63b2eade2afc00563f7b68fe52d3159152a2d9e7",
+      "headRefOid": "f816113edb73d7bbf25c555896dd892db8913e63",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -4516,6 +4516,66 @@
               "body": "I do not think we should use null character as terminating character. In some programming languages this character can be hard to produce.\r\n\r\nIf a termination character is needed, I would instead suggest a character which are prohibited in a domain, like the pipe character ( |, 0x7c ) - but still can be printed using a regular keyboard, and which is identical in both ISO-8859-1 and UTF-8.\r\n\r\nThe JWK thumbprint I think should be in base64url - not raw sha256 - most ACME tools already have functions that return a JWK thumbprint in base64url to append to key authorizations, so its benefical if these tools and functions can be reused.",
               "createdAt": "2026-07-12T22:44:39Z",
               "updatedAt": "2026-07-12T22:49:01Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGcAB5w",
+          "commit": {
+            "abbreviatedOid": "f816113"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-17T23:42:56Z",
+          "updatedAt": "2026-07-17T23:42:56Z",
+          "comments": [
+            {
+              "originalPosition": 94,
+              "body": "Why mot base64url encoded? In this case, it would be preferable, since most ACME libraries already have functions for computing the keyAuthorization for HTTP-01 and DNS-01 authentication, which returns the JWK thumbprint in Base64url encoding.\n\nI feel that base64url should be used here aswell so the same library and functions can be used also for DNS-PERSIST-01.",
+              "createdAt": "2026-07-17T23:42:56Z",
+              "updatedAt": "2026-07-17T23:42:56Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGcl3RA",
+          "commit": {
+            "abbreviatedOid": "f816113"
+          },
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-18T03:58:59Z",
+          "updatedAt": "2026-07-18T03:58:59Z",
+          "comments": [
+            {
+              "originalPosition": 94,
+              "body": "I am personally not that opinionated on this front. I felt it was strange to use a url-friendly encoding in what is a binary input and even if helper functions returned the base64url version it could just be decoded into raw bytes by whatever function was computing this hash.\r\n\r\nThat said I don't feel strongly about this. I am curious if other WG members have thoughts.",
+              "createdAt": "2026-07-18T03:58:59Z",
+              "updatedAt": "2026-07-18T03:58:59Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGdQ12Q",
+          "commit": {
+            "abbreviatedOid": "f816113"
+          },
+          "author": "CBonnell",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-18T10:14:25Z",
+          "updatedAt": "2026-07-18T10:14:25Z",
+          "comments": [
+            {
+              "originalPosition": 94,
+              "body": "I agree with @sebastiannielsen that using base64url encoding of the thumbprint is easier to implement, because the base64url encoding of the thumbprint is used in other parts of the ACME spec.",
+              "createdAt": "2026-07-18T10:14:25Z",
+              "updatedAt": "2026-07-18T10:14:25Z"
             }
           ]
         }
