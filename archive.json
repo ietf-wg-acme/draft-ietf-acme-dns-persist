@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-07-19T01:45:13.654703+00:00",
+  "timestamp": "2026-07-21T01:45:38.681379+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -4248,7 +4248,7 @@
       "labels": [],
       "body": "",
       "createdAt": "2026-07-06T23:14:18Z",
-      "updatedAt": "2026-07-18T10:14:25Z",
+      "updatedAt": "2026-07-20T19:33:57Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "355fb4f6218c3a3856dbcf16d73b13870d4461c5",
@@ -4576,6 +4576,98 @@
               "body": "I agree with @sebastiannielsen that using base64url encoding of the thumbprint is easier to implement, because the base64url encoding of the thumbprint is used in other parts of the ACME spec.",
               "createdAt": "2026-07-18T10:14:25Z",
               "updatedAt": "2026-07-18T10:14:25Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGmiA3g",
+          "commit": {
+            "abbreviatedOid": "f816113"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-20T18:56:04Z",
+          "updatedAt": "2026-07-20T19:13:59Z",
+          "comments": [
+            {
+              "originalPosition": 76,
+              "body": "This could require a registry for hash algorithms (if a suitable one doesn't already exist) with algorithm support status (e.g. MUST, RECOMMENDED, MAY, NOT RECOMMENDED, MUST NOT).",
+              "createdAt": "2026-07-20T18:56:04Z",
+              "updatedAt": "2026-07-20T19:13:59Z"
+            },
+            {
+              "originalPosition": 130,
+              "body": "Is there a limit to the number of digests a CA would have to compute i.e. could an account have 200 keys that need to be checked?\n\nIt might make sense to either limit the number of concurrently valid keys for validation or have the client tell the ACME server which key is being used.",
+              "createdAt": "2026-07-20T18:59:19Z",
+              "updatedAt": "2026-07-20T19:13:59Z"
+            },
+            {
+              "originalPosition": 277,
+              "body": "It might also be worth saying that capturing an http-01 challenge gives the JWK fingerprint of the ACME account which could be enough to perform a brute force attack to recover the account URI.",
+              "createdAt": "2026-07-20T19:13:22Z",
+              "updatedAt": "2026-07-20T19:13:59Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGmsmcQ",
+          "commit": {
+            "abbreviatedOid": "f816113"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-20T19:20:23Z",
+          "updatedAt": "2026-07-20T19:20:23Z",
+          "comments": [
+            {
+              "originalPosition": 277,
+              "body": "Its not possible to \"capture\" an http-01 challenge as that would require knowledge of the token.\r\n\r\nUnless the server is configured to respond with a \"minted\" response based on any token input - but thats a conscious configuration by the server administrator, where the server administator is fully aware of its privacy implications. Its not possible to configure a server in that way by mistake.\r\n\r\nHOWEVER, there is a risk when using dns-01 challenges since those are posted at a static location (_validation-persist.DOMAIN.TLD with no random input required), but you should not really mix dns-01 and dns-persist-01 - the server administrator should choose one. So thats a non-issue, if you have access to DNS, there is no reason to mix dns-01 and dns-persist-01, then you can aswell go with dns-persist-01 for everything.",
+              "createdAt": "2026-07-20T19:20:23Z",
+              "updatedAt": "2026-07-20T19:21:20Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGmuF7g",
+          "commit": {
+            "abbreviatedOid": "f816113"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-20T19:23:47Z",
+          "updatedAt": "2026-07-20T19:23:47Z",
+          "comments": [
+            {
+              "originalPosition": 277,
+              "body": "Sorry if it wasn't clear, by capture I was referring to something passive on path to the CA.\r\n\r\nThis concern doesn't apply to dns-01 and tls-alpn-01 as they both use a digest of the key authorisation so the JWK thumbprint can't be recovered.",
+              "createdAt": "2026-07-20T19:23:47Z",
+              "updatedAt": "2026-07-20T19:23:47Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGmzM2A",
+          "commit": {
+            "abbreviatedOid": "f816113"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-20T19:33:57Z",
+          "updatedAt": "2026-07-20T19:33:57Z",
+          "comments": [
+            {
+              "originalPosition": 277,
+              "body": "1: You can't do this to the ACME client, since the requests between the ACME client and server is encrypted. So even if server administrator sits on a unprotected wifi, it won't matter.\r\n\r\n2: The path out from the CA (outgoing validationn requests, unencrypted in http-01) should be assumed to be protected. Its part of the CA's audit that their infrastructure is secure enough.\r\n\r\n3: Only way to capture http-01 would then be if the SERVER in question sits on a unprotected wifi or wifi PTP link or if any part of the network on the server side is using hubs instead of switches. Very rare configuration.\r\n\r\n4: This would then only have privacy implications, not any security implication.",
+              "createdAt": "2026-07-20T19:33:57Z",
+              "updatedAt": "2026-07-20T19:35:32Z"
             }
           ]
         }
