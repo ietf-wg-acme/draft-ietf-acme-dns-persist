@@ -153,15 +153,17 @@ A CA offering the `dns-persist-01` challenge type MUST advertise an `issuerDomai
 
 The directory `issuerDomainNames` array MUST use the same normalization and length rules as the challenge object's `issuerDomainNames` array ({{challenge-object}}): each entry MUST be a lowercase A-label domain name with no trailing dot and MUST NOT exceed 253 octets. The array MUST NOT be empty and MUST NOT contain more than 10 entries.
 
-Let D be the set of values in the directory `issuerDomainNames` array, and let I be the set of values in the directory `caaIdentities` array ({{!RFC8555}}, Section 7.1.1), represented as lowercase A-label domain names with no trailing dot. A CA offering `dns-persist-01` MUST advertise `caaIdentities`. For each `dns-persist-01` challenge object the CA issues, let C be the set of values in that challenge's `issuerDomainNames` array. The CA MUST satisfy these requirements:
+Let D be the set of values in the directory `issuerDomainNames` array, and let I be the set of values in the directory `caaIdentities` array ({{!RFC8555}}, Section 7.1.1), represented as lowercase A-label domain names with no trailing dot. This document does not require a CA to advertise `caaIdentities`; a CA that does not perform CAA validation has no names to disclose there. For each `dns-persist-01` challenge object the CA issues, let C be the set of values in that challenge's `issuerDomainNames` array. The CA MUST satisfy these requirements:
 
 - Every value in D MUST appear in C. A client that pre-provisions a record using a name from D is therefore guaranteed that the name will satisfy the `issuer-domain-name` requirement of any `dns-persist-01` challenge that CA issues later, without first opening an authorization.
 - C MAY include values beyond D while remaining within the 10-entry maximum in {{challenge-object}}, so a CA can offer challenge-specific names in addition to its pre-provisioning baseline.
-- Every value in C MUST also appear in I. This prevents a CA from accepting an `issuer-domain-name` that it has not also disclosed through `caaIdentities`.
+- If the CA advertises `caaIdentities`, every value in C MUST also appear in I. This prevents a CA that participates in CAA validation from accepting an `issuer-domain-name` it has not also disclosed through `caaIdentities`.
 
-For these subset comparisons, the CA MUST compare `caaIdentities` values after applying the same lowercase A-label and trailing-dot rules used for D and C.
+For these subset comparisons, the CA MUST compare `caaIdentities` values, when advertised, after applying the same lowercase A-label and trailing-dot rules used for D and C.
 
-A client MUST treat a missing or nonconforming directory `issuerDomainNames` or `caaIdentities` array as unavailable for pre-provisioning. It MAY still process an interactive `dns-persist-01` challenge. When D is available, the client MUST consider a challenge malformed if any value in D is absent from C. When I is available, the client MUST consider a challenge malformed if any value in C is absent from I.
+`caaIdentities` values of publicly trusted CAs are kept distinct by the CA/Browser Forum disclosure and audit regime. Identities of CAs outside that regime have no equivalent protection against another CA recognizing the same name, so a domain owner who adds such an identity to a CAA policy accepts that reuse caveat.
+
+A client MUST treat a missing or nonconforming directory `issuerDomainNames` array as unavailable for pre-provisioning. A missing or nonconforming `caaIdentities` array does not affect pre-provisioning; it only makes the I comparisons unavailable. A client MAY still process an interactive `dns-persist-01` challenge. When D is available, the client MUST consider a challenge malformed if any value in D is absent from C. When I is available, the client MUST consider a challenge malformed if any value in C is absent from I.
 
 # Challenge Response and Verification {#challenge-response-and-verification}
 
@@ -832,4 +834,4 @@ RFC Editor: please remove this section before publication.
 - Added client-side guidance ({{client-implementation-guidelines}}) to check `persistUntil` against local provisioning state before initiating an order (#38).
 - Removed DNS TTL as a validation data reuse limit; reuse remains subject to `persistUntil` and the CA's Validation Data Reuse Period. Renamed {{validation-data-reuse}} accordingly and removed the related TTL-specific implementation guidance (#42).
 - Corrected the stale Account Key Rotation text: the account URL is stable, but the hashed `accounturi` changes with the account key, and continued acceptance of a prior key is governed by {{verification-procedure}}.
-- Added the required directory `issuerDomainNames` metadata field and the D ⊆ C ⊆ I consistency rule between it, the challenge object's `issuerDomainNames`, and `caaIdentities` (#60).
+- Added the required directory `issuerDomainNames` metadata field and the D ⊆ C consistency rule with the challenge object's `issuerDomainNames`; the C ⊆ I rule against `caaIdentities` applies when the CA advertises `caaIdentities` (#60).
