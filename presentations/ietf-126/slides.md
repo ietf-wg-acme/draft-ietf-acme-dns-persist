@@ -112,19 +112,19 @@ IETF 126 ACME WG — Vienna
 
 ---
 
-# Since IETF 125: From Alternatives to PR #67
+# Since IETF 125: Choosing a Binding Mechanism
 
 ## Security guidance corrected
 
-- **PR #66 merged**: the CA-side DNSSEC guidance now protects the **ACME directory URL**, the name clients resolve and connect to; `issuer-domain-name` is an opaque identifier inside the record
+- The CA-side DNSSEC guidance now protects the **ACME directory URL**, the name clients resolve and connect to; `issuer-domain-name` is an opaque identifier inside the record
 
-## Three approaches to substitution hardening (#64)
+## Three approaches to substitution hardening
 
-| PR | Approach | Outcome |
-| --- | --- | --- |
-| **#62** | Authenticated POST to supplied `accounturi` | **Closed:** requires a live endpoint and online client |
-| **#65** | `pubkey:` hash of the account key | **Closed:** new wire format; DNS update on rollover |
-| **#67** | Hash name + key + account URL | **Selected** (open draft): offline binding with rollover continuity |
+| Approach | Outcome |
+| --- | --- |
+| [Authenticated POST to supplied `accounturi`](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/62) | **Closed:** requires a live endpoint and online client |
+| [`pubkey:` hash of the account key](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/65) | **Closed:** new wire format; DNS update on rollover |
+| [Hash name + key + account URL](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/67) | **Selected** (open draft): offline binding with rollover continuity |
 
 <div class="ask">
 
@@ -136,7 +136,7 @@ IETF 126 ACME WG — Vienna
 
 <!-- _class: discuss -->
 
-# The Substitution Gap (Issue #64)
+# The Substitution Gap
 
 <div class="columns">
 <div>
@@ -171,7 +171,7 @@ The victim publishes a record authorizing the **attacker's** account.
 
 <!-- _class: discuss -->
 
-# PR #67: Offline Binding with Account Continuity
+# Offline Binding with Account Continuity
 
 The client and CA independently construct the same hashed `accounturi`:
 
@@ -247,20 +247,21 @@ HTTP-01 exposes the account-key thumbprint on the CA's cleartext validation fetc
 
 ## Land now: author-settled and scoped
 
-- **#38**: avoid provisioning an already-expired record
-- **#42**: keep DNS cache lifetime separate from authorization lifetime
-- **#56**: align the challenge object with ACME JSON naming
-- **#60**: discover issuer names before creating an order
+- Avoid provisioning an already-expired record ([#38](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/38))
+- Separate DNS cache lifetime from authorization lifetime ([#42](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/42))
+- Align challenge-object naming with ACME JSON ([#56](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/56))
+- Discover issuer names before creating an order ([#60](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/60))
 
 </div>
 <div>
 
 ## Defer past `-02`
 
-- **#32** IP validation: defer to keep this revision focused
-- **#33** subdomains: choose RFC 9444 reuse or a new signal
-- **#39** errors: decide whether to register challenge-specific errors
-- Close **#59/#64** after #67; keep **#61** open for privacy
+- IP validation ([#32](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/32)): defer to keep this revision focused
+- Subdomains ([#33](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/33)): choose RFC 9444 reuse or a new signal
+- Error codes ([#39](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/39)): decide whether to register challenge-specific errors
+- Mismatch behavior ([#59](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/59)) and substitution binding ([#64](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/64)) close with the hashed URI
+- Privacy analysis ([#61](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/61)): keep open
 
 </div>
 </div>
@@ -272,7 +273,7 @@ HTTP-01 exposes the account-key thumbprint on the CA's cleartext validation fetc
 ## Settled fixes in the `-02` candidate
 
 - Rotation-text rewrite, RFC 8657 clarification, base64url thumbprint with new vectors
-- RFC 6920 hash tokens (mandatory `sha-256`), HTTP-01 privacy caveat, issues #38/#42/#56/#60
+- RFC 6920 hash tokens (mandatory `sha-256`), HTTP-01 privacy caveat, and the four scoped fixes
 - IANA early review requested for the new directory metadata
 
 ## Two remaining questions: exact proposals under author review
@@ -303,5 +304,5 @@ Submission blackout: gather feedback Thursday, confirm on-list, then publish `-0
 [#676](https://github.com/cabforum/servercert/issues/676) `policy=wildcard` · [#677](https://github.com/cabforum/servercert/issues/677) separate validation method for dns-persist-01
 
 Mailing list: acme@ietf.org<br>
-GitHub: https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist<br>
+GitHub: [current `-02` candidate and discussion](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/67) · [repository](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist)<br>
 Draft: https://datatracker.ietf.org/doc/draft-ietf-acme-dns-persist/
