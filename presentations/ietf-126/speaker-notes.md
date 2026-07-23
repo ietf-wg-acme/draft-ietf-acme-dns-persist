@@ -11,14 +11,14 @@ questions; push detailed discussion to the mailing list and GitHub.
 | Slide | Topic | Time | Cumulative |
 |-------|-------|------|------------|
 | 1 | Title | 0:15 | 0:15 |
-| 2 | Since IETF 125 (default: short) | 0:30 | 0:45 |
-| 3 | Substitution gap (#64) (default: short) | 0:45 | 1:30 |
-| 4 | PR #67: offline binding | 1:30 | 3:00 |
-| 5 | Mandatory hashed-URI binding | 1:30 | 4:30 |
-| 6 | Final construction review (default: short) | 0:20 | 4:50 |
-| 7 | What lands in `-02` (default: short) | 0:15 | 5:05 |
-| 8 | Path forward | 1:00 | 6:05 |
-| 9 | Questions | 2:00 | 8:05 |
+| 2 | Substitution gap (#64) (default: short) | 0:45 | 1:00 |
+| 3 | Three approaches (default: short) | 0:20 | 1:20 |
+| 4 | PR #67: offline binding | 1:30 | 2:50 |
+| 5 | Mandatory hashed-URI binding | 1:30 | 4:20 |
+| 6 | Final construction review (default: short) | 0:20 | 4:40 |
+| 7 | What lands in `-02` (default: short) | 0:15 | 4:55 |
+| 8 | Path forward | 1:00 | 5:55 |
+| 9 | Questions | 2:00 | 7:55 |
 
 ## Time Discipline
 
@@ -36,7 +36,7 @@ remaining full-script slide to its `[IF SHORT]` version and deliver slide 6 in
 one sentence. Slides 4 and 5 are exempt from this cut; they stay full.
 
 Remote delivery removes room-read, so plan to land the talk near 7:15, not
-8:00, and let Q&A absorb the slack. The consensus questions (author agreement,
+the full 7:55, and let Q&A absorb the slack. The consensus questions (author agreement,
 silence versus consensus) will use all of it. Keep the privacy sentence on
 slide 6 either way. Budget slide 8 at 1:15 in practice.
 
@@ -57,40 +57,11 @@ For newcomers (the slide subtitle now carries this; reinforce verbally):
 long-lived DNS TXT record that authorizes a specific CA account to issue
 certificates, without per-issuance interaction."
 
----
-
-## Slide 2: From Alternatives to PR #67 (1:00)
-
-"One security-text correction merged on its own. The Security Considerations
-tell CAs to protect a DNS name with DNSSEC. The old sentence named
-issuer-domain-name, an opaque identifier carried in the TXT record; clients
-never resolve it. What clients resolve and connect to is the ACME directory
-URL, so PR #66 moved the DNSSEC guidance there.
-
-For the substitution problem in #64, we considered three approaches. PR #62
-used an authenticated POST to the supplied account URI. That detects
-substitution, but requires a live endpoint and an online client. PR #65 bound
-the record directly to a public-key hash. That works offline, but introduces a
-new fixed wire format and requires a DNS update when the account key rolls over.
-
-PR #67 combines the useful properties. The client computes the value offline,
-the account URL preserves account identity, and prior-key matching supports
-rollover continuity. That is the design we selected. PR #68 has merged into
-the PR #67 candidate, which remains an open draft, so nothing is locked. The selection criterion was
-non-transferability without giving up offline provisioning or workable key
-rollover."
-
-**[IF SHORT]:** "PR #66 moved the CA DNSSEC guidance from issuer-domain-name to
-the ACME directory URL. For substitution, #62
-was an online proof, #65 was a key-specific DNS binding, and #67 is the current
-choice because it combines offline verification with account and rollover
-continuity." (30 sec)
-
-**Transition:** "Let me state the problem these proposals address."
+**Transition:** "Start with the gap itself."
 
 ---
 
-## Slide 3: The Substitution Gap (1:15)
+## Slide 2: The Substitution Gap (1:15)
 
 "The property at stake is non-transferability. A validation performed by an
 honest domain owner should not become authorization for a different account at
@@ -111,11 +82,10 @@ orders a certificate for the victim's domain. Step six: the real server's
 Simple String Comparison matches the record against the requesting account A
 and issues. To the attacker, from the real CA, not from the proxy.
 
-Fail closed: this is what the hashed form fixes. The real server recomputes
-the hash over the requesting account's proven key and URL, so a record
-poisoned for account A matches neither the attacker's recomputation, which
-has the wrong key, nor the victim's, which has the wrong URL. It validates
-for no account, and the victim republishes."
+Fail closed is the bar this sets. An honest owner's published record must
+validate for no account when it is substituted, so a poisoned value transfers
+authorization to nobody — without depending on a live endpoint or an online
+client."
 
 **Threat clarification if asked** (from the thread tail): the target is a
 malicious, compromised, or impersonated ACME endpoint: a typosquatted or
@@ -132,7 +102,29 @@ requesting account's proven keys and URL.
 **[IF SHORT]:** Define mode 3a as the raw account-URL form, then read steps
 3, 4, and 6, then the fail-closed line. (45 sec)
 
-**Transition:** "Here's what the thread converged on to close that gap."
+**Transition:** "We weighed three ways to meet that bar."
+
+---
+
+## Slide 3: Choosing a Binding Mechanism (0:40)
+
+"PR #62 used an authenticated POST to the supplied account URI. That detects
+substitution, but requires a live endpoint and an online client. PR #65 bound
+the record directly to a public-key hash. That works offline, but introduces a
+new fixed wire format and requires a DNS update when the account key rolls over.
+
+PR #67 combines the useful properties. The client computes the value offline,
+the account URL preserves account identity, and prior-key matching supports
+rollover continuity. That is the design we selected. PR #68 has merged into
+the PR #67 candidate, which remains an open draft, so nothing is locked. The selection criterion was
+non-transferability without giving up offline provisioning or workable key
+rollover."
+
+**[IF SHORT]:** "#62 was an online proof, #65 was a key-specific DNS binding,
+and #67 is the current choice because it combines offline verification with
+account and rollover continuity." (20 sec)
+
+**Transition:** "Here's how the selected construction works."
 
 ---
 
@@ -457,7 +449,7 @@ CABF work item.
 
 ### Where is the draft version?
 
-The working copy is post-01 with the PR #66 merge; -02 will carry the
+The working copy is post-01; -02 will carry the
 substitution mechanism. No new version is posted to the Datatracker since -01,
 during the submission blackout. -02 goes out after the meeting, incorporating
 WG feedback.

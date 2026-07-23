@@ -152,33 +152,11 @@ IETF 126 ACME WG — Vienna
 
 ---
 
-# Since IETF 125: Choosing a Binding Mechanism
-
-## Security guidance corrected
-
-- The CA-side DNSSEC guidance now protects the **ACME directory URL**, the name clients resolve and connect to; `issuer-domain-name` is an opaque identifier inside the record
-
-## Three approaches to substitution hardening
-
-| Approach | Outcome |
-| --- | --- |
-| [Authenticated POST to supplied `accounturi`](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/62) | **Closed:** requires a live endpoint and online client |
-| [`pubkey:` hash of the account key](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/65) | **Closed:** new wire format; DNS update on rollover |
-| [Hash name + key + account URL](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/67) | **Selected** (open draft): offline binding with rollover continuity |
-
-<div class="ask">
-
-**Goal:** restore non-transferability; keep offline provisioning and rollover.
-
-</div>
-
----
-
 <!-- _class: discuss -->
 
 # The Substitution Gap
 
-### Mode 3a — raw accounturi (dropped)
+### Mode 3a — raw accounturi
 
 <div class="seq">
 <div class="lane">Victim (domain owner)</div>
@@ -194,7 +172,25 @@ IETF 126 ACME WG — Vienna
 
 <div class="ask">
 
-**Fail closed:** the hashed form defeats this. The real server recomputes over the requesting account's proven key and URL, so a poisoned record validates for no account.
+**Fail closed:** the fix must make a substituted record validate for **no** account, so a poisoned value transfers authorization to nobody.
+
+</div>
+
+---
+
+# Since IETF 125: Choosing a Binding Mechanism
+
+## Three approaches to substitution hardening
+
+| Approach | Outcome |
+| --- | --- |
+| [Authenticated POST to supplied `accounturi`](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/62) | **Closed:** requires a live endpoint and online client |
+| [`pubkey:` hash of the account key](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/65) | **Closed:** new wire format; DNS update on rollover |
+| [Hash name + key + account URL](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/67) | **Selected** (open draft): offline binding with rollover continuity |
+
+<div class="ask">
+
+**Goal:** restore non-transferability; keep offline provisioning and rollover.
 
 </div>
 
