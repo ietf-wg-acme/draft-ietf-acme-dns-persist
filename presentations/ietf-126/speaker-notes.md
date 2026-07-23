@@ -11,32 +11,39 @@ questions; push detailed discussion to the mailing list and GitHub.
 | Slide | Topic | Time | Cumulative |
 |-------|-------|------|------------|
 | 1 | Title | 0:15 | 0:15 |
-| 2 | Since IETF 125 | 1:00 | 1:15 |
-| 3 | Substitution gap (#64) | 1:15 | 2:30 |
-| 4 | PR #67: offline binding | 1:30 | 4:00 |
-| 5 | Mandatory hashed-URI binding | 1:30 | 5:30 |
-| 6 | Final construction review | 0:45 | 6:15 |
-| 7 | What lands in `-02` | 0:45 | 7:00 |
-| 8 | Path forward | 1:00 | 8:00 |
-| 9 | Questions | 2:00 | 10:00 |
+| 2 | Since IETF 125 (default: short) | 0:30 | 0:45 |
+| 3 | Substitution gap (#64) (default: short) | 0:45 | 1:30 |
+| 4 | PR #67: offline binding | 1:30 | 3:00 |
+| 5 | Mandatory hashed-URI binding | 1:30 | 4:30 |
+| 6 | Final construction review (default: short) | 0:20 | 4:50 |
+| 7 | What lands in `-02` (default: short) | 0:15 | 5:05 |
+| 8 | Path forward | 1:00 | 6:05 |
+| 9 | Questions | 2:00 | 8:05 |
 
 ## Time Discipline
 
 At IETF 124 the dns-persist slot ran over and the chair cut the queue. This is a
-10-minute slot, not 15. **Hard rule:** if slide 5 (the core-package slide) is
-not on screen by 4:15 cumulative, use the `[IF SHORT]` versions for slides 3 and
-4 and deliver slide 6 in one sentence. Slides 4 and 5 are the point of the talk.
-Everything else can move to the list.
+10-minute slot, not 15. **Default route (rehearsal pass 2):** slides 2 and 3
+use their `[IF SHORT]` scripts by default; slides 4 and 5 stay full and
+protected regardless of the clock, since they are the point of the talk;
+slides 6
+and 7 use their `[IF SHORT]` scripts by default; slide 8 stays full. Expand a
+short script back to full only if ahead of the clock. The full scripts stay in
+the notes as expansion material, not dead text.
+
+**Hard rule:** if slide 5 is not on screen by 4:15 cumulative, drop any
+remaining full-script slide to its `[IF SHORT]` version and deliver slide 6 in
+one sentence. Slides 4 and 5 are exempt from this cut; they stay full.
 
 Remote delivery removes room-read, so plan to land the talk near 7:15, not
 8:00, and let Q&A absorb the slack. The consensus questions (author agreement,
-silence versus consensus) will use all of it. Deliver slide 6 as its
-`[IF SHORT]` version by default and expand only if ahead of the clock; keep
-the privacy sentence either way. Budget slide 8 at 1:15 in practice.
+silence versus consensus) will use all of it. Keep the privacy sentence on
+slide 6 either way. Budget slide 8 at 1:15 in practice.
 
 The goal: report the chosen core package (drop 3a and 3c, mandatory hashed URI),
-state the two exact extension proposals still under author review, and invite WG
-feedback before -02 publishes.
+present the star-form author proposal (unanimous, WG review pending) and the
+deferred post-IETF rollover design question, and invite WG feedback before -02
+publishes.
 
 ---
 
@@ -89,19 +96,26 @@ continuity." (30 sec)
 honest domain owner should not become authorization for a different account at
 an honest CA. RFC 8555 preserves this for the built-in challenges by binding the
 account key into the response, computed offline by both client and server,
-sections 8.1 and 10.2.
+sections 8.1 and 10.2. The raw account-URL form, mode 3a, does not preserve
+it, and here's the sequence.
 
-Mode 3a of dns-persist does not preserve it. The record carries only a
-server-provided accounturi. If a malicious, compromised, or impersonated ACME
-endpoint poisons what the client believes its own account URL is, at account
-creation, then the client's self-check and the CA's later Simple String
-Comparison both pass against the same poisoned reference; nothing detects the
-swap. The victim ends up publishing a record that authorizes the attacker's
-account at a real CA. If pressed, note the flip side: the victim's own
-issuance then fails, which is a detection channel.
+Step one: the adversary already runs a malicious, compromised, or
+impersonated ACME proxy and already holds account A at the real server. No
+key theft, no DNS compromise, just a bad endpoint. Step two: the victim,
+believing it is talking to the CA, creates an account through that proxy.
+Step three: the proxy hands back the attacker's own account URL, A, as if it
+were the victim's own. Pure URL substitution at account creation. Step
+four: the victim voluntarily publishes the DNS TXT record it was told to:
+accounturi=A. Step five: the adversary, using account A at the real server,
+orders a certificate for the victim's domain. Step six: the real server's
+Simple String Comparison matches the record against the requesting account A
+and issues. To the attacker, from the real CA, not from the proxy.
 
-I want to be precise about the threat: this is not 'protecting a client that
-chose to trust a bad server.' The narrow, real property is non-transferability."
+Fail closed: this is what the hashed form fixes. The real server recomputes
+the hash over the requesting account's proven key and URL, so a record
+poisoned for account A matches neither the attacker's recomputation, which
+has the wrong key, nor the victim's, which has the wrong URL. It validates
+for no account, and the victim republishes."
 
 **Threat clarification if asked** (from the thread tail): the target is a
 malicious, compromised, or impersonated ACME endpoint: a typosquatted or
@@ -115,10 +129,8 @@ fails closed. A poisoned `accountHashPrefix` or account URL yields a record
 that validates for no account, because the CA recomputes only over the
 requesting account's proven keys and URL.
 
-**[IF SHORT]:** Read the right column only. "Record carries only a server-given
-accounturi; a bad server poisons the client's own URL, so the self-check passes
-and the victim authorizes the attacker. RFC 8555 stops this by binding the key;
-mode 3a doesn't." (45 sec)
+**[IF SHORT]:** Define mode 3a as the raw account-URL form, then read steps
+3, 4, and 6, then the fail-closed line. (45 sec)
 
 **Transition:** "Here's what the thread converged on to close that gap."
 
@@ -175,14 +187,15 @@ consensus; we summarize to the list and confirm there before publishing.
 
 Present the hashed-only core as the authors' current direction. Do not include the
 `keyRolloverWindow` proposal or mandatory support for the `domain_name = "*"`
-form in the core package; those remain separate design questions.
+form in the core package; the star form is a separate current author proposal
+(WG review pending) and rollover is a deferred post-IETF design question.
 
 **[IF SHORT]:** Show the table. "Drop 3a and 3c; make the hashed URI mandatory.
 Any objection before -02?" (1:00)
 
 **Transition:** "The default construction addresses the cryptographic concerns
 raised in review. The domain-omitted path deliberately trades away one of those
-properties and remains a separate decision."
+properties and is now the authors' separate proposal, pending WG review."
 
 ---
 
@@ -239,21 +252,24 @@ rotation-text rewrite, the RFC 8657 distinction, the four construction-review
 edits, and the four ready issue fixes. IANA early review has been requested for
 the new directory metadata.
 
-The two unsettled extensions now have exact proposals under author review
-rather than open-ended options. For key rotation, the proposal would replace
-keyRotationPeriod with keyRolloverWindow, a required CA directory field: an
-exact acceptance window after a key rotates out; record removal, persistUntil,
-and account deactivation end it sooner, and certificate validity does not
-extend it. For the domain-omitted star form, keep it with client-MAY, CA-MUST
-semantics and the cost stated directly: the same value in every record lets
-a DNS observer link the account's domains; records evaluate independently, so
-no precedence rule is needed.
+The two extensions are now in different states. The domain-omitted star form
+is the authors' current proposal: a client MAY set domain_name to star, and
+every CA offering dns-persist MUST accept it. All three authors are aligned;
+WG review is pending. The cost is stated directly: the same value in every
+record lets a DNS observer link the account's domains. The benefit is one
+record reused across many names, including CNAME-based centralized
+management.
+
+Key rollover is not author-settled. We are deferring that design until after
+this meeting: one direction is a bounded prior-key acceptance window
+replacing keyRotationPeriod; Henry has proposed exploring records that do not
+break on account-key rollover. Either outcome must preserve
+non-transferability.
 
 The draft cutoff has passed. We finish the text now, take feedback Thursday,
-and publish -02 when submissions reopen. The question for the room is whether
-anyone has input or objections on the two pending proposals. These are
-proposals under author review, not a settled author position; we will confirm
-the outcome on the list."
+and publish -02 when submissions reopen. Two different asks: objections to
+the star-form proposal, and input to steer the rollover design. The star
+form is an author proposal, not WG consensus; we will confirm on the list."
 
 ---
 
@@ -262,14 +278,18 @@ the outcome on the list."
 Open the floor. First, the standing chair ask: "Chairs, please minute the
 core package as the authors' -02 direction with WG feedback invited, not a
 consensus call; we will summarize today's input to `acme@ietf.org` and confirm
-there before publishing." If an affirmative signal would help, ask the chairs
-for a hum on the narrow slide 5 question. Do not treat silence as endorsement.
+there before publishing, and please minute the star form as the authors'
+proposal with WG feedback invited." If an affirmative signal would help, ask
+the chairs for a hum on the narrow slide 5 question. Do not treat silence as
+endorsement.
 
 If quiet, ask only:
 
 - "Any objection to dropping 3a and 3c and making the hashed URI mandatory?"
-- "Any objections to the proposed keyRolloverWindow semantics or to keeping the
-  domain-omitted star form with client-MAY, CA-MUST support?"
+- "The authors propose keeping the domain-omitted star form with client-MAY,
+  CA-MUST support; any objection?"
+- "Any input on the post-IETF rollover design: a bounded prior-key window
+  versus records that survive rollover?"
 
 If CA/Browser Forum alignment comes up, the slide lists four open
 cabforum/servercert issues tracking the Method 3.2.2.4.22 side: 674
@@ -284,11 +304,12 @@ draft.
 
 ### Do all three authors agree on keyRolloverWindow and the star form?
 
-No. The settled fixes are merged, and Henry is good with them. On rollover, he
-argues that records need not break and wants to explore changing the behavior if
-the authors agree. The exact rollover semantics and the star form remain under
-author review. We will use WG input to continue that discussion and confirm the
-outcome on the list.
+On the star form, yes: Shiloh proposed client MAY / CA MUST, Michael agreed,
+and Henry then confirmed. It is the authors' current
+proposal, pending WG review. On rollover, no: Michael supports a bounded
+prior-key window; Henry wants to explore records that do not break on
+rollover, and the authors deferred that design until after IETF 126. We will
+fold WG input into that discussion and confirm outcomes on the list.
 
 ### Why not just use the pubkey directly in the record (PR #65)?
 
@@ -309,9 +330,10 @@ longer part of the draft.
 
 Binding changes the hash when the account key changes. The PR #67 candidate
 preserves continuity by matching retained prior keys, with account deactivation
-as the hard override. The `keyRolloverWindow` proposal would set an exact upper
-bound on prior-key acceptance; clients would republish after rotation, and the old
-record would stop validating when the window ends.
+as the hard override. One candidate under the deferred post-IETF discussion, a
+bounded `keyRolloverWindow`, would set an exact upper bound on prior-key
+acceptance; clients would republish after rotation, and the old record would
+stop validating when the window ends.
 
 Henry has raised a different direction in which the DNS record remains valid
 across account key rollover without a bounded prior-key window. That direction
@@ -321,31 +343,32 @@ discussion.
 
 ### I steal a rotated-out account key. What does the window let me do before T + P?
 
-Nothing without the current key. A rotated-out key can no longer authenticate
-ACME requests (RFC 8555 Section 7.3.5), so it cannot act as the victim's
-account. Registering a new account with the stolen key yields a different
-account URL, so the CA's recomputation never matches the victim's published
-digest, because the hash binds key and account URL together. The window preserves
-validation continuity for the legitimate account only; account deactivation
-remains the hard stop for a current-key compromise.
+Under the bounded-window candidate: nothing without the current key. A
+rotated-out key can no longer authenticate ACME requests (RFC 8555 Section
+7.3.5), so it cannot act as the victim's account. Registering a new account
+with the stolen key yields a different account URL, so the CA's
+recomputation never matches the victim's published digest, because the hash
+binds key and account URL together. The window preserves validation
+continuity for the legitimate account only; account deactivation remains the
+hard stop for a current-key compromise.
 
-### The slide says certificate validity does not extend the window, but the PR #67 candidate still has certificate-backed retention. Which is it?
+### Does certificate validity extend the window? The PR #67 candidate still has certificate-backed retention
 
 The PR #67 candidate still carries the -01-era certificate-backed exception.
 The replacement is a drafted follow-up patch, deliberately unapplied until the
 co-authors agree and the WG has seen the proposal. The exception is being
 removed because it made the claimed upper bound ineffective: a renewal using
-the same old-key hash could extend acceptance again. If agreement is not
-reached, -02 carries the current keyRotationPeriod text and the proposal goes
-to the list.
+the same old-key hash could extend acceptance again. Because the authors
+deferred the rollover design until after IETF 126, -02 carries the current
+keyRotationPeriod text; the rework goes to the list and a later revision.
 
 ### You bound prior-key age but not count. What is the worst-case verification work?
 
-Per retained key the CA performs two SHA-256 computations over short inputs,
-so CPU is negligible. Key rollover is an authenticated, CA-mediated operation,
-so a CA can rate-limit it and bound the retained set. The real operational
-cost is retention storage plus CP/CPS disclosure of the window and retention
-policy.
+Under the bounded-window candidate: per retained key the CA performs two
+SHA-256 computations over short inputs, so CPU is negligible. Key rollover is
+an authenticated, CA-mediated operation, so a CA can rate-limit it and bound
+the retained set. The real operational cost is retention storage plus CP/CPS
+disclosure of the window and retention policy.
 
 ### Why can the outer account-URI hash change while the JWK thumbprint stays on SHA-256?
 
@@ -358,25 +381,25 @@ across ACME rather than happen implicitly when the outer hash changes.
 
 ### Why isn't the rollover window an RFC 8555 mechanism?
 
-The related list discussion is about authorization lifetime and termination
-under 8555. This window bounds a property only dns-persist has: its records
-embed the account key, so the DNS authorization needs explicit prior-key
-acceptance after rollover. RFC 8555 authorizations bind to the account rather
-than a particular account key, so they raise no equivalent rollover question.
-Keep the field here, note the relationship in Security Considerations, and let
-a future RFC 8555 termination mechanism compose with it.
+Under the bounded-window candidate: the related list discussion is about
+authorization lifetime and termination under 8555. This window bounds a
+property only dns-persist has: its records embed the account key, so the DNS
+authorization needs explicit prior-key acceptance after rollover. RFC 8555
+authorizations bind to the account rather than a particular account key, so
+they raise no equivalent rollover question. Keep the field here, note the
+relationship in Security Considerations, and let a future RFC 8555
+termination mechanism compose with it.
 
 ### What if a domain-bound record and a star record disagree on wildcard policy?
 
-Records are independent grants evaluated atomically: a request succeeds only
-if a single record's accounturi, persistUntil, and policy all cover it. Only
-the record carrying policy=wildcard can authorize a wildcard request; the
-other record is not overridden, it simply is not a grant for that shape.
-Grants union, as with multiple CAA issue records, and parameters never
-combine across records. Restricting means removing the broad record or
-letting its persistUntil retire it. Precedence also cannot work mechanically:
-hashes are opaque, and with one-to-many accounturis one account's narrow
-grant must not veto another account's wildcard grant.
+Shiloh has proposed treating records as independent grants evaluated
+atomically: a request succeeds only if a single record's accounturi,
+persistUntil, and policy all cover it. Grants union like CAA issue records,
+parameters never combine across records, and no precedence rule applies
+(hashes are opaque, and one account's narrow grant must not veto another
+account's wildcard grant). That clarification went to the co-authors on July
+21 and is not yet confirmed; it is not part of the aligned star proposal. We
+will confirm it with the authors and the WG before text lands.
 
 ### Why must every CA accept the star form rather than MAY?
 

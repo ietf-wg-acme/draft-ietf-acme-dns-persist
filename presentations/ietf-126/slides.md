@@ -64,6 +64,46 @@ style: |
     grid-template-columns: 1fr 1fr;
     gap: 1em;
   }
+  .seq {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.3em 0.8em;
+    font-size: 0.68em;
+    margin-top: 0.3em;
+  }
+  .seq .lane {
+    text-align: center;
+    font-weight: bold;
+    color: #1a5490;
+    border-bottom: 3px solid #1a5490;
+    padding-bottom: 0.1em;
+  }
+  .seq .msg {
+    border: 1.5px solid #2c5aa0;
+    border-radius: 5px;
+    background: #f0f4fa;
+    padding: 0.15em 0.5em;
+  }
+  .seq .c1 { grid-column: 1; }
+  .seq .c3 { grid-column: 3; }
+  .seq .s13 { grid-column: 1 / 3; }
+  .seq .s24 { grid-column: 2 / 4; }
+  .seq .attack { border-color: #c0392b; background: #fdecea; }
+  .seq .attack code { background: #f9d7d3; }
+  .seq .attack strong { color: #c0392b; }
+  .seq .side { border-style: dashed; background: #fffbf0; border-color: #d4940a; }
+  .num {
+    display: inline-block;
+    background: #1a5490;
+    color: #ffffff;
+    border-radius: 50%;
+    width: 1.3em;
+    height: 1.3em;
+    line-height: 1.3em;
+    text-align: center;
+    font-size: 0.85em;
+    margin-right: 0.25em;
+  }
   /* Discussion slides — gold accent signals "we need your input" */
   section.discuss {
     border-left: 8px solid #d4940a;
@@ -138,32 +178,23 @@ IETF 126 ACME WG — Vienna
 
 # The Substitution Gap
 
-<div class="columns">
-<div>
+### Mode 3a — raw accounturi (dropped)
 
-### The property at risk
-
-**Non-transferability**: a validation by an honest domain owner must not become authorization for a *different* account at an honest CA.
-
-RFC 8555 preserves this by binding the account key into the challenge response, computed offline by both sides (§8.1, §10.2).
-
-</div>
-<div>
-
-### Why mode 3a (raw URL) fails
-
-The record carries only a server-provided `accounturi`.
-
-A malicious, compromised, or impersonated ACME endpoint poisons the client's own account URL at creation; the CA's later byte-for-byte Simple String Comparison passes against it.
-
-The victim publishes a record authorizing the **attacker's** account.
-
-</div>
+<div class="seq">
+<div class="lane">Victim (domain owner)</div>
+<div class="lane">Adversary ACME proxy</div>
+<div class="lane">Real ACME server</div>
+<div class="msg s24"><span class="num">1</span> Adversary runs the proxy and holds account <code>A</code> at the real server</div>
+<div class="msg s13"><span class="num">2</span> Victim creates an account at what it believes is the CA →</div>
+<div class="msg s13 attack"><span class="num">3</span> ← Proxy returns attacker's account URL <code>A</code> as the victim's own</div>
+<div class="msg c1 side"><span class="num">4</span> Victim publishes TXT: <code>accounturi=A</code></div>
+<div class="msg s24"><span class="num">5</span> Adversary orders a cert for victim's domain under account <code>A</code> →</div>
+<div class="msg c3 attack"><span class="num">6</span> Simple String Comparison passes against account <code>A</code>; cert issued to attacker</div>
 </div>
 
 <div class="ask">
 
-**Framing:** the property at stake is non-transferability, not "protection after trusting a bad server".
+**Fail closed:** the hashed form defeats this. The real server recomputes over the requesting account's proven key and URL, so a poisoned record validates for no account.
 
 </div>
 
@@ -187,7 +218,7 @@ _validation-persist.example.com. IN TXT "example.ca accounturi=https://example.c
 - `account_URL` binds the value to one account; the 1-octet length plus the fixed-length `key` make every field boundary unambiguous
 - `sha-256` identifies SHA-256 (`H`); future algorithms use different tokens
 - The CA **recomputes** and string-compares; prior-key matching supports rollover continuity
-- `accountHashPrefix` (new directory `meta` field) lets the client build the URI without another request
+- `accountHashPrefix` (new directory `meta` field) lets the client build the URI offline
 
 <div class="ask">
 
@@ -276,16 +307,16 @@ HTTP-01 exposes the account-key thumbprint on the CA's cleartext validation fetc
 - RFC 6920 hash tokens (mandatory `sha-256`), HTTP-01 privacy caveat, and the four scoped fixes
 - IANA early review requested for the new directory metadata
 
-## Two remaining questions: exact proposals under author review
+## Two extensions, two states
 
-- **`keyRolloverWindow`** would replace `keyRotationPeriod`: required directory field; exact acceptance window after a key rotates out; record removal, `persistUntil`, and deactivation end it sooner; certificate validity does not extend it
-- **Keep `domain_name = "*"`** (client MAY / CA MUST): a DNS observer can link the account's domains; records evaluate independently, with no precedence rule
+- **Current author proposal — keep `domain_name = "*"`** (client MAY / CA MUST): authors aligned, WG review pending; a DNS observer can link the account's domains; one record reused across names
+- **Post-IETF design — key rollover durability:** not author-settled; bounded `keyRolloverWindow` vs. non-breaking records, both must preserve non-transferability
 
 Submission blackout: gather feedback Thursday, confirm on-list, then publish `-02`.
 
 <div class="ask">
 
-**Room ask:** input or objections on the two pending proposals?
+**Room ask:** objections to the star-form proposal? Input for the rollover design?
 
 </div>
 
@@ -296,8 +327,8 @@ Submission blackout: gather feedback Thursday, confirm on-list, then publish `-0
 # Questions & Discussion
 
 - Any objection to dropping 3a and 3c and making the hashed URI mandatory?
-- Input on the proposed `keyRolloverWindow` semantics?
-- Keep the domain-omitted `*` form (client MAY / CA MUST)?
+- Input on the post-IETF rollover design: bounded prior-key window vs. records that survive rollover?
+- Authors propose keeping the domain-omitted `*` form (client MAY / CA MUST): objections?
 
 **Parallel CA/Browser Forum work** (BR Method 3.2.2.4.22):
 [#674](https://github.com/cabforum/servercert/issues/674) one-to-many `accounturis` · [#675](https://github.com/cabforum/servercert/issues/675) parameter-key case-sensitivity

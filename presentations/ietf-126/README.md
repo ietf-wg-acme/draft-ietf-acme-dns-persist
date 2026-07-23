@@ -10,7 +10,7 @@ Slot: Thursday, July 23, 2026, 16:30-18:30 CEST; 10-minute agenda item
 
 Draft: `draft-ietf-acme-dns-persist` post-01 working copy
 
-Status: Slides 8 and 9 present `keyRolloverWindow` and the domain-omitted `*` form as proposals under author review.
+Status: Slides 8 and 9 present the domain-omitted `*` form as the authors' current proposal (WG review pending) and key rollover as a deferred post-IETF design question.
 
 ## Files
 
