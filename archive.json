@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-07-21T01:45:38.681379+00:00",
+  "timestamp": "2026-07-23T01:51:47.093863+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -681,7 +681,7 @@
       "labels": [],
       "body": "The CA/BF is [currently voting](https://groups.google.com/a/groups.cabforum.org/g/servercert-wg/c/eiwn6p3FLcU/m/cBBzuUFmBgAJ) on a [change](https://github.com/cabforum/servercert/pull/626) which will enshrine DNS Persist as a method for validation of IP addresses via use of the ARPA Reverse Address Zone (in-addr.arpa and ip6.arpa).\n\nThis method uses a different underscore-prefixed DNS label, specifically \"`_ip-validation-persist`\", which makes sense: using the same prefix would make it unclear whether a given DNS Persist TXT record is allowing issuance for that Reverse Zone Domain Name directly, or for the IP address which corresponds to that Reverse Zone Domain Name.\n\nHowever, this means that there's now a gap between what the CA/BF allows (or will allow, once the ballot passes) and what this draft specifies. This draft should probably grow a new subsection specifying how these same records can be used to confirm control over IP addresses via the Reverse Address Zone.",
       "createdAt": "2025-11-06T16:41:49Z",
-      "updatedAt": "2026-04-30T00:23:26Z",
+      "updatedAt": "2026-07-22T08:38:03Z",
       "closedAt": null,
       "comments": [
         {
@@ -690,6 +690,13 @@
           "body": "@aarongable Agreed; SC-091 permits `_ip-validation-persist` in the BRs and the draft should specify it.\n\nThis is purely additive. Planned for -02:\n\nA new top-level section (\"IP Address Validation via the Reverse Namespace\") between Subdomain Validation and Security Considerations, covering:\n\n- `_ip-validation-persist` prefix. Distinct from `_validation-persist` for the ambiguity reason you identified.\n- IP-to-reverse-zone mapping: RFC 1035 \u00a73.5 for IPv4 (`in-addr.arpa`), RFC 3596 \u00a72.5 for IPv6 (`ip6.arpa`).\n- Record format unchanged: same `issue-value` syntax, same parameters (`accounturi`, `persistUntil`, `issuer-domain-name`). The challenge object signals which prefix via the ACME identifier type: `dns` -> `_validation-persist`, `ip` -> `_ip-validation-persist`.\n- `policy=wildcard` exclusion: no IP-address equivalent of subdomain hierarchy. CAs MUST ignore `policy=wildcard` for IP identifiers.\n\nIANA additions: a second ACME Validation Methods entry with Identifier Type `ip` (per RFC 8738), and a second Underscored DNS Node Name registration for `_ip-validation-persist`.",
           "createdAt": "2026-04-30T00:23:26Z",
           "updatedAt": "2026-04-30T00:23:26Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "The additive plan from my earlier comment still stands, but I am holding it out of `-02` to keep that revision focused on the IETF 126 substitution work.",
+          "createdAt": "2026-07-22T08:11:10Z",
+          "updatedAt": "2026-07-22T08:38:03Z"
         }
       ]
     },
@@ -705,7 +712,7 @@
       "labels": [],
       "body": "Subdomain Validation is a cool concept, and one that I'm happy dns-persist is supporting. In the terms of the Baseline Requirements, this is equivalent to selecting an Authorization Domain Name by pruning labels from the left-hand side of the FQDN, and then performing validation at that ADN.\n\nHowever, ACME does not have good support for selecting ADNs. Traditional CAs, or CAs which use External Account Binding, might have ways for Applicants to indicate to the Server that they want to use a particular ADN for all of their validation. But plain ACME CAs without EAB would have no way to know whether the Applicant wants to validate at `server.dept.example.com`, at `dept.example.com`, or at `example.com`. I'm not a fan of the server having to fan out a bunch of prospective queries to see what layer of the DNS hierarchy the Applicant has placed their dns-persist record at.\n\nSo it would be great if there was a way for the Applicant to proactively indicate to the CA that they want to take advantage of Subdomain Validation. My proposal would be that the ACME client can include an ADN in their POST request to the Challenge URL. The CA would then check that the supplied URL is a valid ADN for the Authorization, and if it is, perform validation at that URL instead. And of course, as already described by the document, ensure that `policy=wildcard` is set.\n\n-----\n\ni.e. if we have an authorization that looks like this:\n```\n   HTTP/1.1 200 OK\n   Content-Type: application/json\n   Link: <https://acme.ca/directory>;rel=\"index\"\n\n   {\n     \"status\": \"pending\",\n     \"expires\": \"2026-02-01T14:09:30Z\",\n\n     \"identifier\": {\n       \"type\": \"dns\",\n       \"value\": \"admin.blog.example.com\"\n     },\n\n     \"challenges\": [\n       {\n         \"type\": \"http-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/http-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n       {\n         \"type\": \"tls-alpn-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/tls-alpn-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n       {\n         \"type\": \"dns-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/dns-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n       {\n         \"type\": \"dns-persist-01\",\n         \"url\": \"https://acme.ca/chall/PAniVnsZcis/dns-persist-01\",\n         \"token\": \"DGyRejmCefe7v4NfDGDKfA\"\n       },\n     ]\n   }\n```\n\nThen a client might post this to the challenge url:\n```\n   POST /chall/PAniVnsZcis/dns-persist-01\n   Host: acme.ca\n   Content-Type: application/jose+json\n\n   {\n     \"protected\": base64url({\n       \"alg\": \"ES256\",\n       \"kid\": \"https://acme.ca/acct/evOfKhNU60wg\",\n       \"nonce\": \"UQI1PoRi5OuXzxuX7V7wL0\",\n       \"url\": \"https://acme.ca/chall/PAniVnsZcis/dns-persist-01\"\n     }),\n     \"payload\": base64url({\n       \"adn\": \"example.com\"\n     }),\n     \"signature\": \"Q1bURgJoEslbD1c5...3pYdSMLio57mQNN4\"\n   }\n```\n\nWhere the `\"adn\": \"example.com\"` is the important/new part. The CA would confirm that `example.com` is a valid ADN for `admin.blog.example.com`, and then conduct the dns-persist-01 validation at `example.com` and ensure that the record contains the `policy=wildcard` modifier.",
       "createdAt": "2026-01-12T20:04:36Z",
-      "updatedAt": "2026-05-01T08:45:45Z",
+      "updatedAt": "2026-07-22T08:11:13Z",
       "closedAt": null,
       "comments": [
         {
@@ -766,10 +773,17 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "However, its important that this \"adn\" thing is completely optional.\n\nTo support JIT validation, it would be better to include this in the newOrder object.\n\nLike:\n`\"svs\": \"0;b\"`\nor\n`\"svs\": \"2;f\"`\n\nsvs stands for \"Subdomain Validation Strategy\"\n\nwhich is expressed as:\ndigit ; direction\n\n0:b means it will start at label 0 - which is the label added after public domain suffix, \"walk backwards\" when validating:\n\nexample for \"customer.subdomain.sebbe.eu\":\n```\nsebbe.eu\nsubdomain.sebbe.eu\ncustomer.subdomain.sebbe.eu\n\n```\n2:f means it will start at label 2 and walk forwards:\n\nexample for \"server01.dhcp.east.sebbe.eu\"\n\n```\ndhcp.east.sebbe.eu\neast.sebbe.eu\nsebbe.eu\n```\n\n2;b would instead mean, start at label 2 and walk backwards:\n\n```\ndhcp.east.sebbe.eu\nserver01.dhcp.east.sebbe.eu\n```\n\nFor domains that lack the number of labels specified in SVS, it will just validate the domain requested and then all domains in the direction indicated. For example, if you specify \"4;b\" and the domain requested is \"customer.sebbe.eu\" it would only validate \"customer.sebbe.eu\"\nHowever, if its specifyed as \"4;f\" it means it will walk forwards, both validating customer.sebbe.eu and sebbe.eu\n \nSpecifying \"0;f\" would mean if would ONLY validate the base domain (sebbe.eu) for all domains in order.\n\nI feel this solution would be more JIT friendly ( 4.4.  Just-in-Time Validation )\nboth when it comes to rate limits and friendlyness to DNS servers.\n\nNote that the \"svs\" value would apply to ALL domains requested, so its up to the requester to select a \"subdomain validation strategy\" that limits the amount of DNS requests needed  basically choosing a value that would become the \"mean value and strategy\" for all domains.\n\n\nTo prevent abuse, servers could ratelimit the amount of DNS requests using a \"max DNS requests per domains\" function, meaning, that max number of permitted DNS requests for whole order is \"limit value\" multiplied with \"number of domains requested\".\n\nMeaning, if one domain only needs 2 DNS requests to complete and limit is 3 per domain, then you would have one \"spare\" request for a domain requiring 4 requests.\n",
           "createdAt": "2026-05-01T08:36:21Z",
           "updatedAt": "2026-05-01T08:45:45Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "The terminology prerequisites have landed, but the mechanism is still a design fork. We first need to decide whether RFC 9444 `ancestorDomain` already provides what we need, and whether negotiation belongs at order time or challenge time. I am keeping `-02` focused on substitution hardening and will take this design question after IETF 126.",
+          "createdAt": "2026-07-22T08:11:13Z",
+          "updatedAt": "2026-07-22T08:11:13Z"
         }
       ]
     },
@@ -853,7 +867,7 @@
       "labels": [],
       "body": "## Problem\n\nThe draft places `persistUntil` enforcement entirely on CAs (\u00a74.1 item 5: \"CAs MUST NOT consider this validation record valid for new validation attempts after the specified timestamp\"). \u00a79.3.1 says CAs SHOULD return `unauthorized` when the timestamp has passed. Nothing tells clients to check `persistUntil` before initiating validation.\n\nA client that manages or provisions `_validation-persist` records knows (or can query) the `persistUntil` value. Without guidance to check it, the client POSTs `{}` to the challenge URL, gets back an `unauthorized` error, and must infer the cause. The remediation (reprovision the record with an updated timestamp) is clear if the client checks locally, but not obvious from the server error alone.\n\n## Proposed change\n\nAdd a SHOULD-level recommendation in \u00a79.4 (Client Implementation Guidelines):\n\n> Clients that provision or manage `_validation-persist` records containing a `persistUntil` parameter SHOULD verify that the current time is before the `persistUntil` timestamp prior to responding to a challenge. If the timestamp has passed, the client SHOULD report an actionable error (e.g., \"the _validation-persist record for example.com expired on 2026-01-15; reprovision it\") rather than initiating a validation attempt that will fail.\n\nAdd a forward reference in \u00a74.1 item 5: \"See also {{client-implementation-guidelines}} for client-side handling of this parameter.\"\n\n## Context\n\nIdentified by a client implementer working from the draft. The change is SHOULD-level implementation guidance \u2014 it doesn't affect the protocol or interoperability. The CA enforces the constraint regardless.\n\n## Open question\n\nSplit-horizon DNS complicates client-side checking \u2014 enterprise clients may not see the `_validation-persist` record from their network vantage point. Is a SHOULD that silently fails behind split-horizon DNS worth adding?",
       "createdAt": "2026-02-26T21:27:13Z",
-      "updatedAt": "2026-04-29T23:48:56Z",
+      "updatedAt": "2026-07-22T08:11:15Z",
       "closedAt": null,
       "comments": [
         {
@@ -869,6 +883,13 @@
           "body": "@rmbolger Good point on split-horizon. The SHOULD doesn't require a DNS query; a client that provisioned the record already has the `persistUntil` value in its own state. The check is local: compare the current time against the timestamp the client chose when it wrote the record. Split-horizon DNS is irrelevant because the client never resolves the validation record to perform this check.\n\nFor the out-of-band case you're describing (an enterprise workflow provisions the record and a separate ACME client just triggers validation) the client genuinely doesn't know `persistUntil`. That's fine. The SHOULD naturally doesn't apply; the CA enforces the constraint regardless, and the client gets an `unauthorized` error it can surface to the operator. This matches the LE forum pattern where clients don't manage DNS records.\n\nI'll scope the spec text to make this explicit. Proposed addition to \"Client Implementation Guidelines,\" as a new paragraph after the existing bullet list:\n\n> Clients that provision or manage `_validation-persist` records containing a `persistUntil` parameter SHOULD verify locally that the current time is before the `persistUntil` timestamp prior to responding to a challenge. If the timestamp has passed, the client SHOULD report an actionable error to the operator (e.g., \"the `_validation-persist` record for `example.com` expired on 2026-01-15; update the record with a new `persistUntil` value\") rather than initiating a validation attempt that the CA will reject. This check uses the client's own provisioning state, not a DNS query, and is therefore unaffected by split-horizon DNS environments.\n\nAnd a forward reference from the `persistUntil` item in \"Validation Record Format,\" appended after the existing sentence ending \"\u2026reuse of already-validated data.\":\n\n> See also {{client-implementation-guidelines}} for client-side handling of this parameter.\n",
           "createdAt": "2026-04-29T23:48:56Z",
           "updatedAt": "2026-04-29T23:48:56Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Landing in `-02`. I am adding SHOULD-level client guidance under Client Implementation Guidelines, scoped to clients that provision or manage the record, with a cross-reference from the `persistUntil` definition. The check reads the client's provisioning state rather than DNS, so split-horizon views do not affect it.",
+          "createdAt": "2026-07-22T08:11:15Z",
+          "updatedAt": "2026-07-22T08:11:15Z"
         }
       ]
     },
@@ -884,9 +905,17 @@
       "labels": [],
       "body": "## Problem\n\n\u00a79.3.1 maps three distinct failure modes to the same `unauthorized` error type:\n\n| Failure | Remediation |\n|---------|-------------|\n| `accounturi` does not identify the requesting account | Reprovision with correct URI |\n| `persistUntil` timestamp has expired | Reprovision with updated timestamp |\n| `issuer-domain-name` does not match challenge | Reprovision with correct issuer |\n\nClients receiving `unauthorized` cannot programmatically distinguish these cases. The `detail` field may contain a human-readable description, but this is not machine-parseable and not all CAs will populate it consistently.\n\n## Design question\n\nShould this draft register its own error types in the ACME Error Types registry (RFC 8555 \u00a79.6)?\n\nFor example:\n- `urn:ietf:params:acme:error:persistExpired` \u2014 the `persistUntil` timestamp has passed\n- Potentially: `accountMismatch`, `issuerMismatch`\n\n### Arguments for\n\n- Expiration is the failure mode most likely in steady-state operations (records that were valid last month silently become invalid). The remediation is clear and automatable.\n- RFC 8555 registers purpose-specific error types (`caa`, `dns`, `rateLimited`, etc.) for the same reason: different failures need different responses.\n- Pairs well with #38 \u2014 if the client didn't check locally, the CA error still tells it exactly what happened.\n\n### Arguments against\n\n- No ACME extension has registered its own error types yet. This draft would establish the precedent.\n- Registering only `persistExpired` invites the question of why not the other two. Registering all three expands scope.\n- If #33 (subdomain validation prompting) adds an `adn` field, new error cases (invalid ADN, ADN not a suffix) would also need types. Better to design the error type space once.\n- \u00a79.3.1 already encourages descriptive `detail` text. The incremental value of machine-readable types over descriptive strings is modest.\n\n## Recommendation\n\nDiscuss scope and timing as a WG. This is a design question, not a bug fix. Filing for visibility and to capture the analysis before it's lost.",
       "createdAt": "2026-02-26T21:27:34Z",
-      "updatedAt": "2026-02-26T21:27:34Z",
+      "updatedAt": "2026-07-22T08:58:50Z",
       "closedAt": null,
-      "comments": []
+      "comments": [
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Deferring past `-02`. This is a WG design question, not a correctness bug: should dns-persist register validation-method-specific errors, and if so, should the registry cover only persistExpired or every validation failure? `-02` keeps the existing `malformed` and `unauthorized` guidance while the scope is settled.",
+          "createdAt": "2026-07-22T08:11:17Z",
+          "updatedAt": "2026-07-22T08:58:50Z"
+        }
+      ]
     },
     {
       "number": 40,
@@ -924,7 +953,7 @@
       "labels": [],
       "body": "The draft currently says\n\n> The period for which a CA may rely on validation data is its Validation Data Reuse Period (as defined in {{conventions-and-definitions}}). However, if the DNS TXT record's Time-to-Live (TTL) is shorter than this period, the CA MUST treat the record's TTL as the effective validation data reuse period for that specific validation.\n\nGiven the other reuse period limitations in play (limits set by the BRs; limits set by persistUntil), it's confusing and potentially problematic to use the DNS TTL as a separate reuse limitation. As one example, it's common for authoritative nameservers to set very low TTLs by default. If that TTL is too low, it could be lower than the amount of time that it takes a CA to complete a validation and issuance cycle, effectively blocking issuance until the user changes the settings in their authoritative DNS.\n\nIt would be better to let DNS be DNS: the TTL can be whatever the user wants it to be, and that affects caching at the DNS layer. It doesn't affect validation reuse, which happens at a different layer (the CA's business logic). There's a potentially tricky interaction if a CA is using a caching recursive resolver, but that's fundamental to all validation techniques using DNS: the CA must configure any cache in their recursive resolver to be short enough that they can be confident their validations were performed within the acceptable window.\n\nAlso, relatedly, the client of a recursive resolver never actually sees the TTL of the record (as configured on the authoritative nameserver). The DNS client sees the TTL of the cached data in the recursive resolver if there is any. This is potentially quite confusing, since the validation reuse period will depend on a value that is not directly controlled by either the CA or the subscriber.\n\nIt would be better to omit this TTL-based limitation and instead let the relevant PKI rules (root programs, BRs) govern the validation reuse period.",
       "createdAt": "2026-03-05T00:56:52Z",
-      "updatedAt": "2026-04-30T00:37:35Z",
+      "updatedAt": "2026-07-22T08:11:20Z",
       "closedAt": null,
       "comments": [
         {
@@ -940,6 +969,13 @@
           "body": "@aarongable @birgelee Agreed. TTL and validation data reuse are independent layers that shouldn't be coupled. The practical problems reinforce that:\n\n- Low default TTLs. Managed DNS providers commonly ship 60-300s defaults. A subscriber who hasn't tuned their TTL finds that dns-persist-01 validation can't be reused, which is the opposite of what this challenge type exists to do. A TTL of zero (common on dynamic records) triggers the current MUST NOT reuse language and reduces dns-persist-01 to plain dns-01 semantics.\n\n- Non-deterministic observed TTL. The TTL a CA's recursive resolver returns is remaining cache time, not the authoritative value. It decrements between fetches. Two CAs querying the same record seconds apart derive different reuse periods from a MUST-level constraint. That's not a sound basis for normative requirements.\n\nThe draft already has the right tools: `persistUntil` for subscriber-controlled expiry and the CA's own Validation Data Reuse Period (BRs / root programs / CP/CPS) for the CA-side cap. These operate at the correct layers and are deterministic for both parties.\n\nI'll remove the TTL-as-reuse-limit language in the next revision. Specific edits:\n\n- `robustness-and-alignment`: Remove list item 2 (TTL consideration). The remaining items cover the actual robustness properties.\n- `validation-data-reuse-and-ttl-handling`: Rewrite to remove the TTL capping requirement. CAs MAY reuse validation data for their Validation Data Reuse Period, subject to `persistUntil`, with no TTL reference. Rename heading to drop \"and TTL Handling.\"\n- `ca-implementation-guidelines`: Remove \"Developing procedures for handling validation record TTL variations.\"\n- `dns-provider-considerations`: Remove \"Supporting reasonable TTL values for validation records.\"\n\nThat leaves two reuse constraints, one subscriber-controlled (`persistUntil`) and one CA-policy-controlled (Validation Data Reuse Period). DNS TTL does its job at the DNS layer without leaking into validation semantics.\n",
           "createdAt": "2026-04-30T00:37:35Z",
           "updatedAt": "2026-04-30T00:37:35Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Confirmed for `-02`. I am removing the TTL-as-reuse-limit requirement and the related TTL guidance. Validation reuse will depend on `persistUntil` and the CA's Validation Data Reuse Period. DNS TTL remains a cache-control value rather than an authorization lifetime.",
+          "createdAt": "2026-07-22T08:11:20Z",
+          "updatedAt": "2026-07-22T08:11:20Z"
         }
       ]
     },
@@ -1088,7 +1124,7 @@
       "labels": [],
       "body": "Hi everyone,\n\nI'm maintainer of an ACME Server Implementation and I stumbled over the naming convention in this draft.\n\nTake a look at (for example) https://www.rfc-editor.org/rfc/rfc8555#section-7.1.2 - naming is all camelCase and that's valid throughout RFC8555.\nThis draft adds new challenge objects and seems to follow no convention:\n\n- `accounturi` neither matches the kebab-cased `issuer-domain-names` nor does it align with ACMEs camelCase (should probably be `accountUri`)\n- `issuer-domain-names` does not align with ACMEs camelCase (should probably be `issuerDomainNames`)\n",
       "createdAt": "2026-04-02T19:12:35Z",
-      "updatedAt": "2026-07-09T14:42:33Z",
+      "updatedAt": "2026-07-22T09:03:52Z",
       "closedAt": null,
       "comments": [
         {
@@ -1153,6 +1189,13 @@
           "body": "Related CABF Issue: https://github.com/cabforum/servercert/issues/675",
           "createdAt": "2026-07-09T14:42:20Z",
           "updatedAt": "2026-07-09T14:42:33Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "`-02` will rename the challenge-object field `issuer-domain-names` to `issuerDomainNames`, matching ACME JSON conventions. The redesign removed the challenge object's `accounturi` field, so there is no `accountUri` rename left. DNS issue-value parameter names remain unchanged. In particular, `persistUntil` stays aligned with BR method 3.2.2.4.22; case normalization is CABF work tracked in cabforum/servercert#675.",
+          "createdAt": "2026-07-22T08:11:22Z",
+          "updatedAt": "2026-07-22T09:03:52Z"
         }
       ]
     },
@@ -1184,7 +1227,7 @@
       "labels": [],
       "body": "\u00a73.1 says clients that pre-provisioned a record using their ACME account URL \"SHOULD verify the value identifies the same account.\" The per-mode verification note added in #58 clarifies *which* modes are verifiable:\n\n- **3a (ACME account URL):** String comparison \u2014 mismatch is definitive.\n- **3b (Alternative 1:1 URI):** Verifiable only if the CA exposes the mapping.\n- **3c (Subscriber-account URI):** Not independently verifiable.\n\nThe draft does not specify what the client should do when verification is possible and fails. Options include:\n\n1. MUST NOT rely on the pre-provisioned record for that challenge (treat as misconfiguration)\n2. SHOULD alert the operator (potential unauthorized issuance)\n3. MAY proceed but log the mismatch\n\nThe right answer likely differs by mode. For 3a, a mismatch is unambiguous and probably warrants MUST NOT. For 3b, a mismatch may simply mean the client lacks the mapping and cannot conclude anything. For 3c, verification is not possible so the question does not arise.\n\nRaised during review of #58.",
       "createdAt": "2026-04-16T23:29:51Z",
-      "updatedAt": "2026-05-06T00:15:45Z",
+      "updatedAt": "2026-07-22T09:07:43Z",
       "closedAt": null,
       "comments": [
         {
@@ -1196,7 +1239,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "In my opinion, a client should never attempt to validate challenges themselves, other than to verify propagation and sleep until propagated. (avoid submitting a challenge for validation before it has \"propagated\" to all authorative resolvers).\n\nIn other words, a client should never attempt to validate a pre-provisioned record, or a HTTP-01 challenge, two types of challenges that should be instantly completeable.\nThats on the CA's side of job.\n\nA client, may validate a challenge as a additional feature, for example as part of a customer panel or similiar - but thats not part of the standard.\n\nTheres several reasons for this, one reason is that a network with a authorative resolver in it, may look entirely different (due to \"DNS Views\" or \"horizons\") from the 'inside' than from the 'outside'.\n\nfor example, nas.sebbe.eu resolves to my external IP solely for certificate issuance (my regular web server), while inside (where the NAS is actually accessible) it resolves to 192.168.1.28 and there you can't find any validation records.\n\n<img width=\"343\" height=\"90\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/e8cdb389-661d-46b6-b875-fdbb3aa8fde4\" />\n\nAn ACME client \"trying\" to verify record presence would fail in this case, even if the records are visible from the CA's point of view.",
           "createdAt": "2026-05-02T15:12:24Z",
           "updatedAt": "2026-05-02T15:13:53Z"
@@ -1207,6 +1250,13 @@
           "body": "Updating the issue body and answering your questions. The editorial work on PR #58 (in progress) changes the framing here.\n\nScope note before the answers: \"verification\" in this issue means the client comparing the challenge-object `accounturi` field against its locally stored pre-provisioned value. The comparison uses data the client already holds and does not require a DNS lookup.\n\n### Answers to the three questions\n\n**1. Should verification be performed by clients that did not pre-provision a record?**\n\nNo. A client that did not pre-provision has no prior `accounturi` to compare against. The challenge object's `accounturi` is the first value it encounters; there is nothing to verify against. The verification requirement applies only to clients that pre-provisioned a record and therefore hold a prior value in their own state.\n\n**2. What does \"not relying on the pre-provisioned record\" mean for a client?**\n\nIt means updating the DNS record. If the challenge object returns a different `accounturi` than the one the client pre-provisioned, the client should replace the `accounturi` parameter in its `_validation-persist` TXT record with the value returned in the challenge object. The pre-provisioned value is stale for this CA's validation purposes. The client's operational response is concrete: update the record, not abandon the method.\n\n**3. Why might a mismatch occur in mode 3a, and what threat model does this protect against?**\n\nA mismatch in mode 3a is not necessarily adversarial. The CA may have returned an alternative URI (mode 3b) or a subscriber-account URI (mode 3c) rather than the raw account URL the client provided. A mismatch is the normal signal that this substitution occurred.\n\nThe threat model for verification is narrower than the original issue body assumed. For mode 3a, the client can definitively confirm the returned value matches its account URL. A mismatch that the client did not expect (the CA has no documented reason to substitute) warrants logging and operator review, as it could indicate a misconfigured CA or a compromised channel. But the primary purpose of verification is operational correctness \u2014 ensuring the DNS record matches what the CA expects \u2014 not adversarial detection.\n\nFor modes 3b and 3c, the client's ability to detect adversarial substitution is limited or absent, as defined in the mode 3b and 3c descriptions in the challenge response section.\n\n### Update to the issue body\n\nThe original per-mode options (MUST NOT / SHOULD alert / MAY proceed) should be revised:\n\n- **3a mismatch**: The client MUST update its DNS record to the returned value if proceeding with this CA. If the substitution is unexpected, the client SHOULD log the event for operator review.\n- **3b mismatch**: Same as 3a \u2014 update the record.\n- **3c**: Verification is not possible; the client trusts the CA's subscriber-account association.\n\nThis collapses the original three options into a single behavior: update and log if unexpected. The mode determines the client's ability to detect problems, not the client's response to a mismatch.",
           "createdAt": "2026-05-06T00:15:45Z",
           "updatedAt": "2026-05-06T00:15:45Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "The premise here no longer exists in the `-02` candidate. The hashed-URI redesign removed the challenge-object `accounturi` and the 3a/3b/3c comparison model. The client computes the value from its own account URL, key, and FQDN; a wrong or stale binding fails CA-side validation, with unauthorized as the recommended error, rather than creating a client-side mismatch. Closing as addressed when #67 lands. If that redesign does not land, this reopens.",
+          "createdAt": "2026-07-22T08:11:30Z",
+          "updatedAt": "2026-07-22T09:07:43Z"
         }
       ]
     },
@@ -1222,7 +1272,7 @@
       "labels": [],
       "body": "I've been implementing DNS-PERSIST in my ACME clients and have hit a snag. I can't get the necessary `issuerDomainNames` except in a Challenge object, which comes from an Authorization, which comes from an Order, because Let's Encrypt, at least, does not support `newAuthz` in its directory.\n\nIn other words, DNS-PERSIST essentially makes domain issuance interactive, or an entire Order has to be wasted (which often costs against rate limits).\n\nIt should be free to get the needed information to use this challenge. My users will run a command or hit an API endpoint to get the values to put in their DNS records, before any actual certificates are issued. At scale like my clients operate this has to be non-interactive.\n\nI opened [a discussion at Let's Encrypt](https://community.letsencrypt.org/t/dns-persist-without-spending-an-order/246892?u=mholt) since the problem is joint between their implementation of DNS-PERSIST and in the spec, so I'm also opening an issue here, too. Let's Encrypt does not implement `newAuthz` which is an optional endpoint, so I cannot use it to get the `issuerDomainNames`.\n\nWhile the current CA implementation is the reason I hit a snag, I believe the crux of the problem is the current weak verbiage in the spec which uses \"MAY\" instead of \"MUST\". IMO, issue #26 was a step in the wrong direction.\n\nI recommend that the spec either:\n\n- require that `issuerDomainNames` be identical to the `caaIdentities` in the directory (so we can just use `caaIdentities`),\n- or revise the spec so that supporting DNS-PERSIST necessarily implies supporting pre-authorization (`newAuthz` then becomes required for DNS-PERSIST)\n- or require that `issuerDomainNames` be published to the directory in a new field, although this might be redundant with `caaIdentities`.\n\nThanks for considering!\n\n(AI-free)",
       "createdAt": "2026-04-30T15:02:45Z",
-      "updatedAt": "2026-05-05T21:09:12Z",
+      "updatedAt": "2026-07-22T09:00:49Z",
       "closedAt": null,
       "comments": [
         {
@@ -1276,7 +1326,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@sheurich its also important, that, according to CAB/F forum the CAA is not allowed to present a identity, in `issuer-domain-names` inside the challenge object, that it would then refuse for CAA records authorization.\n\nHowever, it can refuse a identity, that is present in `caaIdentities` for DNS-PERSIST-01 records, that it would otherwise accept in CAA.\n\nSo a CAA cannot have like `dnspersist01.letsencrypt.org` for DNS-PERSIST-01 records, and then refuse to recongnize `dnspersist01.letsencrypt.org` inside a CAA record.\n\nTechnically, it means that both of these must be true:\n`issuerDomainNames` \u2286 `caaIdentities`\n`issuer-domain-names` \u2286 `caaIdentities`\n\nhowever, `issuer-domain-names` and `issuerDomainNames`  does not have relationship with each other, meaning the CA could present different domain names (this would not have any operational value for most CAs, it could have operational value in the case if for example a paid customer have chosen to have a \"branded\" dns-persist-01 authentication name - BUT that \"branded\" authentication name MUST be present in `caaIdentities` according to CAB/F forum, so the CA can't keep anything secret.\n\nThis means, the `caaIdentities` object MUST contain every issuer-domain-name that the CA would accept in any challenge.\nHowever, the CA does not need to accept all domain names that are present in `caaIdentities` for DNS-PERSIST-01.\nHowever, ACCEPTING a DNS-PERSIST-01 challenge for where the issuer-domain-name is not present in `caaIdentities`, is **prohibited**.",
           "createdAt": "2026-05-05T17:57:12Z",
           "updatedAt": "2026-05-05T17:57:12Z"
@@ -1287,6 +1337,13 @@
           "body": "@mholt on your first bullet: pre-provisioning still runs through the Challenge object's `issuer-domain-names` array at validation. The server matches a pre-provisioned `_validation-persist` record against the per-order array when the authorization is processed; the draft requires the record's `issuer-domain-name` to match one of the names the Challenge presents for that order. Pre-provisioning does not bypass that check. Instead, the draft's guidance is that clients MAY draw `issuer-domain-name` values from `caaIdentities` in the directory, and CAs SHOULD keep `caaIdentities` consistent with the `issuer-domain-name` values they accept. Under that operational alignment, a correctly pre-provisioned name appears in the per-order array when the Challenge is issued, and validation succeeds.\n\nOn @sebastiannielsen's related note: his observation that `issuer-domain-names \u2286 caaIdentities` holds at the CA layer for CAs operating under the CA/Browser Forum Baseline Requirements is correct. The BR require any `issuer-domain-name` a CA accepts in a persistent record to be disclosed in the CP/CPS alongside the `caaIdentities` set. The current draft carries this as SHOULD-level consistency in the pre-provisioning section; tightening the spec-level constraint to MUST is a reasonable refinement the working group can consider in a later revision. For implementers building to the current draft, the operational picture Sebastian describes is the right one to code against.",
           "createdAt": "2026-05-05T21:09:12Z",
           "updatedAt": "2026-05-05T21:09:12Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "`-02` takes the dedicated-directory-field option.\n\nA CA advertising dns-persist-01 will publish `issuerDomainNames` in directory metadata, and every directory value must appear in each dns-persist-01 challenge's `issuerDomainNames` array. A challenge MAY include additional values. \n\nIf the CA advertises `caaIdentities`, every challenge value must also appear there; otherwise this draft imposes no C \u2286 I constraint through that directory field.\n\nThis makes the directory set a guaranteed pre-provisioning baseline rather than a hint: a directory-advertised name may no longer disappear from the per-order challenge. The client-computed hashed URI removes the Order dependency for `accounturi`; this field removes it for issuer-domain-name discovery.",
+          "createdAt": "2026-07-22T08:11:24Z",
+          "updatedAt": "2026-07-22T09:00:49Z"
         }
       ]
     },
@@ -1302,12 +1359,12 @@
       "labels": [],
       "body": "# The accounturi privacy mechanism\n\nThis issue hosts the design discussion the WG list deferred per the [2026-04-24 consensus call][consensus-call].\n\n[consensus-call]: https://mailarchive.ietf.org/arch/msg/acme/AMZxwvkdtXPIttRhFqQvL-2sAco/\n\n## Context\n\nOn [2026-04-24][consensus-call] a consensus call opened on whether static ACME account URIs in `_validation-persist` TXT records are a privacy concern this draft should address. The records leak which domains share an ACME account to anyone who queries DNS. The [2026-04-23 analysis][ounsworth-apr23] laid out the leak mechanics.\n\nThe list thread surfaced one constraint, that the `accounturi` space is not high-entropy, per [Seo Suchan, 2026-04-24][seo-apr24], and one candidate construction, `SHA256(accounturi || domain_name)`, that fails under it.\n\nSince the consensus call, several participants' positions have converged. Henry Birge-Lee [posted a detailed analysis][birgelee-apr27] showing that SHA-256 over the LE account-URI space breaks in ~10 seconds on a consumer GPU, independently confirming Seo's constraint. He proposed a CA-side lookup table as the most practical approach. Sebastian Robin Nielsen [pushed back][nielsen-apr27-2] with a `sha256(account_public_key || domain)` counter-proposal; Henry [distinguished][birgelee-apr27-reply] the two CDN threat scenarios (shared-owner/separate-infrastructure vs. shared-owner/shared-infrastructure) and defended the privacy case. Mike Ounsworth subsequently [endorsed flexibility over mandate][ounsworth-apr29]. Recent list discussion suggests alignment on three points: the privacy concern is real for a class of subscribers, MAY flexibility is appropriate, and public-input constructions are broken.\n\nScope: unlinkability mechanism for `accounturi` in `_validation-persist` records, and the normative posture (MUST / SHOULD / MAY). Out of scope: substitution attacks on `accounturi` (see #58); subscriber-URI semantics (proposed in #58); verification binding via account-key thumbprints (see \"Rejected classes\").\n\n[ounsworth-apr23]: https://mailarchive.ietf.org/arch/msg/acme/g9iIiRMDL2X31cgM55-cg3SzV3M/\n[seo-apr24]: https://mailarchive.ietf.org/arch/msg/acme/Ylp0_e2bFxX_D-YyxK6WWki-pY8/\n\n## Terminology\n\nMode labels used in this issue:\n\n- Mode 3a: the ACME account URL per RFC 8555 \u00a77.3, as specified in draft \u00a74.1 item 3.\n- Mode 3b: the MAY-accept alternative URIs in the same item.\n- Mode 3c: subscriber-provided URIs proposed in PR #58.\n\n## Problem\n\n`_validation-persist` records are publicly queryable and long-lived. When `accounturi` carries the raw ACME account URL (the default under mode 3a) any party with DNS access can, over time, harvest the `{account \u2192 [domains]}` map for any CA whose subscribers use `dns-persist-01`. This is the class of exposure [RFC 7258](https://www.rfc-editor.org/rfc/rfc7258) identifies as an attack.\n\n[RFC 8657 \u00a75.9](https://www.rfc-editor.org/rfc/rfc8657#section-5.9) addresses the same class for CAA, but lands soft (\"CAs are encouraged to...\"). This draft presents `dns-persist-01` as a common issuance path rather than an opt-in feature, which raises the exposure beyond what \u00a75.9 was written to cover.\n\nThe current draft permits alternative URIs (mode 3b) at CA discretion as a `MAY`, so each CA decides whether its subscribers get privacy.\n\n## Design constraints\n\n### C1. `accounturi` is not high-entropy against a determined adversary\n\nLet's Encrypt account URIs are `https://acme-v02.api.letsencrypt.org/acme/acct/<N>` where `<N>` is a monotonic positive integer ([Seo Suchan, 2026-04-24][seo-apr24]). The only variable portion is `<N>`. Observed account IDs sit in the 10^8-10^9 range; 2^32 is a conservative upper bound.\n\nEnumeration cost for one target domain against LE:\n\n| Hardware | SHA-256 throughput | Time for 2^32 candidates |\n|---|---|---|\n| One CPU core (SHA-NI) | ~5 \u00d7 10^8 H/s | ~8.6 s |\n| One consumer GPU (RTX 4090) | ~2 \u00d7 10^10 H/s | ~0.2 s |\n\nHenry Birge-Lee independently [confirmed][birgelee-apr27] the GPU enumeration cost at ~10 seconds for 10-digit LE account IDs at 1 GH/s, consistent with the table above.\n\nThe adversary can also obtain `accounturi` without enumeration: by operating a domain on the same account, by being or breaching the CA, or by observing ACME sessions through TLS-terminating proxies or compromised server-side logs. Any mechanism that rests on the adversary not learning `accounturi` is fragile.\n\n### C2. Public-input constructions cannot reliably provide unlinkability\n\nA client-derivable-from-public construction `T = f(accounturi, domain_name, ...public_values)` uses only inputs the adversary can read from the DNS record or infer from ACME's public structure. The adversary runs the same `f`. The only unknown is `accounturi`, and that space is covered by C1 for CAs that use sequential or otherwise low-entropy account URIs, including the largest CA by volume. A CA that uses high-entropy opaque URIs (e.g., UUIDv4) would not be vulnerable to this enumeration, but the draft cannot assume high-entropy URIs across all deployments. A construction whose privacy depends on a property the spec does not control is unsuitable as a normative mechanism.\n\nThis rules out:\n\n- `SHA256(accounturi || domain_name)` ([proposed 2026-04-23][ounsworth-apr23])\n- `HMAC(domain_name, accounturi)` ([proposed 2026-04-23][ounsworth-apr23]) - `domain_name` as HMAC key is public (it is the record location), so HMAC reduces to a keyed hash with a known key. Operand order does not help: reversing to `HMAC(accounturi, domain_name)` still lets the adversary enumerate `accounturi` keys over a known message, at the same 2^32 cost.\n- Any construction where a client-generated salt is published in the record alongside the derived value - the salt is in the adversary's view, so it does not shrink the search space. (A per-record salt defeats cross-domain precomputation, but does not help against an adversary targeting one domain at a time, which is the operative model here.)\n\nPrivacy requires at least one input the adversary cannot obtain. Secret material carries the weight, not public material.\n\n### C3. Crypto agility\n\nThe CABF equivalent, [SC-088v3][sc088] (merged as [cabforum/servercert#633][sc088-pr]), omits `accountKey=` on crypto-agility grounds, per the [SC-082 Redux discussion][sc082-redux]. Constructions bound to a single primitive, including JWK thumbprints as used by ACME (RFC 8555 \u00a78.1), which pins the RFC 7638 thumbprint to SHA-256, age poorly. Any mechanism adopted here should use an algorithm identifier, not a hardcoded primitive.\n\n[sc088]: https://cabforum.org/2025/10/09/ballot-sc-088v3-dns-txt-record-with-persistent-value-dcv-method/\n[sc088-pr]: https://github.com/cabforum/servercert/pull/633\n[sc082-redux]: https://groups.google.com/a/groups.cabforum.org/g/servercert-wg/c/4tATbCpQRpM/m/8mH-SX87BAAJ\n\n## Candidate mechanisms\n\n### (A) Keyed MAC with CA-held secret material\n\nThe CA holds a secret key (per-CA or per-account), computes a MAC over account identity and domain name, and returns the token to the client in the challenge object. The client publishes the token verbatim and treats it as opaque.\n\n| Property | Value |\n|---|---|\n| Privacy | Secret key stays outside the adversary's view; unlinkability holds against anyone without CA-side access |\n| Client complexity | None - the client publishes what the CA returns |\n| Algorithm agility | Abstract over a MAC family; primitive selected per deployment via algorithm identifier |\n| Verification | CA re-computes the MAC at validation time and compares |\n| Failure mode | Fail-closed: the client publishes the CA-supplied token verbatim; any deviation fails validation because the CA recomputes and compares |\n| CA storage | None required if the CA re-derives at validation time. If the CA rotates its MAC key, it must retain prior keys or version the token to avoid invalidating existing records. |\n\n### (B) CA-issued opaque alias\n\nThe CA draws a random value from a CSPRNG per account-domain pair (or per account group, depending on posture), stores the `{alias \u2192 account}` mapping, and returns the alias in the challenge object.\n\n| Property | Value |\n|---|---|\n| Privacy | Alias bits are uncorrelated with any adversary-observable input; unlinkability holds against anyone without CA-side access |\n| Client complexity | None |\n| Algorithm agility | No primitive involved |\n| Verification | CA looks up the alias |\n| Failure mode | Fail-closed: an unknown alias fails validation |\n| CA storage | Per-alias mapping; alias lifetime is bounded by the record's `persistUntil` value |\n\n(B) is what mode 3b already allows today; the change is promoting that allowance from `MAY` (per-CA discretion) to `SHOULD` or `MUST`.\n\nHenry Birge-Lee's [on-list analysis][birgelee-apr27] independently arrives at a CA-side lookup table as the preferred approach, noting that even HMAC requires both parties to know the key and therefore reduces to a CA database in practice. This aligns with mechanism (B). Operational data from CA participants on storage costs for (B) vs. re-derivation costs for (A) is welcome.\n\n## Rejected classes\n\nListed so future proposals can address the constraint directly.\n\n- Plaintext `accounturi` as the privacy-preserving default - fails the privacy goal by construction.\n- Client-derivable from public inputs - fails C2. Includes `SHA256(accounturi || domain_name)` and `HMAC(domain_name, accounturi)` (both [proposed on-list][ounsworth-apr23]), and any variant that publishes a salt alongside the token.\n- `sha256(account_public_key || domain)` - [proposed on-list][nielsen-apr27-2] as an offline-pre-computable alternative. The ACME account key is not publicly enumerable (unlike the account URI in C1), so this does not fail C2 on entropy grounds. However, it binds the DNS record to a specific key, so key rollover (RFC 8555 \u00a77.3.5) invalidates every record - the opposite of the draft's design goal that `accounturi` persists across rollovers. It also falls into the `accountkey=` family rejected under C3: any construction keyed to the account key inherits the crypto-agility concern.\n- Account-key thumbprint constructions (`accountkey=` family) - addresses substitution, not privacy, and binds to SHA-256 via RFC 8555 \u00a78.1's use of RFC 7638 thumbprints; fails C3. Substitution is tracked in #58.\n\n## Prior art\n\n- [CABF SC-088v3 / cabforum/servercert#633][sc088-pr] - parallel DCV method at CABF; omits `accountKey=` on crypto-agility grounds. [SC-082 Redux thread][sc082-redux].\n- [RFC 8657 \u00a75.9](https://www.rfc-editor.org/rfc/rfc8657#section-5.9) - existing CAA guidance; soft language. Candidate for revision if this draft adopts a normative mechanism.\n- [RFC 7258](https://www.rfc-editor.org/rfc/rfc7258) - pervasive monitoring.\n- [RFC 8555 \u00a77.3](https://www.rfc-editor.org/rfc/rfc8555#section-7.3) - account-resource URL the draft binds `accounturi` to (per draft \u00a74.1 item 3). The parameter `accounturi` itself is defined in [RFC 8657 \u00a73](https://www.rfc-editor.org/rfc/rfc8657#section-3).\n\n## Open questions\n\n### Normative posture\n\nIf (A) or (B) is adopted, the options are:\n\n- `MUST` - a CA implementing `dns-persist-01` MUST provide one of the unlinkable forms as its default response. A subscriber MAY opt in to the plaintext ACME account URL; this subscriber choice does not relieve the CA of the default obligation.\n- `SHOULD` - CAs are expected to provide an unlinkable form; fallback to plaintext is permitted with documented justification.\n- `MAY` - current draft behavior; per-CA discretion.\n\nA `SHOULD` or `MUST` without a specified mechanism reduces to `MAY` in deployment.\n\nThe list thread as of 2026-04-29 shows emerging alignment toward MAY, with the chair [endorsing flexibility][ounsworth-apr29] and the expectation that privacy-capable CAs will provide an unlinkable form and subscribers who need privacy will select those CAs. This mirrors RFC 8657 \u00a75.9's soft posture but with a concrete mechanism available.\n\n## Related work in this repo\n\n- #55 - client verification of `accounturi` in mode 3b. The question \"why is this still an `accounturi`?\" is addressed by mechanism (B): the record value is opaque; the field name is retained for compatibility with RFC 8657.\n- #57 and PR #58 \u00a77.2.2 - extends the existing privacy-inversion paragraph in draft-01 \u00a77.2.2 to cover mode 3c. That paragraph is parent material for this issue.\n- #56 - any new fields introduced during this discussion (e.g., an algorithm identifier for mechanism (A)) must follow the naming convention decided there.\n- #32 - a mechanism adopted here is expected to apply uniformly to `_ip-validation-persist` (not yet defined in draft-01; tracked in #32).\n- #59 - downstream: client behavior on `accounturi` verification mismatch depends on which mode is in use, which depends on the outcome of this discussion.\n\n## Non-goals\n\n- Substitution attacks on `accounturi` - #58.\n- Subscriber-URI support (mode 3c) - proposed in #58.\n- Subscriber-identity attestation.\n- `_ip-validation-persist` design beyond applying the mechanism adopted here - #32.\n\n## References\n\n- Mike Ounsworth, 2026-04-23 - [Re: I-D Action: draft-ietf-acme-dns-persist-01.txt][ounsworth-apr23]\n- Mike Ounsworth, 2026-04-24 - [consensus call][consensus-call]\n- Seo Suchan, 2026-04-24 - [sequential-integer `accounturi` observation][seo-apr24]\n- Henry Birge-Lee, 2026-04-24 - [on-list response](https://mailarchive.ietf.org/arch/msg/acme/gS9221XOH1_kshm5Nv4MUpVJuYE/)\n- Sebastian Robin Nielsen, 2026-04-27 - [on-list response](https://mailarchive.ietf.org/arch/msg/acme/ki4jfglgZeEGA5BIU1W08TeuvpQ/)\n- Shiloh Heurich, 2026-04-17 - [\"pick two\" framing](https://mailarchive.ietf.org/arch/msg/acme/sysUk4TyQyR3acWDDMZnOltOpHM/)\n- Shiloh Heurich, 2026-04-27 - [consensus-question reply](https://mailarchive.ietf.org/arch/msg/acme/WFmiSMrRQpe-dZAqAMdRBdl266Q/)\n- Henry Birge-Lee, 2026-04-27 - [CA-side lookup table analysis](https://mailarchive.ietf.org/arch/msg/acme/zfGjGB4Bu8v-Lw7ozVhE7IEK2JA/)\n- Sebastian Robin Nielsen, 2026-04-27 - [`sha256(account_public_key || domain)` counter-proposal](https://mailarchive.ietf.org/arch/msg/acme/QHsjo__5uW1j8yO4b5woaPM2GfE/)\n- Henry Birge-Lee, 2026-04-27 - [CDN threat-scenario distinction](https://mailarchive.ietf.org/arch/msg/acme/pujFPhld7J-uEHpAh4TFMv7RX4g/)\n- Mike Ounsworth, 2026-04-29 - [chair endorsement of flexibility](https://mailarchive.ietf.org/arch/msg/acme/E38TQZM0HNCqNAFAli0XULaCLHk/)\n\n[birgelee-apr27]: https://mailarchive.ietf.org/arch/msg/acme/zfGjGB4Bu8v-Lw7ozVhE7IEK2JA/\n[nielsen-apr27-2]: https://mailarchive.ietf.org/arch/msg/acme/QHsjo__5uW1j8yO4b5woaPM2GfE/\n[birgelee-apr27-reply]: https://mailarchive.ietf.org/arch/msg/acme/pujFPhld7J-uEHpAh4TFMv7RX4g/\n[ounsworth-apr29]: https://mailarchive.ietf.org/arch/msg/acme/E38TQZM0HNCqNAFAli0XULaCLHk/\n\n",
       "createdAt": "2026-04-30T15:10:36Z",
-      "updatedAt": "2026-05-14T03:55:42Z",
+      "updatedAt": "2026-07-22T08:11:27Z",
       "closedAt": null,
       "comments": [
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "When it comes to C3, I think that \"crypto agility\" can be made available by accepting any SHA algoritm except SHA-1 instead of a algoritm identifier.\nSince the algoritm can be identified by length, there is no risk that SHA256, SHA384 and SHA512 could be misintepred.\n\nIF a subsuquent hash algorim arrives in the future that requires support, lets call it QPH256 (Quantium Proof Hash 256) the risk of a collision in such a way that a risk appears that a CA would identify subsriber A as subscriber B due to a SHA256 hash for Subsriber A, would \"accidentially\" match the QPH256 hash for Subscriber B, can be considered nil.\n\nIf that happens, go spend all your money on lottery tickets NOW.\n\n\nWhen it comes to key rollover, I think we should stop talking about key rollover. Its not an important feature, for the reasons that rekeying (or re-passwording) a account is no longer recommended according to NIST SP 800-63B:\n\n\"Verifiers and CSPs SHALL NOT require subscribers to change passwords periodically. However, verifiers SHALL force a change if there is evidence that the authenticator has been compromised.\"\n\nA password has far less security than a cryptographic key, if a password is not recommended for periodic rekey, a cryptographic key should also not be rekeyed unless there is evidence or suspicion that it has been compromised.",
           "createdAt": "2026-04-30T16:17:31Z",
           "updatedAt": "2026-04-30T16:17:31Z"
@@ -1321,7 +1378,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "Correct, and a subscriber who wish to continue using account key rollover, can simply choose to not use the prescribed \"publickey\" type of records.\n\nIts the same, that a user of a password encryption system, could choose to either have its files encrypted by a password - but it would be difficult to change the password since lots of data need to be re-encrypted.\n\nOr they can choose to use other keys to actually encrypt the data to easier facilitate password changes - but with higher risk of compromise in certain situations.",
           "createdAt": "2026-04-30T16:37:16Z",
           "updatedAt": "2026-04-30T16:37:16Z"
@@ -1335,7 +1392,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "1: Thats what I meant - that the risk of a cross-hash collision is so tiny that it can be neglected. This because the data to be hashed is strictly defined. It would take many millions of years to bruteforce so your public key matches the SHA-3 hash of your public key + someone else's domain, so it becomes equal to their record which si a SHA-2 hash of their public key and their domain.\nThen you can aswell start bruteforcing their private key. Its the same computational effort.\n\nThats why I think no algoritm identifier is needed, instead new algoritms can be \"transparently\" supported - giving crypto agility out of the box.\n\n2: disagree. If you know  sha256(account_public_key || domain) and domain, you CANNOT derive account_public key.\nThat would require bruteforcing the public key.\n\nsame applies to:\nsha256(account_public_key) you CANNOT derive sha256(account_public_key || arbitrary domain)\n\nHOWEVER, if you know:\n\naccount_public_key\nThen all privacy is lost immediately, then all domains and hashes can be derived, since domains are easy to bruteforce.",
           "createdAt": "2026-04-30T16:50:09Z",
           "updatedAt": "2026-04-30T16:50:09Z"
@@ -1349,7 +1406,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@MaxHearnden \nI looked on this now, and found a solution:\nOne solution is to do:\n\nDNS record = sha256(account_public_key || domain || account_public_key)\n\nBy sandwiching the domain between 2 values unknown to the attacker, the attacker would need to effectively reverse sha256 to find out the linking.\n\n\nAnother solution - that does NOT require anything in the ACME standard, is that the ACME client, creates a new account key (and account) for each domain:\n\naccount1_private_key = sha256(private_key || domain1)\naccount2_private_key = sha256(private_key || domain2)\n\nThese accounts accounturi gets published as DNS-PERSIST-01 records.\n\nThe ACME client can then, based on the \"master account key\", find the sub-keys for each domain.\nSince this is a calculation only the domain owner need to do on his private key, the CA and ACME protocol does not need to know about this.\n\nDISADVANTAGE: Does not work on RSA since RSA needs a specific \"calculated\" private key which is \"bruteforced\" out of a prime until the prime fullfills a special condidition (I think it was something like (k - 1)(p - 1) or something like that).\n\n\nThe latter solution is actually more advantageous, since the protocol doesn't know about this. The fact is that the ACME client can do this today when provisioning CAA records containing account uris.\n\nThis will not become problematic with rate limits since it allows 10 accounts per IP and 3 hours, so even if you have a lot of domains, its not gonna become a issue. And new accounts are refilled each 18 minutes.\n\nAnother advantage is that the method is selective, it can be run on the exact domains the owner doesn't want to link with himself (lets say a controversial political domain) - while still using his \"main account private key\" for all his other domains.",
           "createdAt": "2026-05-02T05:00:11Z",
           "updatedAt": "2026-05-02T05:04:29Z"
@@ -1363,7 +1420,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "It do work with P-256\n\nIn the code, you would just do this:\n\n```\n{\n  \"crv\": \"P-256\",\n  \"d\": base64url(sha256( mainkey.d || domain )),\n  \"kty\": \"EC\",\n  \"x\": g.x * d,\n  \"y\": g.y * d\n}\n```\n\nThe requirement for 288 random bits is just so you don't accidentially come above the order (n) of the key - and in that case, you can shift the random data 1 bit to the right.\nHowever, the order of the P-256 curve is FFFFFFFF 00000000 FFFFFFFF FFFFFFFF BCE6FAAD A7179E84 F3B9CAC2 FC632551\nThis means, you would need a hash prefix of 11111111111111111111111111111111 to the sha256 hash to ever \"hit\" a invalid (too large d), so you can disregard that and just do with 256 bits of random data.\n\n\nYou can see here, it works wonderfully. You only need the same amount of bits of random data, as the curve size:\n\nhttps://github.com/sebastiannielsen/ACME-nostate/blob/main/ACME.net/Module1.vb#L380-L399\n\nYou actually don't need an \"approved\" DRBG - we are not firing nuclear missiles here, we are just generating certificates to secure communication.\n\n\n**The biggest advantage with my proposed method, is that the ACME server doesn't need to \"know\" about this.\nIts something that is handled purely client-side. Meaning clients that wants to support per-domain privacy can do this - and can do this selectively per domain aswell (so you only generate subkeys for your \"sensitive\" domains - like political domains).**\n\nThats why I want the proposed pubkey:<pubkey> or pubkey:<sha256 of pubkey> construction, so the client can even generate more things \"offline\" on the client-side without having to talk to the ACME server.\n\n\nNote that the limitation of having to keep the account public key a secret - is only to preserve privacy. If your public key would accidentially leak, it would not mean security is broken - only privacy - and only for the first proposed method of letting record be sha256(account_public_key || domain || account_public_key)\n\nIf my second method of generating \"subkeys\" for accounts - like bitcoin generates \"sub-wallets\" it would preserve privacy 100%. It would actually be preserved incase the private key for one of the sub-accounts would leak out.\n\nThis effectively means also a big cloud provider or hosting company, can have a \"main key\", and then generate a customer key by just doing:\n\n`\"d\": base64url(sha256( hosting_company_main_private_key || customer_domain )) `\n\n(Note, the thing you said only allows you to find out if 2 same private keys are used, it doesn't allow you to \"crack\" the hash algoritm and actually find out the private key - and that would still require you to find out the private sub-key of the public sub-key before you can even start cracking the hash).\n\nwhich means - even if a customer gets to know his private key from the hosting company, that customer CANNOT find out which other domains is hosted by the same hosting company.\n\nmaking acme handling in control panels even easier - just take `sha256(main_hosting_master_key || domain`) and then use that for the customer's communication with ACME.\n\nSo I would say, my second method is cryptographically sound - breaking privacy would require you to BOTH find the private key for a public EC point - and THEN crack/break the hash in a effort to find out the master private key - or data that would allow you to link all accounts created by a subkey from the same master private key.",
           "createdAt": "2026-05-02T19:22:50Z",
           "updatedAt": "2026-05-02T21:18:14Z"
@@ -1377,7 +1434,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@sergeyfrolov It would not be technically possible anyways, since the alias is created before the record is provisioned. The CA would not be able to set a lifetime on the alias since the persistUntil value can be modified during the record's lifetime.\n\nIm pretty sure this effectively means, a CA may not skip \"persistUntil\" checking, just because the record is a alias rather than main account uri.\n\n\nHOWEVER, if the CA requires a main accounturi to be published first to even create the alias, and then you replace the value with the alias, if the main accounturi had a \"persistuntil\" value, then that would also be the bounds for the alias, even if the alias record doesn't have a persistUntil value.\n(this because the prerequiste to get the alias was a main record, which then had a persistUntil label).",
           "createdAt": "2026-05-04T15:44:42Z",
           "updatedAt": "2026-05-04T15:44:42Z"
@@ -1391,7 +1448,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@MaxHearnden \nAlso when it comes to the accounturi privacy mechanism, there is another way that could make it crypto agility:\n\nThat is to use the SPKI when calculating the record:\n\nLike:\n`accounturi = sha256 ( sha256(SPKI(account_public_key)) || domain || sha256(SPKI(account_public_key)) )`\n\nThe sha256 of the SPKI for the following public key:\n\n```\n-----BEGIN PUBLIC KEY-----\nMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAE5F0ZERVWdwGUTMp5PLD3tf+zrmwuazFk\ntTetJckZxifDEDBMYT/sLT1Oyj1vQLqqPUIB0ZtvoshilvuQ0UNTvPUEpeDbsgxZ\nqyZSQNJBLlLCPrxi2yHiwkkVnvkywe3n\n-----END PUBLIC KEY-----\n```\n\nwould be:\n`526b01ba4d532052de7640a4dc20e2c68e0d6cc9bba9aee3dad69c933dded3ee`\n\nby using SPKI the algoritm identifier is included in the hash calculation, so any future algoritms are supported automatically in a secure way.\nUsing sha256 as a \"fixed\" hash algoritm I don't think is such a big issue - sha256 will be considered de facto standard and secure for a long period in the future.\n\nthe SPKI hash can be easily generated by:\n`openssl pkey -pubin -in account_public_key.pem -outform DER | openssl dgst -sha256`\n\nor:\n`openssl ec -in account_private_key.pem -pubout -outform DER | openssl dgst -sha256`",
           "createdAt": "2026-05-07T20:32:30Z",
           "updatedAt": "2026-05-07T20:38:00Z"
@@ -1419,7 +1476,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@sheurich Since 2 accounts cannot have the public key anyways, how do you mean \"collision\" then?\n\nSince you can run newAccount with a existing account public key to get your accountURI back.\n\nThe reason I want to drop the AccountURI completely, is to enable a client to calculate his DNS-PERSIST-01 record offline, before even having talked to the ACME server - which adds great security and convience if the user can \"pre-provision\" the records even before the account is created.\n\nIt would thus be better with sha256(account_public_key || domain || account_public_key)\n\nTo handle key rollover more efficiently, my suggestion is that the client instead publishes the new record (calculated with the new public key) a time prior, so both records exist and are valid, and then rolls the key over, and then deletes the old record.\n\n\nI would suggest, no historical grace period. Clients are responsible for publishing records in good anticipiation of key rollover.\nThis avoids the need for CA for storing keys in history.",
           "createdAt": "2026-05-13T15:14:12Z",
           "updatedAt": "2026-05-13T15:23:16Z"
@@ -1433,7 +1490,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@sheurich \nYes, you are correct that the subscriber has to \"commit to a CA\". The idea of pre-provisioning is that the subscriber should be able to compose the DNS-PERSIST-01 record before even talking to a CA ACME server, which in turn gives extra security for subscribers who choose to provision their servers before they are connected to the internet.\n\nThis completely eliminates any concern for on-path attackers (like mentioned in 7.5 about record tampering and CA impersonation).\nThis would mean this new format gives a security advantage too - by not talking to the ACME server at all before provisioning the record, any concern for any attacks on the ACME protocol is removed.\n\nTechnically, a collision avoidance isn't really needed, since only the subscriber is in control of the account key. If the same account key is used across multiple CAs, its still the same subscriber holding it, so there is no risk of a subscriber gaining the identity of another. Account keypairs can thus be considered belongning to a single subscriber globally.\n\nThe same cannot however be said for account URIs, thats why they must be globally unique.\n\nRegardless of scheme - the subscriber still has to commit to a CA since the caaIdentity is included in the record (like \"letsencrypt.org;accounturi=[URI]\".\n\nSo even if [URI] would be blank from any CA linkings, the subscriber still have to commit to a CA.",
           "createdAt": "2026-05-13T16:27:04Z",
           "updatedAt": "2026-05-13T16:31:48Z"
@@ -1447,7 +1504,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@MaxHearnden it seems the only safe thing to do is to sandwitch actually.\n\nThis method:\nsha256(pubkey || domain || pubkey)\n\ncombined with @sheurich idea of \"minting\" a invalid URL out of this, with:\n\nhttps://{caaIdentitity}/acme-alias/{base64url(hash)}\n\nThat should make it safe right, from any of the attacks you describe, as long as the public key is not disclosed?",
           "createdAt": "2026-05-13T16:34:01Z",
           "updatedAt": "2026-05-13T16:34:01Z"
@@ -1461,10 +1518,17 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@MaxHearnden I personally think we should not waste IANA registrations for needless purposes. ACME have already basically flooded IANA with needless registrations.\n\nInstead, this can be worded like in RFC 8657 - 5.4.  URI Ambiguity\n\nLike this:\n\n```\nA CA implementing this privacy protocol, MUST abide by the following collision avoidance\nimplementation\n\nCAs MUST ensure that the URIs they recognize as pertaining to a\nspecific account of that CA does not collide with privacy URIs described in this RFC\n\nCAs SHOULD satisfy this requirement by ensuring no regular account URIs live by the\nsubfolder /acme-alias/ AND/OR by constructing regular account URIs in such a way a\nbase64url constructed sha256 hash never will match this URI by restricting the maximum\nallowed number of characters to less than, or equal to 42 for the account portion itself, which\ngurantees a base64url encoded sha256 hash never can collide with a regular account URI.\n\nWith \"account portion\", it should pertain to the part of the account URI that is unique per subscriber.\n```\n\n\nSuch wording WOULD technically make accounts that were previously valid, invalid, but since the collision avoidance would only apply to CAs implementing (recongnizing) such sha256 based account URIs, a CA would have to disable and deactivate any account that has a account portion that is longer than 42 characters, which lives by the subfolder /acme-alias/.\n\n\nThe reason we do not need a IANA registration for this, is because only CA's actually recongnizing such \"generated privacy URIs\" would need to have collision avoidance. If a non-privacy recongnizing CA would have urls in the form of /acme-alias/[base64url-sha256hash], it would not collide with a privacy URI since the CA don't recongnize them anyways.\n\nIANA registrations is only needed when we need cross-RFC collision avoidance, for example as needed with scheme and .well-known that are used by other standards like SMTP-STS and such aswell. Since the collision avoidance only needs to be recongnized by CAs actually implementing the privacy protocol, it can be directly worded in the applicable RFC instead.",
           "createdAt": "2026-05-14T03:12:53Z",
           "updatedAt": "2026-05-14T03:55:42Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "The domain-bound hash prevents bulk string-match correlation, but the protection remains best effort. Max's HTTP-01 point is valid: the CA fetches the key authorization over cleartext HTTP, which exposes the base64url JWK thumbprint to an on-path observer and leaves account-URL entropy as the remaining barrier. I am adding that caveat to `-02` and keeping this issue open for the WG's broader privacy decision.",
+          "createdAt": "2026-07-22T08:11:27Z",
+          "updatedAt": "2026-07-22T08:11:27Z"
         }
       ]
     },
@@ -1511,7 +1575,7 @@
       "labels": [],
       "body": "Having the dns-persist-01 record contain only information provided by the ACME server opens the possibility for Meddler-in-the-Middle attacks. The attack flow would be something like:\n- Set up a malicious ACME server\n- Get a victim to configure your server's directory URL in their ACME client\n- When the victim registers an account with your server, register a new account with a real ACME server, and return _that_ account's URI verbatim\n- When the victim provisions a dns-persist-01 record, the record will actually authorize the attacker's ACME account at the real CA; the attacker can now issue arbitrary certificates for the victim's domain\n\nThe original RFC 8555 discusses this exact attack in its [Security Considerations section](https://datatracker.ietf.org/doc/html/rfc8555#section-10.2). The mitigation used by those original ACME challenges is that the token the Applicant needs to present consists of two parts:\n1. The random value provided by the server; and\n2. A hash of the applicant's ACME account public key\n\nImportantly, (2) is computed entirely offline -- both the ACME client and the ACME server compute it independently. And while the malicious actor _can_ compute the hash of the victim's pubkey (it's public, after all), the malicious actor _can't_ convince the ACME server that that's the Key Authorization it should be looking for. When the malicious actor tries to get a cert for the victim's domain from the real ACME server, that server will expect to see a hash of the _attacker's_ pubkey, and there's no reason for the victim to have provisioned that value.\n\nThus, I believe that dns-persist-01, in order to mitigate this same attack, must include a value computed over the applicant's ACME client pubkey.\n\nI will note that this introduces a tradeoff: improve security by keeping DNS API credentials far away from webservers and ACME clients, but impair security by preventing applicants from rotating their ACME client keys. If anyone has suggestions for how to prevent this attack without also preventing key rotation, I'd love to hear it.\n\nSee this thread on the ACME mailing list for further discussion: https://mailarchive.ietf.org/arch/msg/acme/i_kd1g7vFaWO8x3_Ukh6Iz3nems/",
       "createdAt": "2026-05-15T22:49:11Z",
-      "updatedAt": "2026-06-28T03:12:07Z",
+      "updatedAt": "2026-07-22T08:11:35Z",
       "closedAt": null,
       "comments": [
         {
@@ -1523,7 +1587,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@aarongable \nMy suggestion is that since DNS-PERSIST-01 is a deliberate configuration where you should be able to statically configure a record, it should also be possible to provision the record without ever having talked to a ACME server or even seen a ACME server.\n\nMy suggestion is that a optional pubkey: format is used for accounturi. It could be a sha256 hash (like how a key authorization is caulculated, but without the token).\n\nTo prevent a client from ever accepting it as a accounturi, I would suggest writing in the RFC for DNS-PERSIST-01 that a DNS-PERSIST-01 client must reject any accounturi given by the server starting on pubkey: as invaldi for all purposes, and that pubkey: accounturis may only be self-calculated on the client side.\n\nA non-DNS-PERSIST-01 aware client does not need to abide by this, why no IANA registrations or base RFC 8555 changes are needed.\n\nlike something like this:\n\n_validation-persist.sebbe.eu IN TXT \"letsencrypt.org;accounturi=pubkey:MIGlopFr8CcEoQS56eRoBy5F3lkS-ydTpIxAa4Rdq6w;policy=wildcard\"\n\nTechnically it aligns with the CAB/F rules, since a public key DO uniquely identify an account, since 2 accounts cannot have the same public key.\n\nIts for example today possible to configure HTTP-01 without ever talking to a ACME server by doing this (which kinda invents HTTP-PERSIST-01 on the client side):\n\n```\n<Location \"/.well-known/acme-challenge/\">\n    RewriteEngine On\n    RewriteRule \"\\/([-_a-zA-Z0-9]+)$\" \"\\/$1\" [E=challenge:$1]\n    ErrorDocument 200 \"%{ENV:challenge}.MIGlopFr8CcEoQS56eRoBy5F3lkS-ydTpIxAa4Rdq6w\"\n    RewriteRule ^ - [L,R=200]\n</Location>\n```\n\nYou can try it out here:\nhttp://sebbe.eu/.well-known/acme-challenge/write_whatever_you_want_here\n\nand since this is a deliberate configuration (not something that can happen with default configs or by using security holes in web applciations not even related to certificate issuance) it fulfills the security model of HTTP-01. Its also impossible to configure a \"issue-all\" configuration - all such config locks issuance to a specific public key.\n\nIn the same way, there should be possible to provision a DNS-PERSIST-01 record \"offline\" - without EVER talking to a ACME server.\n\nBy allowing this type of pre-provisioning, it reduces the chatter and load on the server **AND** gives complete security.\nWhat you DO lose, is that you have to change the record when you do a key rollover. So you have to choose - either have accounturi with key rollovers, or use pubkey, but then you have to change record each time you do a key rollover.\n\nTo avoid issuance downtime when doing a key rollover, its easy to publish the NEW public key hash, so both records are present, since DNS-PERSIST-01 permits multiple records, both invalid and valid ones.\nThen you can wait some time, roll over the key - then wait even some MORE time, and then delete the old record.\nMeaning no certificate issuance downtime.\n\nI disagree with @MaxHearnden idea since it requires extra roundtrips to server for no gain, when you can create this security by allowing offline config of DNS-PERSIST-01 records instead by allowing it to be linked to public key.\n\n\nAnother thing, is that if a ACME user **do** want the security of **BOTH** an accounturi **AND** pubkey hash, they can configure a CAA record which locks issuance to a specific accounturi. This would then require BOTH accounturi (in the CAA record) AND the public key (in the DNS-PERSIST-01 record) to match for issuance to proceed.\n",
           "createdAt": "2026-05-15T23:59:49Z",
           "updatedAt": "2026-05-17T02:04:34Z"
@@ -1537,7 +1601,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "This would be for privacy URL function only.\nAnd I advise AGAINST saving public keys. I think the key rotation cost is acceptable.\n\nIts better that if you want to key-rotate, you provision new records BEFORE key rotation, then wait until they propagate, THEN rotate key, and then when you have verified the new key works, you delete the old records - giving a seamless key rotation - since both the old and the new record is valid at the same time.\n\nI would suggest that the pubkey: function is added in ADDIITION to this.\nThe pubkey function is simpler for CA's to implement, and since pubkey: URLS are easily distinguishable, it means a client can easily refuse a pubkey: url issued from the server - AND it can be completely calculated on the client side.\n\nThis account privacy function would still be vulnerable to a malicious server serving the attacker's adress.\n\n**Thats why the function must be a new scheme so it can be easily distinguishable by the client programmatically. Note that `https://<ca-hostname>/<hash>` is still a valid account URI - why this function must ONLY be used for account privacy - nothing else. It CANNOT secure the record against a malicious server emitting attacker-controlled URIs**\n\nClients that wants BOTH account privacy **AND** security against malicious ACME server, must then generate sub-accounts like I described in the other post, where:\n\n`subkey.d = sha256(masterkey.d || domain);`\n\nand then publish a record for each domain for the `pubkey:<JWK-thumbprint>` on each domain.\nThis generation would be done completely offline, before any ACME server is even contacted.\n\n**Actually - the client doesn't even need to use `<domain>` when generating the sub-accounts. The client could use anything actually. A number, a domain, IP-adress, whatever the client feels is good data to \"distriguish\" each domain from each other and can be re-generated when its needed.**",
           "createdAt": "2026-06-04T23:15:25Z",
           "updatedAt": "2026-06-04T23:28:11Z"
@@ -1565,7 +1629,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@sheurich correct.\n\nThe problem here is that since it has the same format as a regular account URI, the client cannot distinguish it. It would mean, a attacker server can still serve it as a \"normal account URI\" - without the client knowing.\n\nIf the client would try to provision the attacker provided value as a \"privacy url\" with the privacy function, it would become:\n`sha256(client pubkey || https://<ca-host>/sha256(attacker pubkey || attacker accounturi || domain) || domain)`\n\nIt would not work, why the client would then assume the CA doesn't support privacy URIs, and the provision the URI for:\n`sha256(attacker pubkey || attacker accounturi || domain)`\n\nwhich would succeed.\n\n\nThis is why I suggest a \"raw\" pubkey: mode for those that wants to generate the url **COMPLETELY OFFLINE** without any information from the server. Thats the only thing to be sure.",
           "createdAt": "2026-06-04T23:43:12Z",
           "updatedAt": "2026-06-04T23:43:54Z"
@@ -1579,14 +1643,14 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "Yeah, I do not think we should reserve a path under the CA namespace. Instead, it becomes up to the CA to reserve that namespace in a good way. Most CAs will already have it reserved (by having the real acme accounts under a /acme/ folder)\n\nAlso with the \"copy a value from the server\", I mean the value for the \"accounturi\" as I described. A malicious server could compute a \"privacy URI\", and then supply it as a \"base accounturi\" as described. That would give the problematic behaviour that the client cannot see that the URL is infact a \"privacy URI\" and could provision beliving it is a \"normal accounturi\" and as a fallback behaviour, provision the value without the privacy extension.\n\nInstead, I suggest, that the privacy function and the pubkey: function are two different separate entities:\n\nA: The privacy function provides unlinkability between multiple certificates on the same account so they cannot be linked through their dns-persist-01 record.\n\nB: The pubkey: function provides security against a compromised ACME server, and allows you to provision the DNS records even before the machine have had internet for the first time and before the account is even created - giving extreme security against a compromised ACME server. (if you don't contact a server before provisioning the record - theres nothing to compromise - the environment is airgapped)\n\nthe idea with a pubkey: function - is that a pubkey: aware client would reject such a URI when the server tries to supply it.\n\nIts also an advantage that you then can provision a DNS-PERSIST-01 record for a client that does not even show the account URI for the end user (for example synology NAS client) by simply extracting the JWK thumbprint from the HTTP-01 post and putting it in a DNS-PERSIST-01 record - and if the CA supports JIT validation, a non-DNS-PERSIST-01 aware client will succeed with validation.",
           "createdAt": "2026-06-05T00:10:58Z",
           "updatedAt": "2026-06-05T00:11:59Z"
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "Another thing I want to point out, is that we do NOT have to register \"pubkey:\" with IANA or similiar.\n\nHere is why:\nThe scheme does not have any meaningful usage outside of DNS-PERSIST-01 records. Thus, a browser or similiar does not need to care about \"pubkey:\" scheme.\n\nIf \"pubkey:\" scheme is registred by another entity, that scheme would not have any meaningful usage inside ACME, so both ACME-\"pubkey:\" and non-ACME-\"pubkey:\" can coexist in the same space, in the same way a shoe and a router can choose the same trademarked name.",
           "createdAt": "2026-06-05T07:22:19Z",
           "updatedAt": "2026-06-05T07:24:20Z"
@@ -1614,7 +1678,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@aarongable I however, don't think we should FORCE privacy URLs (ergo domain-unique URLs) on everyone. It should be up to the end user if they want domain-unique URLs or not.\n\nThe proposed change means ACME clients must provision a unique value per domain. I think privacy URLs should be completely optional, meaning that if client-computed information is to be included, its either accounturi + publickey, or my proposed publickey mode.\n\nIn this way, a DNS operator can point multiple records against a single validation record (for example: _validation-persist.domain.tld CNAME validationrecord.masterdomain.com) which IS a supported mode according to the CAB/F rules.\n\nI also don't think there should be a requirement to create an order before you can provision a dns-persist-01 record, so no tokens or similiar things that have been proposed.\n\nSince we don't have any \"key rollover\" mechanism for HTTP-01 and DNS-01, I don't think we should have any for DNS-PERSIST-01 either. If the user wants to change account key, he have to provision new DNS-PERSIST-01 records, change account key, and then delete the old DNS-PERSIST-01 records. Thats how its done for DNSSEC.\n\nNo reason to save old account keys (which can both be a security implication, but also a problem if the removed account key is moved to a new account - so you suddenly have a key that is valid for multiple accounts accordin to DNS-PERSIST-01).\n\n\nOne way to solve this, so client-computed information is required, BUT allow non-privacy URLs would be to allow the URL to be:\n\n`sha256(pubkey || accounturi || *) - * as in asterisk, wildcard character.`\n\nSo if you want to use privacy URI, you use:\n\n`sha256(pubkey || accounturi || domain)`\n\nThis DO have privacy implications if you mix both non-privacy URLs and privacy URLs for the same account.\nAn attacker could then potentially find out the privacy URLs based on the non-privacy one - so a ACME user that wants privacy, must potentially ensure they use privacy URLs for all their domains.",
           "createdAt": "2026-06-25T16:49:49Z",
           "updatedAt": "2026-06-25T16:56:43Z"
@@ -1628,7 +1692,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@aarongable \n1: Keyauth means that there is a token value somewhere that needs to be fetched. So to provision the dns-persist-01 record, they must create a order. Im strongly against that idea, since that goes against the idea of persistent record.\n\n2: I think its good for consistency. A null value is fine aswell.\n\n3: @MaxHearnden showed some examples where you could back off sha256 one step only and then somehow find out two hashes belongs to the same account or key.",
           "createdAt": "2026-06-25T17:17:07Z",
           "updatedAt": "2026-06-25T17:17:07Z"
@@ -1649,7 +1713,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@aarongable now I understand. Of course you need a scheme to fulfill the CAB/F requirement that it must be a URL.\nBut it could be anything, and the scheme does NOT need to be registred with IANA since its unique for DNS-PERSIST-01 (The usage inside DNS-PERSIST-01 will never clash with usage outside of DNS-PERSIST-01 and any usage outside of DNS-PERSIST-01 will never clash with DNS-PERSIST-01).\n\nmaybe let the scheme be the hash function:\n\n`sha256:<hash>`\n\nMaking it agnostic and easy to upgrade hash algorim in the furure.\n\nI would suggest completely different labels however.\nNormal urls:\n`dns-persist-01`\nprivacy urls:\n`privacy-enhanced-persist`",
           "createdAt": "2026-06-25T17:51:29Z",
           "updatedAt": "2026-06-25T17:53:38Z"
@@ -1677,7 +1741,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@MaxHearnden No. Because the domain is picked up from where the record is placed (ergo, strip `_validation-persist`), not the domain the requestor is asking for.\n\nSo a record placed at `_validation-persist.6www.example.com` would actually mean account 333094029, and a record placed at `_validation-persist.www.example.com` would actually mean account 3330940296.\n\nThere is no risk of \"cross contamination\" here.",
           "createdAt": "2026-06-26T09:27:29Z",
           "updatedAt": "2026-06-26T09:27:29Z"
@@ -1691,7 +1755,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@MaxHearnden Thats not possible, due to the `_validation-persist` prefix.\nUnless your DNS server can synthetise wildcard records for `_validation-persist.*.example.com` (which usually requires LUA scripting or split-horizon configurations).\n\nAnd IF someone creates such a configuration, but does NOT tell the DNS engine to actually create a hash dynamically, then it can from the CAB/F point of view be seen as 2 separate records, one authorizing 333094029 for 6www.example.com and one authorizing 3330940296 for www.example.com.\n\nBecause thats whats its technically is - you have a server dynamically creating DNS responses on-the-fly (like a PHP script) instead of a static zonefile.",
           "createdAt": "2026-06-26T09:44:06Z",
           "updatedAt": "2026-06-26T09:44:06Z"
@@ -1705,7 +1769,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@MaxHearnden I tested it and I see now how you have done. This could actually be a issue. Not just with the hash, but overall, since it could be actually cause issues with CAA records aswell that have the same format as content.\n\nMight be solved by requiring the CA to look up `_validation-nonpersist._validation-persist.domain.tld` and that value MUST return NXDOMAIN for validation to succeed.\n\nThis means a domain owner can effectively block DNS-PERSIST-01 by putting a TXT at `_validation-nonpersist._validation-persist.domain.tld`.\n\nBy having a \"anti-validation record\", this prevents * from synthesising validation records, which could create this issue, because * would also match the anti-validation record.\nThis would completely solve the issue, since then it requires a deliberate configuration (to have a wildcard that returns NXDOMAIN for _validation-nonpersist._validation-persist) which then can from CAB/F point of view, be considered 2 separate records that authorizes both accounts to issue.\n\n",
           "createdAt": "2026-06-26T11:02:42Z",
           "updatedAt": "2026-06-26T11:11:48Z"
@@ -1719,7 +1783,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@MaxHearnden It would fix the regulatory issue, because if you block validation records synthesising from a wildcard, then you CAN argue that the 2 different records that are returned, lets say from:\n\n`_validation-persist.6www.example.com`\nand\n`_validation-persist.www.example.com`\n\nwith the same hash, referring to 2 different accounts, is actually 2 separate records, and not the same record, because you have deliberately blocked the possibility that those are the same record.\n\nIf someone then configures a DNS server deliberately so it bypasses this blockage (by having a PowerDNS script return negative for _validation-nonpersist._validation-persist) then its from a external point of view, can be considered 2 separate records.",
           "createdAt": "2026-06-26T11:15:52Z",
           "updatedAt": "2026-06-26T11:15:52Z"
@@ -1733,7 +1797,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@MaxHearnden Correct, but if that \"reuse\" comes from the reuse of a record, and you block the UNINTENTIONAL reuse of a record, then you have mitigated the reuse of account URI. Then its acceptable from the CAB/F rules.\n\nAnd your second concern - thats a deliberate config, that means the intention from the domain owner is that the second account should be authorized to issue for the domain.\n\nThe _validation-nonpersist is to specifically prevent wildcards from  reusing validation records without intention from the domain owner.\n\nIt could be done with a separator, but then it becomes ambigious what domain should be in case of a non-privacy URL.\nShould it end with a separator?\n\nMaybe its better to actually use * then?\n\nSo a non-privacy url is:\n\n`sha256('dns-persist-01|' || public_key || \"|\" || accounturi || \"|*\")`\n\nand a privacy url is:\n\n`sha256('privacy-enhanced-persist|' || public_key || \"|\" || accounturi || \"|\" || domain)`",
           "createdAt": "2026-06-26T14:59:52Z",
           "updatedAt": "2026-06-26T14:59:52Z"
@@ -1747,7 +1811,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@orangepizza yes in the non-privacy version it is the literal * character.\n\nThats why its between the \" along with the separator.",
           "createdAt": "2026-06-26T15:05:16Z",
           "updatedAt": "2026-06-26T15:05:16Z"
@@ -1761,7 +1825,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@orangepizza that would work very well aswell.\n\nSince pubkey is part of the account, there is no risk of a partial account uri pointing somewhere else.\n\nSo that becomes:\n\nnon-privacy:\n`hash( \"dns-persist\" || account url || pubkey)`\n\nprivacy\n`hash( domain || \"privacy-enhanced-persist\" || account url || pubkey)`\n\n\nand lets agree that the scheme should be `sha256:` (so other hash algoritms can be added in the future).\n\n\nLets agree that pubkey should be in JWK thumbprint format (since most ACME software already have functions to calculate that today)",
           "createdAt": "2026-06-26T15:41:12Z",
           "updatedAt": "2026-06-26T15:41:12Z"
@@ -1782,7 +1846,7 @@
         },
         {
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "@orangepizza Partially correct. Its not about a attacker sitting in the CDN of the CA. If the CA is compromised, the attacker can go in into the admin panel and push \"issue certificate\" button for any domain he sees fit, even google.com\n\nThats why CAs need strong firewalls (like those for PCI DSS enviroments) and their physical datacenters have multiple access control gateways with mantraps/airlocks to get into sensitive areas. Just because of this, if the ACME server - which is part of the issuance infrastructure - gets comrpomised, you can really just go in and push \"issue certificate\" for anything in the world. So the CAs need to undergo audits to ensure their physical and digital security is so top notch they can't get comrpomised.\n\nIts more about where the link between client and server is compromised somehow. Either by DNS manipulation, MITM, or even so simple as \"typosquatting\" where the attacker registers a similiar domain, lets say \"leysencrypt.org\" (y is close to t on keyboard) and creates a malicious ACME server, who returns values belongning to the real ACME account of a attacker. Or even a supply chain attack where the binary of a ACME client is modified in a undetectable way so the adress to the CA is replaced with a malicious directory URL.\n\nThe problem here with DNS-PERSIST-01 is that the client have to fully trust the server, as opposed to all other validation methods where client makes a local calculation, and thus foils any attack where the server is returning attacker-belonging values to the ACME client. In this way, by remaking DNS-PERSIST-01 so it includes a client-calculated value based on account key - it completely prevents any attack where a client is fooled into accepting attacker-supplied values.",
           "createdAt": "2026-06-27T17:02:35Z",
           "updatedAt": "2026-06-27T17:17:56Z"
@@ -1793,6 +1857,13 @@
           "body": "Thanks @sebastiannielsen that's a great illustrative example, given that domain is in fact available.",
           "createdAt": "2026-06-28T03:12:07Z",
           "updatedAt": "2026-06-28T03:12:07Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "#67 implements the requested property: the client-computed, account-key-bound hashed URI is the sole `accounturi` form. The raw account URL and subscriber-account URI are removed, so there is no unbound downgrade. The CA verifies by recomputing over the requesting account's retained keys. Closing when that text lands in `main`.",
+          "createdAt": "2026-07-22T08:11:35Z",
+          "updatedAt": "2026-07-22T08:11:35Z"
         }
       ]
     }
@@ -4239,22 +4310,22 @@
     {
       "number": 67,
       "id": "PR_kwDOO4VY2c7ulRjf",
-      "title": "Birgelee 02 candidate and hashed URIs",
+      "title": "Replace the three accounturi modes with a single hashed account URI",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/67",
       "state": "OPEN",
       "author": "birgelee",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "",
+      "body": "Makes a client-computed hashed URI the sole `accounturi` form, replacing the three modes of -01: the raw ACME account URL (3a), alternative URIs (3b), and subscriber-account URIs (3c). This branch is the working candidate for -02.\n\nThe hashed URI is `<accountHashPrefix>/<hash-alg>/<base64url digest>`, where the digest is computed over `length_of_domain || domain_name || key || account_URL`. Binding the account key closes the substitution gap of a raw account URL: a record validates only for an account that controls the key, so a poisoned delivery channel cannot bind a record to an unintended account. Binding the domain gives each domain a distinct record value, which mitigates the correlation risk noted in RFC 8657, Section 5.9. A client that wants one record reused across domains can set `domain_name` to `*` and accept the correlation trade-off.\n\nChanges:\n\n1. Define the hashed-URI construction, with `sha-256` as the initial algorithm and agility through the `<hash-alg>` token.\n2. Specify verification by CA-side recomputation, plus the key-retention rules that let records survive routine key rotation. Precedence: account deactivation overrides all retention, then certificate-backed retention, then general retention.\n3. Add two directory `meta` fields with IANA registrations: `accountHashPrefix` (base URI for hashed values) and `keyRotationPeriod` (bound on prior-key acceptance).\n4. Remove modes 3b and 3c and their dependent text: subscriber-compromise and broad-scope security considerations, DNS-spoofing amplification, mode-specific error handling, and the three-mode revocation table.\n5. Rewrite the security considerations around the hashed URI: non-transferability, substitution resistance, enumeration cost, and the stated limits of the privacy protection.\n6. Add a worked hashed-URI example that doubles as a test vector, including the domain-omitted `*` form, and update all record examples.\n",
       "createdAt": "2026-07-06T23:14:18Z",
-      "updatedAt": "2026-07-20T19:33:57Z",
+      "updatedAt": "2026-07-22T20:43:31Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "355fb4f6218c3a3856dbcf16d73b13870d4461c5",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "birgelee-02-candidate",
-      "headRefOid": "f816113edb73d7bbf25c555896dd892db8913e63",
+      "headRefOid": "ddaf2aa0c4f6959cca521508a4e1ad89d785f068",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -4668,6 +4739,297 @@
               "body": "1: You can't do this to the ACME client, since the requests between the ACME client and server is encrypted. So even if server administrator sits on a unprotected wifi, it won't matter.\r\n\r\n2: The path out from the CA (outgoing validationn requests, unencrypted in http-01) should be assumed to be protected. Its part of the CA's audit that their infrastructure is secure enough.\r\n\r\n3: Only way to capture http-01 would then be if the SERVER in question sits on a unprotected wifi or wifi PTP link or if any part of the network on the server side is using hubs instead of switches. Very rare configuration.\r\n\r\n4: This would then only have privacy implications, not any security implication.",
               "createdAt": "2026-07-20T19:33:57Z",
               "updatedAt": "2026-07-20T19:35:32Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGp4ytQ",
+          "commit": {
+            "abbreviatedOid": "f816113"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-21T05:34:52Z",
+          "updatedAt": "2026-07-21T05:34:53Z",
+          "comments": [
+            {
+              "originalPosition": 130,
+              "body": "My suggestion is that the CA should only save one previous key at maximum, and max period to save is 30 days. This makes it clear that if you want to do a key rollover, you have to create the new record.\r\n\r\n1 month is enough even for those that don't have access to DNS but need to phone call their web host to have DNS changed, ",
+              "createdAt": "2026-07-21T05:34:53Z",
+              "updatedAt": "2026-07-21T05:34:53Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGp7UMg",
+          "commit": {
+            "abbreviatedOid": "f816113"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-21T05:43:37Z",
+          "updatedAt": "2026-07-21T05:43:38Z",
+          "comments": [
+            {
+              "originalPosition": 76,
+              "body": "I think we can do as same as with the ACME account keys - a CA *must* accept sha256, which is the \"gold standard\" but may accept more. For example, lets encrypt accept alg=ES384 even if thats not part of the standard and normally ES256 is used.\r\n\r\nSo a registry isn't needed, people coding clients will put in their own registrys in the software for which CAs support which algoritms.",
+              "createdAt": "2026-07-21T05:43:37Z",
+              "updatedAt": "2026-07-21T05:43:38Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGruA0g",
+          "commit": {
+            "abbreviatedOid": "f816113"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-21T10:09:28Z",
+          "updatedAt": "2026-07-21T10:09:28Z",
+          "comments": [
+            {
+              "originalPosition": 76,
+              "body": "JWK algorithm names and semantics are still tracked by an IANA registry https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms.\r\n\r\nI couldn't find a similar registry listing hash algorithms and future algorithms could require different semantics e.g. a null algorithm that just base64 encodes the data.",
+              "createdAt": "2026-07-21T10:09:28Z",
+              "updatedAt": "2026-07-21T10:09:28Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGwFxQw",
+          "commit": {
+            "abbreviatedOid": "f816113"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-21T18:52:01Z",
+          "updatedAt": "2026-07-21T18:52:01Z",
+          "comments": [
+            {
+              "originalPosition": 94,
+              "body": "Resolved in the direction @sebastiannielsen and @CBonnell describe: draft PR #68 redefines `key` as the 43-octet unpadded base64url RFC 7638 thumbprint, the same encoding ACME key authorizations already use (RFC 8555, Section 8.1), and recomputes both example vectors. The choice is cryptographically neutral and the field stays fixed length, so the deciding factor is that ACME libraries already produce this exact form.\n",
+              "createdAt": "2026-07-21T18:52:01Z",
+              "updatedAt": "2026-07-21T18:52:01Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGwFx9w",
+          "commit": {
+            "abbreviatedOid": "f816113"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-21T18:52:02Z",
+          "updatedAt": "2026-07-21T18:52:02Z",
+          "comments": [
+            {
+              "originalPosition": 76,
+              "body": "The registry you are looking for exists: RFC 6920 established the IANA Named Information Hash Algorithm Registry for exactly this purpose. Draft PR #68 draws `<hash-alg>` from that registry's Hash Name Strings, makes `sha-256` mandatory to implement (the floor @sebastiannielsen describes), and restricts usable entries to non-truncated digests of at least 256 bits, which keeps out truncated variants and anything that is not a real digest. A managed namespace beats per-client tables of CA support: clients and CAs get algorithm agility without pairwise coordination, and each token's semantics stay pinned to its registry entry.\n",
+              "createdAt": "2026-07-21T18:52:02Z",
+              "updatedAt": "2026-07-21T18:52:02Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGwFyrA",
+          "commit": {
+            "abbreviatedOid": "f816113"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-21T18:52:03Z",
+          "updatedAt": "2026-07-21T18:52:03Z",
+          "comments": [
+            {
+              "originalPosition": 277,
+              "body": "Right on the mechanism: HTTP-01 serves `token || \".\" || base64url(JWK_Thumbprint(accountKey))` over the CA's cleartext validation fetch, so an on-path observer can recover the thumbprint directly; dns-01 and tls-alpn-01 hash the key authorization instead. And agreed on the consequence: with the thumbprint in hand, an attacker can brute-force candidate account URLs offline, so account-URL entropy is the remaining barrier. Draft PR #68 adds exactly this caveat to the privacy analysis: the hashed URI offers best-effort resistance to bulk correlation, not strong unlinkability, and HTTP-01 use reduces the remaining protection to account-URL entropy.\n",
+              "createdAt": "2026-07-21T18:52:03Z",
+              "updatedAt": "2026-07-21T18:52:03Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGwwySQ",
+          "commit": {
+            "abbreviatedOid": "f816113"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-21T20:23:54Z",
+          "updatedAt": "2026-07-21T20:23:54Z",
+          "comments": [
+            {
+              "originalPosition": 98,
+              "body": "Could the hash algorithm for the JWK thumbprint be the same as the overall hash algorithm e.g. if sha-384 is used to compute the account URI then it should be used for the JWK thumbprint as well.",
+              "createdAt": "2026-07-21T20:23:54Z",
+              "updatedAt": "2026-07-21T20:23:54Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGxnUrw",
+          "commit": {
+            "abbreviatedOid": "f816113"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-21T22:58:02Z",
+          "updatedAt": "2026-07-21T22:58:02Z",
+          "comments": [
+            {
+              "originalPosition": 98,
+              "body": "I would keep the two algorithms independent. RFC 8555 Section 8.1 defines the ACME key-authorization thumbprint with SHA-256, and PR #68 deliberately reuses that exact 43-octet base64url value. Making the inner thumbprint follow `<hash-alg>` would define another thumbprint profile for every optional outer hash and prevent clients from reusing ACME's existing component. A stronger outer hash therefore does not remove the construction's SHA-256 dependency, but ACME key authorization has the same dependency. Replacing it should be a coordinated ACME change, not an implicit consequence of selecting a different outer hash.",
+              "createdAt": "2026-07-21T22:58:02Z",
+              "updatedAt": "2026-07-21T22:58:02Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 68,
+      "id": "PR_kwDOO4VY2c70eDwY",
+      "title": "Apply review fixes and issue resolutions (#38, #42, #56, #60)",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/68",
+      "state": "MERGED",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Fixes against the -02 candidate (#67), reviewed at f816113. Both test vectors recomputed; build and lint clean.\n\nReview fixes:\n\n- Rewrite the stale Account Key Rotation text: the account URL is stable, but the hashed accounturi changes with the account key, so clients republish after rollover.\n- Clarify that the CAA accounturi (the account URL, RFC 8657 Section 3.1) and the dns-persist accounturi (the hashed URI) are distinct values matched by different procedures.\n- Document HTTP-01 thumbprint exposure as a privacy limit.\n\nConstruction changes from the #67 review threads:\n\n- Hash the 43-octet unpadded base64url RFC 7638 thumbprint, the same form as the key-authorization component.\n- Define hash-alg as an RFC 6920 Hash Name String; sha-256 mandatory for clients and CAs.\n\nIssue resolutions:\n\n- #38: clients check persistUntil against local provisioning state before starting an order.\n- #42: DNS TTL no longer limits validation-data reuse; reuse is bounded by persistUntil and the CA's Validation Data Reuse Period.\n- #56: the challenge-object member issuer-domain-names becomes issuerDomainNames; DNS parameter names are unchanged.\n- #60: CAs must advertise issuerDomainNames in directory metadata, with the D \u2286 C consistency rule and the IANA registration. C \u2286 I applies only when caaIdentities is advertised.\n\nTwo additions go beyond what the issue threads literally agreed; let me know if you disagree:\n\n- Optional hash algorithms must be 256-bit or longer, non-truncated registry entries (the RFC 6920 registry includes sha-256-32).\n- persistUntil now also ends reuse of previously obtained validation data; the old record-format sentence contradicted the #42 direction.\n\nDeliberately untouched: keyRotationPeriod and the domain-omitted * form; those will be follow-ups.\n\nRefs #38, #42, #56, #60.\n",
+      "createdAt": "2026-07-21T16:49:33Z",
+      "updatedAt": "2026-07-23T00:54:17Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "birgelee-02-candidate",
+      "baseRefOid": "f816113edb73d7bbf25c555896dd892db8913e63",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "ietf126-author-batch",
+      "headRefOid": "5680afd093d8b78d12152ba200218e580e028977",
+      "closedAt": "2026-07-22T20:43:30Z",
+      "mergedAt": "2026-07-22T20:43:30Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "ddaf2aa0c4f6959cca521508a4e1ad89d785f068"
+      },
+      "comments": [
+        {
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "body": "> Optional hash algorithms must be 256-bit or longer, non-truncated registry entries (the RFC 6920 registry includes sha-256-32).\r\n\r\nThis will make sure that we're [SP 800-131A Rev. 3](https://csrc.nist.gov/pubs/sp/800/131/a/r3/ipd) (currently a draft) compliant (migrating from 112 to 128 bits of security).",
+          "createdAt": "2026-07-21T22:10:52Z",
+          "updatedAt": "2026-07-21T22:10:52Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I am all good on merging this. One one comment is on the new proposal to have DNS persist records break on ACME key change. I know the records are computed over the key, but I think there is a strong security justification for why they don't need to break on key rollover. I will probably chat more about this coming up. I like to keep everything moving so I would rather merge this in and then change the behavior if we decide to go there.",
+          "createdAt": "2026-07-22T20:16:05Z",
+          "updatedAt": "2026-07-22T20:16:05Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "> I am all good on merging this. One one comment is on the new proposal to have DNS persist records break on ACME key change.\r\n\r\nI feel that if someone wants to do key rollover, they should also replace the record. Keeping a old record indefinitely creates security risks, especially if a key is moved from an account to another - which creates ambigiutiy, especially if 2 CAs share infrastructure, have different caaIdentities, but identical accounturi's and account databases.\r\n\r\n(the requirement for 2 different CAs to have distinct account uri's only applies if they also share caaIdentities).\r\n\r\nThe prescribed keyRotationPeriod meta record allows a client to do a emergency key rotation, and then do the record replacement.\r\n\r\nWhich can be done like how DNSSEC key rotation is made - publish the new record, wait until it goes live in all DNS caches, and only after then, delete the old record.\r\n\r\nI don't see a need for supporting infinitely old records just to allow key rotation with no access to DNS at all, which increases storage space and requirements for CA's. Its enough they need to retain all deactivated accounts, having to retain all keys - especially now when ML-DSA is waiting behind the door will create problems, especially if a client does multiple key rotations.",
+          "createdAt": "2026-07-23T00:54:17Z",
+          "updatedAt": "2026-07-23T00:54:17Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGvttlA",
+          "commit": {
+            "abbreviatedOid": "51b2fb4"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-21T18:10:34Z",
+          "updatedAt": "2026-07-21T18:10:34Z",
+          "comments": [
+            {
+              "originalPosition": 72,
+              "body": "Requiring CAA for this method could pose a risk for organisations using private CAs as the organisation could have to publish additional CAA records where the CAA identity is not protected from reuse by another CA.\n\nThis might be better suited for the CA/B Forum TLS baseline requirements.",
+              "createdAt": "2026-07-21T18:10:34Z",
+              "updatedAt": "2026-07-21T18:10:34Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGwXylA",
+          "commit": {
+            "abbreviatedOid": "51b2fb4"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-21T19:29:50Z",
+          "updatedAt": "2026-07-21T19:29:50Z",
+          "comments": [
+            {
+              "originalPosition": 88,
+              "body": "Using the Named Information Hash Algorithm Registry might mean that we should use one of the formats defined by RFC 6920 (https://datatracker.ietf.org/doc/html/rfc6920), in particular we could use the URL segment format (e.g. sha-256;UyaQV-Ev4rdLoHyJJWCi11OHfrYv9E1aGQAlMO2X_-Q) or the .well-known URL format (e.g. http://example.com/.well-known/ni/sha-256/UyaQV-Ev4rdLoHyJJWCi11OHfrYv9E1aGQAlMO2X_-Q).",
+              "createdAt": "2026-07-21T19:29:50Z",
+              "updatedAt": "2026-07-22T00:07:28Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGxLyDA",
+          "commit": {
+            "abbreviatedOid": "5680afd"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-21T21:32:37Z",
+          "updatedAt": "2026-07-21T21:32:37Z",
+          "comments": [
+            {
+              "originalPosition": 72,
+              "body": "Fair catch. Two fixes coming out of this.\n\nThe intent of C \u2286 I is a single identity vocabulary: the name in a domain's CAA policy and in its `_validation-persist` record should be the same string for the same CA. That only makes sense where the CA participates in CAA validation, so the fix is scoping rather than dropping: the blanket \"MUST advertise `caaIdentities`\" is removed and the rule becomes conditional. If the CA advertises `caaIdentities`, every value in C MUST also appear there. A CA that doesn't do CAA validation never touches the CAA identity namespace, and a new sentence notes the identity-reuse caveat for CAs outside the CCADB/BR disclosure regime.\n\nYour comment also surfaced an adjacent bug: as written, a missing `caaIdentities` array knocked out pre-provisioning entirely. That should only depend on `issuerDomainNames`; fixed in the same commit.\n\nFor publicly trusted CAs the mandate has audit teeth in the BRs rather than in this document; that side belongs with the CABF Method 3.2.2.4.22 cleanup work (cabforum/servercert#674-#677 territory).\n\nFixed in 5680afd.\n",
+              "createdAt": "2026-07-21T21:32:37Z",
+              "updatedAt": "2026-07-21T21:32:37Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABGxnXpA",
+          "commit": {
+            "abbreviatedOid": "5680afd"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-21T22:58:12Z",
+          "updatedAt": "2026-07-21T22:58:13Z",
+          "comments": [
+            {
+              "originalPosition": 88,
+              "body": "The narrow reuse is intentional: this draft uses the RFC 6920 Hash Name String registry, not the RFC 6920 name formats. The value here identifies an ACME account under the CA's `accountHashPrefix`; it does not name retrievable content whose bytes are checked against the digest. Requiring an `ni:` URI or the `/.well-known/ni/` HTTP mapping would import content-naming and dereferencing semantics this value does not have, and it would constrain the CA's URI layout. The draft therefore does not adopt or depend on either format.",
+              "createdAt": "2026-07-21T22:58:12Z",
+              "updatedAt": "2026-07-21T22:58:13Z"
             }
           ]
         }
