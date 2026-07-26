@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-07-23T01:51:47.093863+00:00",
+  "timestamp": "2026-07-26T01:50:43.261673+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -4080,12 +4080,12 @@
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/65",
       "state": "CLOSED",
       "author": "sebastiannielsen",
-      "authorAssociation": "NONE",
+      "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
       "body": "Closes https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/64 if merged.",
       "createdAt": "2026-05-17T15:34:39Z",
-      "updatedAt": "2026-06-19T23:50:26Z",
+      "updatedAt": "2026-07-24T08:24:26Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "80fee73a1100614c6acaaba6a0badeb8f90d3c3b",
@@ -4146,7 +4146,7 @@
             "abbreviatedOid": "7321636"
           },
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "state": "COMMENTED",
           "body": "",
           "createdAt": "2026-05-17T17:08:07Z",
@@ -4166,7 +4166,7 @@
             "abbreviatedOid": "7321636"
           },
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "state": "COMMENTED",
           "body": "",
           "createdAt": "2026-05-17T17:18:15Z",
@@ -4206,7 +4206,7 @@
             "abbreviatedOid": "1d8be99"
           },
           "author": "sebastiannielsen",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "state": "COMMENTED",
           "body": "",
           "createdAt": "2026-05-17T19:02:29Z",
@@ -4319,7 +4319,7 @@
       "labels": [],
       "body": "Makes a client-computed hashed URI the sole `accounturi` form, replacing the three modes of -01: the raw ACME account URL (3a), alternative URIs (3b), and subscriber-account URIs (3c). This branch is the working candidate for -02.\n\nThe hashed URI is `<accountHashPrefix>/<hash-alg>/<base64url digest>`, where the digest is computed over `length_of_domain || domain_name || key || account_URL`. Binding the account key closes the substitution gap of a raw account URL: a record validates only for an account that controls the key, so a poisoned delivery channel cannot bind a record to an unintended account. Binding the domain gives each domain a distinct record value, which mitigates the correlation risk noted in RFC 8657, Section 5.9. A client that wants one record reused across domains can set `domain_name` to `*` and accept the correlation trade-off.\n\nChanges:\n\n1. Define the hashed-URI construction, with `sha-256` as the initial algorithm and agility through the `<hash-alg>` token.\n2. Specify verification by CA-side recomputation, plus the key-retention rules that let records survive routine key rotation. Precedence: account deactivation overrides all retention, then certificate-backed retention, then general retention.\n3. Add two directory `meta` fields with IANA registrations: `accountHashPrefix` (base URI for hashed values) and `keyRotationPeriod` (bound on prior-key acceptance).\n4. Remove modes 3b and 3c and their dependent text: subscriber-compromise and broad-scope security considerations, DNS-spoofing amplification, mode-specific error handling, and the three-mode revocation table.\n5. Rewrite the security considerations around the hashed URI: non-transferability, substitution resistance, enumeration cost, and the stated limits of the privacy protection.\n6. Add a worked hashed-URI example that doubles as a test vector, including the domain-omitted `*` form, and update all record examples.\n",
       "createdAt": "2026-07-06T23:14:18Z",
-      "updatedAt": "2026-07-22T20:43:31Z",
+      "updatedAt": "2026-07-23T23:03:42Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "355fb4f6218c3a3856dbcf16d73b13870d4461c5",
@@ -4365,6 +4365,20 @@
           "body": "> moving towards a system where only 3b is allowed in the draft. I propose doing that in the next update.\r\n\r\nIn that case, I think support for omitting the domain should be added.\r\n\r\nMy suggestion is then that a client who wishes to opt out of privacy, then  sets domain_name to the wildcard character \"*\" (0x2a) before hashing.\r\nThis will allow a client to opt out of privacy, but still have full security by the other armaments.\r\n\r\nA client may wish to provision the same record to multiple domains, or even synthesize using wildcard or use CNAME to point multiple domains to the same validation record.\r\n\r\n",
           "createdAt": "2026-07-12T22:54:28Z",
           "updatedAt": "2026-07-12T22:55:07Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "since #68 that supercedes this was merged, isn't it time to close this, @birgelee ?",
+          "createdAt": "2026-07-23T18:32:38Z",
+          "updatedAt": "2026-07-23T18:32:38Z"
+        },
+        {
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "body": "@sebastiannielsen That PR was merged into the content of this PR (it was merged into birgelee-02-candidate) and so this PR is still current.",
+          "createdAt": "2026-07-23T23:03:42Z",
+          "updatedAt": "2026-07-23T23:03:42Z"
         }
       ],
       "reviews": [
@@ -4899,6 +4913,46 @@
               "body": "I would keep the two algorithms independent. RFC 8555 Section 8.1 defines the ACME key-authorization thumbprint with SHA-256, and PR #68 deliberately reuses that exact 43-octet base64url value. Making the inner thumbprint follow `<hash-alg>` would define another thumbprint profile for every optional outer hash and prevent clients from reusing ACME's existing component. A stronger outer hash therefore does not remove the construction's SHA-256 dependency, but ACME key authorization has the same dependency. Replacing it should be a coordinated ACME change, not an implicit consequence of selecting a different outer hash.",
               "createdAt": "2026-07-21T22:58:02Z",
               "updatedAt": "2026-07-21T22:58:02Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABHA9S3Q",
+          "commit": {
+            "abbreviatedOid": "ddaf2aa"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-23T15:39:00Z",
+          "updatedAt": "2026-07-23T15:39:01Z",
+          "comments": [
+            {
+              "originalPosition": 120,
+              "body": "It might be worth having some provision for multiple valid accountHashPrefixes as might happen if two CAs merge.",
+              "createdAt": "2026-07-23T15:39:01Z",
+              "updatedAt": "2026-07-23T15:39:01Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABHBwQMQ",
+          "commit": {
+            "abbreviatedOid": "ddaf2aa"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-07-23T17:25:17Z",
+          "updatedAt": "2026-07-23T17:25:17Z",
+          "comments": [
+            {
+              "originalPosition": 120,
+              "body": "> It might be worth having some provision for multiple valid accountHashPrefixes as might happen if two CAs merge.\r\n\r\nIn fact, the URI does only need to be syntaxially valid. It does not need to be reachable or on the internet.\r\n\r\nSo a CA could have:\r\n\r\n\"https://acme.invalid/user-hash/\" as account prefix.\r\n\r\nThe only thing is that if 2 different CA's with separate user databases shares caaIdentities, they need to have distinct URI prefixes.",
+              "createdAt": "2026-07-23T17:25:17Z",
+              "updatedAt": "2026-07-23T17:30:45Z"
             }
           ]
         }
