@@ -99,7 +99,7 @@ Certification Authorities operating under various trust program requirements wil
 **Validation Domain Name**
 :   The domain name at which the validation TXT record is provisioned. It is formed by prepending the DNS TXT Record Persistent DCV Domain Label to the FQDN being validated.
 
-    This term follows the precedent set by {{!RFC8555}}, Section 8.4, which uses "validation domain name" for the analogous `_acme-challenge.<FQDN>` label in the dns-01 challenge. This document avoids the term "Authorization Domain Name" because the CA/Browser Forum line Requirements {{cabf-br}} define it as the FQDN used to obtain authorization, without any label prepended.
+    This term follows the precedent set by {{!RFC8555}}, Section 8.4, which uses "validation domain name" for the analogous `_acme-challenge.<FQDN>` label in the dns-01 challenge. This document avoids the term "Authorization Domain Name" because the CA/Browser Forum Baseline Requirements {{cabf-br}} define it as the FQDN used to obtain authorization, without any label prepended.
 
 **Issuer Domain Name**
 :   A domain name disclosed by the CA in Section 4.2 of the CA's Certificate Policy and/or Certification Practices Statement to identify the CA for the purposes of this validation method.
