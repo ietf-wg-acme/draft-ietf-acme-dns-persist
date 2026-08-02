@@ -540,7 +540,7 @@ The following table summarizes the applicability and timing of these actions:
 | Deactivate ACME account | New validations fail immediately |
 | Revoke a certificate using keypair | Deletes all previously accepted hashed URIs for the account that issued the certificate - prevents a compromised ACME account for which the owner lost access to, from continuing issuing using legacy records. This action is immediate. |
 
-Independently of these actions, a CA MAY bound how long a record computed with a previosuly accepted account URI remains acceptable by advertising a `keyRotationPeriod` (see {{key-rotation-period}}). This bounds acceptance over time but is a routine lifecycle limit, not an immediate revocation mechanism.
+Independently of these actions, a CA MAY bound how long a record computed with a previosly accepted account URI remains acceptable by advertising a `keyRotationPeriod` (see {{key-rotation-period}}). This bounds acceptance over time but is a routine lifecycle limit, not an immediate revocation mechanism.
 
 ACME Clients SHOULD provide clear mechanisms for users to:
 
@@ -838,3 +838,4 @@ RFC Editor: please remove this section before publication.
 - Removed DNS TTL as a validation data reuse limit; reuse remains subject to `persistUntil` and the CA's Validation Data Reuse Period. Renamed {{validation-data-reuse}} accordingly and removed the related TTL-specific implementation guidance (#42).
 - Corrected the stale Account Key Rotation text: the account URL is stable, but the hashed `accounturi` changes with the account key, and continued acceptance of a prior key is governed by {{verification-procedure}}.
 - Added the required directory `issuerDomainNames` metadata field and the D ⊆ C consistency rule with the challenge object's `issuerDomainNames`; the C ⊆ I rule against `caaIdentities` applies when the CA advertises `caaIdentities` (#60).
+- Changed the retention method to previosly validated hashed URIs as outlined in comment #69.
