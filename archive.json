@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-08-02T01:49:50.849971+00:00",
+  "timestamp": "2026-08-04T01:27:45.677086+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -1575,7 +1575,7 @@
       "labels": [],
       "body": "Having the dns-persist-01 record contain only information provided by the ACME server opens the possibility for Meddler-in-the-Middle attacks. The attack flow would be something like:\n- Set up a malicious ACME server\n- Get a victim to configure your server's directory URL in their ACME client\n- When the victim registers an account with your server, register a new account with a real ACME server, and return _that_ account's URI verbatim\n- When the victim provisions a dns-persist-01 record, the record will actually authorize the attacker's ACME account at the real CA; the attacker can now issue arbitrary certificates for the victim's domain\n\nThe original RFC 8555 discusses this exact attack in its [Security Considerations section](https://datatracker.ietf.org/doc/html/rfc8555#section-10.2). The mitigation used by those original ACME challenges is that the token the Applicant needs to present consists of two parts:\n1. The random value provided by the server; and\n2. A hash of the applicant's ACME account public key\n\nImportantly, (2) is computed entirely offline -- both the ACME client and the ACME server compute it independently. And while the malicious actor _can_ compute the hash of the victim's pubkey (it's public, after all), the malicious actor _can't_ convince the ACME server that that's the Key Authorization it should be looking for. When the malicious actor tries to get a cert for the victim's domain from the real ACME server, that server will expect to see a hash of the _attacker's_ pubkey, and there's no reason for the victim to have provisioned that value.\n\nThus, I believe that dns-persist-01, in order to mitigate this same attack, must include a value computed over the applicant's ACME client pubkey.\n\nI will note that this introduces a tradeoff: improve security by keeping DNS API credentials far away from webservers and ACME clients, but impair security by preventing applicants from rotating their ACME client keys. If anyone has suggestions for how to prevent this attack without also preventing key rotation, I'd love to hear it.\n\nSee this thread on the ACME mailing list for further discussion: https://mailarchive.ietf.org/arch/msg/acme/i_kd1g7vFaWO8x3_Ukh6Iz3nems/",
       "createdAt": "2026-05-15T22:49:11Z",
-      "updatedAt": "2026-08-01T14:05:25Z",
+      "updatedAt": "2026-08-03T19:05:05Z",
       "closedAt": null,
       "comments": [
         {
@@ -1927,6 +1927,27 @@
           "body": "@jb-wisemo \n\n> The account public key used when computing the DNS-PERSIST-vv TXT record must be the same one used to sign the order request being authenticated. The client MUST not post acceptance of a DNS-PERSIST-vv challenge while a matching DNS-PERSIST-vv TXT record is not in their DNS or is not yet fully propagated according to the previous record/NODATA TTL plus 1 hour. The client MUST preserve the matching TXT record until 1 hour after posting the order or until the certificate is issued if earlier. Thus the ACME server need only consider that one public key during authorization. If needed, a client can keep DNS records for multiple keys (recent, current and planned) to keep the account usable during key rollover, or a client can simply avoid posting such orders when it has no matching TXT record.\n\nOne of the aims of dns-persist-01 is to reduce the need to change DNS records while still allowing for key rollovers (see https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/69 for a discussion on this).\n\n> The hash algorithm used to sign the setting of that public key in the account object before posting the order is the only hash algorithm to be used in computing the DNS-PERSIST-vv TXT record. Thus the ACME server need only consider that one hash algorithm and needs to remember it along with each public key stored in its account database. This also provides hash agility as better hash algorithms become valid for account configuration.\n\n1. That would introduce the risk that two different hash algorithms with the same output length could give the same output for different inputs e.g. SHA-256(message-a) == SHA-3-256 (message-b). That's why the hash algorithm is included in the final account URI.\n2. Some JOSE signing algorithms don't use a hash algorithm on the message but use an XOF algorithm (typically SHAKE128 or SHAKE256) instead.\n\n> The CAA identifier of each CA/issuer MUST be kept globally unique by mutual cooperation or some kind of central database. As a practical matter, each future CA MUST register its CAA-ID as a DNS domain name related to its operations . CAs/issuers that published their CAA-ID prior to 2026-07-01 SHOULD register that DNS domain name or phase out use of that CAA-ID before 2036-12-01 . These dates were chosen to provide a good margin against trying to rush the standard setting process and a long sunsetting period for processes and customer relationships using the old CAA-ID. This rule is an update to the CAA RFC, unless limited to only apply to ACME CAs with DNS-PERSIST-vv support.\n\nAt the moment the Common CA Database (https://www.ccadb.org/) maintains that database and registering in the CCADB is already mandatory for several root trust stores. The main issue with requiring it as part of dns-persist-01 is that the CCADB requires CAs to have a sponsoring root trust store, this excludes private (internal) CAs from the CCADB and requiring inclusion would prevent private CAs from using dns-persist-01.\n\n> The CAA identifiers of each future CA/issuer MUST be max 32 ASCII chars to keep various records and strings limited in size. This is less than the 255 character limit of other DNS names. Longer CAA-ID values published before 2026-07-01 are exempt but SHOULD be phased out before 2036-12-01. This rule is an update to the CAA RFC, unless limited to only apply to ACME CAs/issuers with DNS-PERSIST-vv support.\n\nCould you provide some justification for the 32 character limit as it's significantly smaller than the 65,535 byte limit for a DNS message.\n\n> Security consideration: The authorized domain is given by the DNS location where the record was found.\n\nCNAME/DNAME records and the policy=wildcard parameter mean that a record can authorise a domain other than the one it's located under.\n\n> Security consideration: Extracting the account identity and/or public key from public DNS-PERSIST-vv data is mostly stopped by the first-preimage resistance of the hash algorithm. If the client chooses to publish only domain-specific hash values, the DNS records cannot be easily correlated across domains, although other similarities are likely to reveal common client identity, for example different domains pointing to the same addresses/networks, having similar stylistic choices and (most publicly) having the same domain registrant .\n\nI'd like to add two points for this\n1. The preimage resistance of SHA-256 alone is not sufficient to protect low entropy inputs such as the account URI which was one of the main considerations when creating the hash scheme.\n2. Registrant data can be protected by using redaction or a proxy registrant and even if it is published, often has little verification.",
           "createdAt": "2026-08-01T14:05:25Z",
           "updatedAt": "2026-08-01T14:05:25Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@jb-wisemo, PR #67 is our current draft proposal. It already uses a client-computed, unpadded base64url digest; carries an independent hash-algorithm token; places the result under a CA-advertised `accountHashPrefix`; and hashes the domain, the account-key thumbprint, and the account URL. Your later point 6 allows the account URL as an input; with it, the construction converges further on #67.\n\nI would not replace that construction with `acme://<caa-id>/<public-key-hash>`:\n\n1. The account URL binds the record to one ACME account. A public-key-only value loses that property when a key moves between accounts or is reused after rollover.\n2. Requiring the DNS record to match the key signing each order would make routine key rollover require DNS changes. Avoiding that churn is a design goal under discussion in #69.\n3. The record digest cannot be inferred safely from the JOSE signing algorithm. As Max notes, JOSE algorithms do not map one-to-one to conventional digests.\n4. A new `acme:` scheme and new CAA-ID registration, length, and transition rules add wire format and policy machinery that this draft does not need. The HTTPS `accountHashPrefix` also works for private CAs.\n5. A fixed previous-TTL-plus-one-hour delay does not prove that the record has reached every relevant DNS perspective and is too prescriptive for the protocol. The client and CA should verify the intended DNS state rather than infer it from one fixed delay.\n\nThe eTLD+1 discussion exposed a problem in one mitigation I proposed on #69. RFC 8555 does not require account URLs to share an origin or registrable domain with the configured directory, so neither eTLD+1 nor exact-origin matching works in general. I am adopting an authenticated account-resource check as the author proposal: before publishing, the client sends POST-as-GET to the exact account URL returned in `Location`, signs the request with the account key, and requires a successful account-object response. The exact qualifying response and caching rules still need co-author and WG review.\n\nI am keeping this issue open until #67 lands with the reviewed client requirement.",
+          "createdAt": "2026-08-02T21:14:17Z",
+          "updatedAt": "2026-08-02T21:14:17Z"
+        },
+        {
+          "author": "jb-wisemo",
+          "authorAssociation": "NONE",
+          "body": "> > The account public key used when computing the DNS-PERSIST-vv TXT record must be the same one used to sign the order request being authenticated. The client MUST not post acceptance of a DNS-PERSIST-vv challenge while a matching DNS-PERSIST-vv TXT record is not in their DNS or is not yet fully propagated according to the previous record/NODATA TTL plus 1 hour. The client MUST preserve the matching TXT record until 1 hour after posting the order or until the certificate is issued if earlier. Thus the ACME server need only consider that one public key during authorization. If needed, a client can keep DNS records for multiple keys (recent, current and planned) to keep the account usable during key rollover, or a client can simply avoid posting such orders when it has no matching TXT record.\n> \n> One of the aims of dns-persist-01 is to reduce the need to change DNS records while still allowing for key rollovers (see [#69](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/69) for a discussion on this).\n>\n\nMy attempt with this is to simplify the rules in a way that requires DNS changes only when doing key rollover, preferably in a way that allows the DNS RR to be computed and published before sending that public key to the ACME server (either by choosing a variant of #67 which includes no account URL or by relying on key rollover to preserve the previous account URL).  In particular, if registering the same public key with multiple accounts under the same CAA-ID and not including the account URL in the computation, then the DNS RR will remain the same, while including the account URL requires one DNS RR per account for each key.\n\nThe minimum validity time interval is a pure minimum, and it is expected that most clients will persist the same key and RR for a long time.  The minimums would come into play only if requesting a certificate during account establishment or key rollover.\n\nExample: If the TTL of the existing content under the special DNS name (or the negative caching TTL of the zone) is 24 hours, adding the DNS-PERSIST-vv TXT record may need up to 25 hours to propagate through DNS caches before the ACME server can see it, using slow manual procedures that delay the RR creation for days or weeks is not a problem, except the need to wait before using it, just like waiting for AAAA record creation before using a web server.  However after that, the same TXT RR can be used for as many years as the strength and protection of the account private key allows, just like most other DNS records.\n\nThe \"1 hour after posting\" rule sets a deadline for the ACME server to complete its DNS queries just in case the client does a rollover later that day.\n\nIf, at some future point in time, the client decides to revoke the account public key, the removal of the TXT record will similarly propagate towards ACME servers according to normal DNS caching TTLs.  If the revocation isn't urgent, the client can remove the TXT record any time past the 1 hour limit, using slow manual procedures that further delay the removal for days or weeks is not a problem.  Meanwhile revocation on the ACME server makes the continued presence in DNS much less dangerous.\n\n> \n> > The hash algorithm used to sign the setting of that public key in the account object before posting the order is the only hash algorithm to be used in computing the DNS-PERSIST-vv TXT record. Thus the ACME server need only consider that one hash algorithm and needs to remember it along with each public key stored in its account database. This also provides hash agility as better hash algorithms become valid for account configuration.\n> \n>     1. That would introduce the risk that two different hash algorithms with the same output length could give the same output for different inputs e.g. SHA-256(message-a) == SHA-3-256 (message-b). That's why the hash algorithm is included in the final account URI.\n> \n\nSuch a collision would require specific rare circumstances controlled by the client (software)'s willingness to use both algorithms and would provide a very low security risk given the large margin inherent in the bit count of the accepted hashes.\n\n>     2. Some JOSE signing algorithms don't use a hash algorithm on the message but use an XOF algorithm (typically SHAKE128 or SHAKE256) instead.\n> \n\nFor each such signing algorithm, someone should specify a corresponding hash algorithm, preferably in the registry where such signing algorithms are established or using a rule written into the ACME spec.  One rule could be \"For JOSE signing algorithms not using a hash algorithm, the hash algorithm shall be the SHA3 hash algorithm with a standard length at least twice as large as the claimed key strength of the signing algorithm, but no less than SHA3-256 and no more than SHA3-1024\" (rephrase for clarity as to which document defines the standard SHA3 lengths).\n\n> \n> > The CAA identifier of each CA/issuer MUST be kept globally unique by mutual cooperation or some kind of central database. As a practical matter, each future CA MUST register its CAA-ID as a DNS domain name related to its operations . CAs/issuers that published their CAA-ID prior to 2026-07-01 SHOULD register that DNS domain name or phase out use of that CAA-ID before 2036-12-01 . These dates were chosen to provide a good margin against trying to rush the standard setting process and a long sunsetting period for processes and customer relationships using the old CAA-ID. This rule is an update to the CAA RFC, unless limited to only apply to ACME CAs with DNS-PERSIST-vv support.\n> \n> At the moment the Common CA Database (https://www.ccadb.org/) maintains that database and registering in the CCADB is already mandatory for several root trust stores. The main issue with requiring it as part of dns-persist-01 is that the CCADB requires CAs to have a sponsoring root trust store, this excludes private (internal) CAs from the CCADB and requiring inclusion would prevent private CAs from using dns-persist-01.\n> \n\nThe CCADB is only for public CAs that cooporate with certain monopolies.  My suggested rule keeps the registration within the realm of ICANN registries and covers the possibility of some TLDs being legally forced to refuse service to some countries, as long as those countries retain control of their ccTLDs.  For example, if the .xx country is fully embargoed, CAA-IDs such as govca.xx and intern.foo.xx can still be set up.\n\n\n> > The CAA identifiers of each future CA/issuer MUST be max 32 ASCII chars to keep various records and strings limited in size. This is less than the 255 character limit of other DNS names. Longer CAA-ID values published before 2026-07-01 are exempt but SHOULD be phased out before 2036-12-01. This rule is an update to the CAA RFC, unless limited to only apply to ACME CAs/issuers with DNS-PERSIST-vv support.\n> \n> Could you provide some justification for the 32 character limit as it's significantly smaller than the 65,535 byte limit for a DNS message.\n\nThe limit of concern is that TXT RRs in standard zones is limited to strings of 255 chars each including the tags before each value.\n\n> \n> > Security consideration: The authorized domain is given by the DNS location where the record was found.\n> \n> CNAME/DNAME records and the policy=wildcard parameter mean that a record can authorise a domain other than the one it's located under.\n> \n\nIf two domains point to a shared DNS name for their DNS-PERSIST-vv records, an attacker enumerating possible victim domains will usually know all of them and proceed accordingly.  Security will be mostly the same.  If the client wants to authorize a public key or account for all of them, the client can use the option to not state the domain from the rules in #67 to share a single TXT RR, or can add one such RR per domain to make the hash values different from those under other domains sharing the same key/account.\n\n> > Security consideration: Extracting the account identity and/or public key from public DNS-PERSIST-vv data is mostly stopped by the first-preimage resistance of the hash algorithm. If the client chooses to publish only domain-specific hash values, the DNS records cannot be easily correlated across domains, although other similarities are likely to reveal common client identity, for example different domains pointing to the same addresses/networks, having similar stylistic choices and (most publicly) having the same domain registrant .\n> \n> I'd like to add two points for this\n> \n>     1. The preimage resistance of SHA-256 alone is not sufficient to protect low entropy inputs such as the account URI which was one of the main considerations when creating the hash scheme.\n> \n\nAs I mentioned, simply omitting the account URL in the hash calculation avoids revealing anything about it and allows fewer DNS updates.  The important high entropy element is the public key.\n\n>     2. Registrant data can be protected by using redaction or a proxy registrant and even if it is published, often has little verification.\n\nYep, but registrant data is only one of the multitude of clues that are already used to infer that different domains and websites come from the same people.  I mentioned two others in the sentence.\n\n",
+          "createdAt": "2026-08-03T15:40:28Z",
+          "updatedAt": "2026-08-03T15:40:28Z"
+        },
+        {
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "body": "> My attempt with this is to simplify the rules in a way that requires DNS changes only when doing key rollover, preferably in a way that allows the DNS RR to be computed and published before sending that public key to the ACME server (either by choosing a variant of [#67](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/67) which includes no account URL or by relying on key rollover to preserve the previous account URL). In particular, if registering the same public key with multiple accounts under the same CAA-ID and not including the account URL in the computation, then the DNS RR will remain the same, while including the account URL requires one DNS RR per account for each key.\n\nAt the moment an ACME account's current public key has to be unique across a whole CA. (https://www.rfc-editor.org/info/rfc8555/#section-7.3.1)\n\n> Example: If the TTL of the existing content under the special DNS name (or the negative caching TTL of the zone) is 24 hours, adding the DNS-PERSIST-vv TXT record may need up to 25 hours to propagate through DNS caches before the ACME server can see it, using slow manual procedures that delay the RR creation for days or weeks is not a problem, except the need to wait before using it, just like waiting for AAAA record creation before using a web server. However after that, the same TXT RR can be used for as many years as the strength and protection of the account private key allows, just like most other DNS records.\n\nIf short lived certificates are used (e.g. 160 hour (approx 7 days) certificates are currently offered by Let's Encrypt) then having such a long propagation could cause there to be no valid certificates for a domain. This will become more of a concern with the industry wide reduction in certificate lifetime to 45 days.\n\n> If, at some future point in time, the client decides to revoke the account public key, the removal of the TXT record will similarly propagate towards ACME servers according to normal DNS caching TTLs. If the revocation isn't urgent, the client can remove the TXT record any time past the 1 hour limit, using slow manual procedures that further delay the removal for days or weeks is not a problem. Meanwhile revocation on the ACME server makes the continued presence in DNS much less dangerous.\n\nAt the moment, there's no mechanism in ACME to revoke an account key. If a key rollover is being referred to here, that's still problematic as under the ACME threat model (https://www.rfc-editor.org/info/rfc8555/#section-10.1) a key rollover can appear successful to the client but the server might never receive the request.\n\n> > ```\n> > 1. That would introduce the risk that two different hash algorithms with the same output length could give the same output for different inputs e.g. SHA-256(message-a) == SHA-3-256 (message-b). That's why the hash algorithm is included in the final account URI.\n> > ```\n> \n> Such a collision would require specific rare circumstances controlled by the client (software)'s willingness to use both algorithms and would provide a very low security risk given the large margin inherent in the bit count of the accepted hashes.\n\nFor the attack to be successful, the client would only need to support one of the algorithms and the server would only need to accept the other algorithm. I don't think that such a cross algorithm collision is feasible to compute however the advertised security of those algorithms is dependent on not mixing hash algorithms.\n\n> > ```\n> > 2. Some JOSE signing algorithms don't use a hash algorithm on the message but use an XOF algorithm (typically SHAKE128 or SHAKE256) instead.\n> > ```\n> \n> For each such signing algorithm, someone should specify a corresponding hash algorithm, preferably in the registry where such signing algorithms are established or using a rule written into the ACME spec. One rule could be \"For JOSE signing algorithms not using a hash algorithm, the hash algorithm shall be the SHA3 hash algorithm with a standard length at least twice as large as the claimed key strength of the signing algorithm, but no less than SHA3-256 and no more than SHA3-1024\" (rephrase for clarity as to which document defines the standard SHA3 lengths).\n\nCurrently SHA-3 is defined by FIPS-202 (https://csrc.nist.gov/pubs/fips/202/final) and four versions are defined, SHA3-224, SHA3-256, SHA3-384 and SHA3-512.\n\nOne reason not to require anything stronger than SHA-256 is that at the moment, DNSSEC validation uses a SHA-256 based root trust anchor.\n\n> > > The CAA identifier of each CA/issuer MUST be kept globally unique by mutual cooperation or some kind of central database. As a practical matter, each future CA MUST register its CAA-ID as a DNS domain name related to its operations . CAs/issuers that published their CAA-ID prior to 2026-07-01 SHOULD register that DNS domain name or phase out use of that CAA-ID before 2036-12-01 . These dates were chosen to provide a good margin against trying to rush the standard setting process and a long sunsetting period for processes and customer relationships using the old CAA-ID. This rule is an update to the CAA RFC, unless limited to only apply to ACME CAs with DNS-PERSIST-vv support.\n> > \n> > \n> > At the moment the Common CA Database (https://www.ccadb.org/) maintains that database and registering in the CCADB is already mandatory for several root trust stores. The main issue with requiring it as part of dns-persist-01 is that the CCADB requires CAs to have a sponsoring root trust store, this excludes private (internal) CAs from the CCADB and requiring inclusion would prevent private CAs from using dns-persist-01.\n> \n> The CCADB is only for public CAs that cooporate with certain monopolies. My suggested rule keeps the registration within the realm of ICANN registries and covers the possibility of some TLDs being legally forced to refuse service to some countries, as long as those countries retain control of their ccTLDs. For example, if the .xx country is fully embargoed, CAA-IDs such as govca.xx and intern.foo.xx can still be set up.\n\nValidating a CAs ownership of a domain can be a significant amount of work which ICANN isn't setup to do. Clients are even less able to validate whether a CA owns a CAA-ID (issuer-domain-name) and uniqueness isn't something this protocol can rely upon.\n\n> > Could you provide some justification for the 32 character limit as it's significantly smaller than the 65,535 byte limit for a DNS message.\n> \n> The limit of concern is that TXT RRs in standard zones is limited to strings of 255 chars each including the tags before each value.\n\nThis is already addressed by the draft by encoding long strings as multiple shorter strings in the TXT record (https://www.ietf.org/archive/id/draft-ietf-acme-dns-persist-01.html#name-dns-record-size-considerati).\n\n> > ```\n> > 1. The preimage resistance of SHA-256 alone is not sufficient to protect low entropy inputs such as the account URI which was one of the main considerations when creating the hash scheme.\n> > ```\n> \n> As I mentioned, simply omitting the account URL in the hash calculation avoids revealing anything about it and allows fewer DNS updates. The important high entropy element is the public key.\n\nI hadn't stated this in my original reply, however another low entropy input is the domain name and under certain schemes it's possible to determine if the same public key was used for two different domains even without knowledge of the key.",
+          "createdAt": "2026-08-03T19:05:05Z",
+          "updatedAt": "2026-08-03T19:05:05Z"
         }
       ]
     },
@@ -1942,7 +1963,7 @@
       "labels": [],
       "body": "In the IETF meeting and on list there were several discussions about whether a DNS-persist DNS TXT record which now has the hash of the ACME public key in it should be allowed to continue validating a domain after that ACME key has been rotated. I have some appreciation for the general sentiment that a record made on a stale (and possibly compromised key) should not continue to validate a domain. However, I want to open this issue to ***present the reasoning that old DNS-persist records could continue to be validated post key rotation while upholding the security model of DNS persist***. This even includes resilience to the ACME proxy attack which is now included in our threat model for this record.\n\nThis reasoning is based on two security assumptions:\n\n1. A currently valid key for an ACME account is not compromised. Thus, until the moment the subscriber requests a key rollover, that key is valid. Obviously after rollover the old key must be assumed to be compromised and even potentially assigned to an adversary ACME account. While obviously there is always a risk of ACME account key compromise, the security of current ACME account keys has always been a part of the ACME protocol as DCV objects can be reused.\n2. A subscriber's account URL properly identifies the true subscriber even after key rollover. Essentially this property comes down to the principle that the subscriber still maintains access to their true account after rollover. Even after rollover, the account (identified with the Account URL from the location header) is still controlled by the victim.\n\nTo justify why records made with the scheme in the current v2 candidate branch can continue to securely authorize an ACME account post key rollover (under particular conditions I will outline) its best to break the DNS-persist validation into two steps: initial validation (the first time a domain is validated with a DNS persist record) and persistent validation (when a certificate is renewed using an old record that was already used to validate that domain previously). If we can prove security of the record in these two conditions, separately, the record has security overall.\n\nAdditionally I will place two conditions on the acceptance of old records which will be used in this security analysis. condition 1: a DNS persist record that is being validated for the first time MUST contain the hash of the CURRENT ACME account key. Historical keys are not accepted on initial validation.\ncondition 2: during persistent validation, only a record that has the same hashed account URI which previously passed initial validation can be used. Note that the key that was original contained in that hash may be rolled, but at the time it was made it must have passed initial validation.\n\nNow to go through the security reasoning.\n\nInitial validation: this validation technique is secure showing both domain owner control and resilience to the malicious ACME server proxy attack by virtue of the current ACME account key in the record. Based on security assumption 1, if the CA talks to the victim over the ACME protocol using that key, the victim must have private key control and the adversary must not have private key control. The hash of the public key cannot in the record cannot be used to identify an adversary. Also the creation of the record in DNS shows the intent of the domain owner to perform DNS-persist validation.\n\nPersistent validation: For a record that previously underwent successful initial validation, persistent validation is immune by definition to the ACME proxy attack. There is no new record being provisioned. Furthermore, given the record was seen previously (and at the time by the properties of the initial validation flow) authorized the victim's ACME account this record must have been made by the victim and identifies the true victim's account. Also to pass initial validation, the CA MUST validate the account public key portion of the hash AND the account URL portion. The prior acceptance of the record during initial validation implies the account URL used in the hash is the proper URL identifying the victim (it lined up to the victim's secure public key at time of publication). Now, if we pull in security assumption 2 (the account URL identifies a victim's account even post key rollover), the DNS persist record (even after reassignment of that original key to a different ACME account) still continue to identify the victim. By the continued presence of that record in DNS, the domain owner is showing a continued in tent to have that validation ongoing.\n\nThe short version of this argument is that the record has two parts in it (both smooshed into one hash): an account URL and a public key hash. The public key hash prevents the ACME proxy attack during initial validation. Initial validation also establishes that the victim was not targeted with an ACME proxy attack because this would lead to the account URL and public key portion of the hashes disagreeing (the adversary cannot use the victim's public key). Once this record is in place with the true account URL from initial validation, the account URL lets the record convey the identity of an ACME account in a manner that persists through key rollover.\n\nSome points:\n1. some may argue that key rollover should be an intentional way of purging these records. I want to point out that when the records only included the account URL this was never really considered. I guess there is now some identity of the key in the record so intuition may kick in that it should get pruned with rollover, but I will mention that for most admins this will just a long unknown hash that they may never connect back to the original key that made it.\n2. is it just a bad thing for records to validate domains forever? I know some think yes. dns-persist was always banking on the opposite approach. For those who don't want forever, there is persistuntil which is designed for exactly that.\n\nNormative changes to support this and key retention policies.\n\nIMO moving in this direction would mean:\nLanguage that the first validation of a DNS persist record MUST be made with a current ACME account key.\n\nfor each domain validated with this method, the CA MUST store the account URI seen in that record (this is exactly one hash retention per a validated domain)\n\nWhen performing validations on domains that were validated to that ACME account before, the CA MUST accept:\n1. hashes made with the current ACME account key AND\n2. the specific hashed account URI stored on file for that domain if it was previously validated successfully with this method AND the certificates issued using this validation have not expired\n\n\nIn closing, I would also point out that there are two very real alternatives in the ecosystem today. 1) CNAME magic where dns-01 is just farmed out to a 3rd party. There are no IETF or CA/B F security controls around this practice and no validation limits on the CNAME. and 2) plain account URL dns-persist records. In the last CA/B F Validation Subcommittee teleconference several CAs spoke about using the proposal in the 01 version of this draft in production (because of method 22 at the CA/B F they can do that). My argument stands that convenience is a key part of standards getting adopted and thus bringing the security improvements they do have to the ecosystem. Neither of these methods have any robustness against an ACME proxy server. Having a record be a potential foot gun could push the ecosystem back towards these less secure options.",
       "createdAt": "2026-07-26T02:27:03Z",
-      "updatedAt": "2026-07-27T10:44:45Z",
+      "updatedAt": "2026-08-04T00:55:31Z",
       "closedAt": null,
       "comments": [
         {
@@ -1979,6 +2000,69 @@
           "body": "@birgelee, records should survive account key rollover. I would make three changes:\n\n- Replace assumption 2. An account URL identifies a CA account object, not a subscriber. Persistence relies on CA-local continuity of the same account and domain. This scopes acceptance; it does not prove continued subscriber control after blocked keyChange or compromise.\n- Keep condition 2. Store the exact validated value per `(account, domain)` and accept it on later validations. Current-key validation refreshes the stored value. The CA still queries DNS every time; record removal, `persistUntil`, and account deactivation remain authoritative. The entry lapses when all certificates issued from it expire.\n- Drop condition 1. Both attacks pass it, and it recreates the pre-provisioning race: rollover between DNS publication and the first order invalidates the record. For first validation, accept any key the CA can verify the account previously held; condition 2 then becomes the steady-state path.\n\nThe Security Considerations should treat a third-party-computed value as issuance delegation, like CNAME-delegating `_acme-challenge`; cover blocked keyChange; and recommend CAA `accounturi` (RFC 8657), CT monitoring, and removing unknown records. Manual flows and non-conforming clients remain exposed. The hash remains stronger than a plain account URL because substitution also requires the victim's key.\n\n@slghtr-says, this would remove keyRolloverWindow rather than give it a grace value. Does that work for you?",
           "createdAt": "2026-07-27T10:44:45Z",
           "updatedAt": "2026-07-27T10:44:45Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I feel that, instead of storing account keys, its better storing \"validated hashes\".\n\nThis however means, that a disabled account with a specific key, would not get disabled for historic authentication, since the CA cannot reverse the hash and check the key against all disabled accounts.\n\nThis technically puts the domain owner in a position where he could lose the ability to revoke a domain immediately (If a attacker steals the ACME account, and then keyChange it into a own key).\nEven if the real owner then creates a new account using the compromised key, and immediately disables this account, it will not prevent issuance.\n\nThis leaves the domain owner with the removal of the DNS-PERSIST-01 record, OR adding a CAA record that prevents issuance from that particular compromised account as the only options to prevent issuance.\n\n\nI think thats a fair compromise given that a \"legacy\" record (with a rolled over key) would ONLY be accepted after initial authentication.\n\n\n\nOne way could be, that if a revocation is requested using the certificate key - ( as in here: https://github.com/letsencrypt/boulder/pull/8799 ) the CA MUST also delete the history of \"previous validated hashes to accept\" the account that issued that particular certifficate.\nThis operation MAY be limited to revocation of certificates issued by using DNS-PERSIST-01 if the CA has that information saved.\n\nThis allows a account owner who got a ACME account compromised, to \"nuke\" the historic keys by key-revoking the certificate that was issued using the published DNS-PERSIST-01 record (that was used to generate a certificate before the ACME account got compromised).\n\n\nEven if that doesn't completely cover all compromise cases (for example, if the previous certificate expires, the account owner cannot revoke it, while still the attacker can generate a new certificate using the \"historic\" record - leaving the domain owner with removal of the DNS-PERSIST-01 record or a CAA change as only way to revoke the compromise)\n\nBut since the domain owner always can remove the DNS-PERSIST-01 record or add a CAA record that prohibits issuance using the DNS-PERSIST-01 record (for example, by including a accounturi that does not match the account that is compromised) there is a option - that is albeit a bit slower and would require waiting for DNS propagation.",
+          "createdAt": "2026-08-02T10:29:17Z",
+          "updatedAt": "2026-08-02T10:31:04Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@sebastiannielsen, storing the exact `accounturi` value that passed validation, keyed by `(account, validation domain)`, is the right steady-state direction. It does not prevent account deactivation: the CA already knows which account owns each stored entry, so deactivating that account can purge its entries without reversing the digest or comparing it with unrelated disabled accounts.\n\nCreating and deactivating another account under the compromised old key does not disable the original account after an attacker has rolled it. That is because deactivation is account-scoped, not because the stored value is irreversible. DNS removal, `persistUntil`, restrictive CAA `accounturi`, and monitoring remain the available controls when the owner has lost the original account.\n\nI would not make certificate-key-authenticated revocation delete every stored value for the issuing account. RFC 8555 Section 7.6 authorizes revocation of that certificate, not account-wide deletion of persistent authorizations. A certificate key may be held by a delegated server that does not control the ACME account or its other domains, so the proposed side effect creates an account-wide denial-of-service path. I am deferring certificate-key-triggered pruning until after `-02`. Any later proposal needs a separate authority, scope, and threat-model discussion.\n\nPR #70 therefore should not merge as written. It still recomputes over retained keys while later removing key retention, stores unspecified \"sha256 hashes\" instead of the exact algorithm-tagged `accounturi`, loses the first-validation path for a record provisioned before rollover but first used afterward, removes account-deactivation precedence and the certificate-lifetime lapse, keeps the retired `keyRotationPeriod`, and adds the account-wide revocation side effect. Every attempt must still run the full DNS record checks; stored state changes only the account-binding comparison. I will fold the validated-value direction into the author patch after co-author review.\n\nWould you be comfortable treating exact-value storage as the steady-state path while keeping first validation and account deactivation separate?\n\nOne correction to my earlier reply: a client cannot generally require the account URL to share the configured directory's origin. RFC 8555 defines no origin or eTLD+1 relationship. I am adopting authenticated POST-as-GET to the exact account resource before record publication as the author proposal. The exact qualifying response and caching rules still need co-author and WG review.",
+          "createdAt": "2026-08-02T21:14:25Z",
+          "updatedAt": "2026-08-02T21:14:25Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "@sheurich Ill fix the requested changes.\n\n1: the \"recompute over retained keys\" were a mistake from me. I didn't notice that, it was pretty buried deep in that text block. I just missed that part. My intent were to replace every instance of \"recompute\" to just use the stored hashed uri.\n\n2: Correct, the validation must run the full checks. Thats why i added line 249. I wanted to clarify that a stored \"prior authentication\" record does NOT permit the CA to skip looking in DNS. The CA must still look in DNS like a normal validation was done.\n\n3: What do you think about storing the complete TXT record instead, and only allowing re-validation of that exact record?\nMy rationale is, that if you are updating DNS, you can aswell update the record to use the new key aswell.\nThis would mean a record can be pruned also after its persistUntil value is passed.\n\nThe intent of allowing prior records or keys, is to allow a keyChange without access to DNS. If you have access to DNS, you can aswell update the key to the new key.",
+          "createdAt": "2026-08-02T22:20:29Z",
+          "updatedAt": "2026-08-02T22:20:29Z"
+        },
+        {
+          "author": "orangepizza",
+          "authorAssociation": "NONE",
+          "body": "About condition 2: Are CAs allow to save that value in long term? Wording from BR 4.2.1 makes me think That(I see that record before)'d still subject to data reuse period, limiting it to 10 days.",
+          "createdAt": "2026-08-03T07:59:26Z",
+          "updatedAt": "2026-08-03T07:59:26Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "@orangepizza the data reuse period only applies to skipping doing a new validation. Nothing prevents the CA from storing data that expands the scope of the account - as long as the CA still does the required authorization checks.\n\nSo nothing prevents the CA from accepting A + B as a token for example, instead of only A.",
+          "createdAt": "2026-08-03T09:05:33Z",
+          "updatedAt": "2026-08-03T09:05:33Z"
+        },
+        {
+          "author": "orangepizza",
+          "authorAssociation": "NONE",
+          "body": "> For validation of Domain Names and IP Addresses according to Section 3.2.2.4 and Section 3.2.2.5,\n> any data, document, or completed validation used MUST be obtained within the maximum\n> number of days prior to issuing the Certificate, as defined in the following table:\n\nThe fact that CA seen that DNS record A is obtained when it do first validated that domain, so I don't think CA can use that info for new validation.",
+          "createdAt": "2026-08-03T09:13:10Z",
+          "updatedAt": "2026-08-03T09:15:58Z"
+        },
+        {
+          "author": "slghtr-says",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "@orangepizza , there's a distinction worth drawing here between two things.\n\nMechanically, DCV under 3.2.2.4.22 is a discrete point-in-time action. A fresh DNS lookup plus a fresh determination that the accountURI in that record is uniquely associated with the Applicant. On completion, that DCV starts the validation reuse period. 3.2.2.4.22 itself caps that period at 10 days as an explicit override of the general \u00a74.2.1 rule.\n\nMethod 22 requires the accountURI to be unique to the Applicant. It is not prescriptive about how the CA reaches that conclusion. Storing a hash on file is a mechanism the CA may use to answer that uniqueness question at DCV time. The stored hash is never a substitute for the DNS lookup, which still runs fresh every issuance. It's the mechanism, not the evidence, and the reuse clock only starts after the fresh DCV completes.\n\nReading either \u00a74.2.1 or the 10-day cap in 3.2.2.4.22 to forbid that binding would need language neither currently contains. Method 22 is silent on the mechanism, and nothing is being reused in the \u00a74.2.1 sense as long as the DCV runs fresh each time.",
+          "createdAt": "2026-08-03T15:46:58Z",
+          "updatedAt": "2026-08-03T15:50:15Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@orangepizza @slghtr-says has the structure exactly right: the stored value is the mechanism for the account-association determination, not the evidence, and the reuse clock starts at each fresh DCV. Two additions. RFC 8657 Section 3 makes recognition CA-defined (a URI counts when the CA recognizes it as identifying the account making the request), which is why method 22 can stay silent on the mechanism: a CA using raw account URLs holds the same mapping in its registration records with no reuse clock, and hashing the URI doesn't change its nature. And the stored value is derivable entirely from the CA's own records (the account URL plus the key history the CA witnessed through registration and every keyChange), so it contains nothing obtained from a validation source. The author follow-up to #67 will state this structure explicitly so the BR reading is unambiguous.\n\n@sebastiannielsen On storing the whole TXT RDATA instead of the exact accounturi value: I don't think it buys anything, and it breaks legitimate flows. Freezing the full record binds persistUntil, policy, and any future parameter into the match, so extending persistUntil after a key rotation would kill acceptance even though the accounturi is unchanged. \"Just update the key too\" doesn't work for the split-control deployments this method exists for: the DNS operator who can edit a persistUntil timestamp is often not the party holding the ACME account key, and only the key holder can compute a new accounturi, so a one-field DNS edit becomes a cross-team ACME operation. Your literal rule (a changed record must move to the current key) also doesn't hold under the author model: first validation of a new value accepts the current key or another key the CA itself witnessed the account holding. What does hold is the property behind it: a changed record can't coast on a stored match; it has to re-prove against live, CA-witnessed key material. Multi-string TXT records and RRset handling also make whole-RDATA comparison brittle. The follow-up will store the exact validated accounturi string, keyed by account and validation domain, not a bare digest.\n\nOn your PR suggestion to limit certificate-key revocation to the domains in the revoked certificate: that's a real improvement over account-wide deletion. It bounds the blast radius and ties the effect to identifiers the key actually certified. It still needs its own authority discussion (RFC 8555 Section 7.6 defines certificate revocation; it doesn't make a certificate key an account credential), so I'm keeping it out of -02 and on the table for the follow-on design work, where it has to be reconciled with the mechanisms that stay authoritative: account deactivation and the certificate-lifetime lapse.\n",
+          "createdAt": "2026-08-04T00:21:22Z",
+          "updatedAt": "2026-08-04T00:21:22Z"
+        },
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "@sheurich That was the whole idea, that it would create an additional mechanism that a key holder can prevent old keys from being accepted (for example compromised keys).\n\nBy adding a persistUntil value, it becomes \"locked\" or \"sealed\" with the key, so if a keyChange is made, the old key will \"naturally\" expire at persistUntil.\n\nIts then up to the domain owner to set his persistUntil in such a way so a new record can be sent to the DNS operator at a keychange.\n\nNOTE: The persistUntil can change each time as long as the key stays current - this will also create a new stored record (so the new persistUntil will be accepted if the key would ever rotate).\n\nIts when the digest stop computing - that the stored records are being used, and the persistUntil value becomes \"frozen\" - thus a domain owner can be deliberate with the persistUntil value to set his own \"keyRotationPeriod\" effectively.\n\nI cannot see a legitimate reason why the DNS operator would want to have a persistUntil along with a split-key configuration.\n\nSo its actually a security advantage if the record becomes \"frozen\" at a keyChange. Then a compromised key cannot set the security settings either - you can't add policy=wildcard on a old comrpomised key.\n\nNOTE **also that the DNS operator only needs the public key to be able to recompute a new digest, so the ACME user CAN send the public key JWK thumbprint (of the new key) to DNS oeprator if he wish the DNS oeprator to be able to update persistUntil. So its not only the private key holder who can update the accounturi hash, anyone with access to the public key can do.**\n\nThis allows a DNS record to remain active after a keyChange so if a keyChange is made without access to DNS (for example, if you have to phone the DNS operator to change your DNS) - as long as nobody touches it, but also sets the strict policy that **\"If you are changing the DNS anyways, you can aswell update the key\"**.",
+          "createdAt": "2026-08-04T00:30:55Z",
+          "updatedAt": "2026-08-04T00:55:31Z"
         }
       ]
     }
@@ -5219,6 +5303,337 @@
               "body": "The narrow reuse is intentional: this draft uses the RFC 6920 Hash Name String registry, not the RFC 6920 name formats. The value here identifies an ACME account under the CA's `accountHashPrefix`; it does not name retrievable content whose bytes are checked against the digest. Requiring an `ni:` URI or the `/.well-known/ni/` HTTP mapping would import content-naming and dereferencing semantics this value does not have, and it would constrain the CA's URI layout. The draft therefore does not adopt or depend on either format.",
               "createdAt": "2026-07-21T22:58:12Z",
               "updatedAt": "2026-07-21T22:58:13Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 70,
+      "id": "PR_kwDOO4VY2c75oDNv",
+      "title": "Implements #69 (Hashed URI retention instead of key retention)",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/70",
+      "state": "OPEN",
+      "author": "sebastiannielsen",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "This implements #69 by changing key retention into retaining previously validated URI hashes instead.\r\n\r\nThis however removes the ability for the CA from preventing issuances for a disabled key (that have been rotated out) since the CA cannot reverse a stored hash.\r\n\r\nThis is compensated for by allowing a certificate keypair based revocation, to also prune all previously used hashed URIs, which allows a account owner of a compromised ACME account, to prevent issuance using that account, even if the ACME account owner doesn't temporarly not have access to DNS to remove the record, by requesting a certificate keypair-based revocation.",
+      "createdAt": "2026-08-02T11:23:26Z",
+      "updatedAt": "2026-08-04T00:35:34Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "birgelee-02-candidate",
+      "baseRefOid": "ddaf2aa0c4f6959cca521508a4e1ad89d785f068",
+      "headRepository": "sebastiannielsen/draft-ietf-acme-dns-persist",
+      "headRefName": "patch-1",
+      "headRefOid": "d09710ac00c57d8e394fdb7a4b0821270d8ff6a9",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Closes #69 if implemented.",
+          "createdAt": "2026-08-02T11:25:07Z",
+          "updatedAt": "2026-08-02T11:25:07Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABIGkU9g",
+          "commit": {
+            "abbreviatedOid": "d09710a"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "CHANGES_REQUESTED",
+          "body": "",
+          "createdAt": "2026-08-02T14:11:11Z",
+          "updatedAt": "2026-08-02T18:59:32Z",
+          "comments": [
+            {
+              "originalPosition": 8,
+              "body": "Multiple hash algorithms can be used to calculate the account URI not just SHA-256, it might be better to refer to the hashed account URI or since the retained URI appears to only be stored for comparison with the retrieved account URIs, a digest of the hash account URI (not the ACME account URI).",
+              "createdAt": "2026-08-02T14:11:11Z",
+              "updatedAt": "2026-08-02T18:59:32Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABIHhI0w",
+          "commit": {
+            "abbreviatedOid": "d09710a"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "CHANGES_REQUESTED",
+          "body": "Storing the exact value that passed validation is the right steady-state direction, but this patch should not merge as written. It retains the old key-enumeration algorithm while removing key storage, stores an underspecified digest rather than the complete `accounturi`, loses first use of a record provisioned before rollover, removes account-deactivation precedence and the certificate-lifetime lapse, keeps `keyRotationPeriod`, and gives certificate-key revocation a new account-wide side effect.\n\nThe author patch should define first validation separately from exact stored-value comparison per `(account, validation domain)`, keep full DNS evaluation, DNS removal, `persistUntil`, and account deactivation authoritative, and omit certificate-key-triggered pruning from `-02`.",
+          "createdAt": "2026-08-02T21:14:37Z",
+          "updatedAt": "2026-08-02T21:14:37Z",
+          "comments": [
+            {
+              "originalPosition": 5,
+              "body": "This still recomputes over retained account keys, but the next paragraph removes key retention. Define first validation and steady-state reuse separately: a new value must match the current key or another key the account verifiably held; a previously accepted value may match the exact stored `accounturi` for the same `(account, validation domain)`. A successful current-key validation should refresh the stored value.",
+              "createdAt": "2026-08-02T21:14:37Z",
+              "updatedAt": "2026-08-02T21:14:37Z"
+            },
+            {
+              "originalPosition": 8,
+              "body": "I agree with Max that this must retain the exact algorithm-tagged `accounturi`, not a \"sha256 hash.\" The storage key also needs to be `(account, validation domain)` so deactivation and domain scoping do not require reversing anything.",
+              "createdAt": "2026-08-02T21:14:37Z",
+              "updatedAt": "2026-08-02T21:14:37Z"
+            },
+            {
+              "originalPosition": 13,
+              "body": "Account deactivation must remain authoritative. Because stored values belong to an account record, deactivating that account can purge its entries directly; the CA does not need to reverse the digest or scan other accounts. Certificate-key revocation is not a substitute for this rule.",
+              "createdAt": "2026-08-02T21:14:37Z",
+              "updatedAt": "2026-08-02T21:14:37Z"
+            },
+            {
+              "originalPosition": 16,
+              "body": "Presence of the stored value is not enough. Every attempt still needs the normal DNS lookup and complete record evaluation, including issuer, policy, `persistUntil`, and CAA. Stored state changes only the account-binding comparison.",
+              "createdAt": "2026-08-02T21:14:37Z",
+              "updatedAt": "2026-08-02T21:14:37Z"
+            },
+            {
+              "originalPosition": 21,
+              "body": "`keyRotationPeriod` is no longer the editor proposal. The current direction is non-breaking validated-value retention, bounded by DNS removal, `persistUntil`, deactivation of the requesting account, and the agreed certificate-lifetime lapse. Please remove this section rather than adapting the old window.",
+              "createdAt": "2026-08-02T21:14:37Z",
+              "updatedAt": "2026-08-02T21:14:37Z"
+            },
+            {
+              "originalPosition": 45,
+              "body": "Prior successful validation does not prove the domain owner's intent to authorize this account under the planted-account attack. The supported claim is narrower: the stored value preserves CA-local continuity for the same account object and validation domain. Authenticated account-resource proof is now the author proposal for strengthening creation integrity, pending implementation details and co-author/WG review.",
+              "createdAt": "2026-08-02T21:14:37Z",
+              "updatedAt": "2026-08-02T21:14:37Z"
+            },
+            {
+              "originalPosition": 55,
+              "body": "RFC 8555 Section 7.6 authorizes revocation of the named certificate; it does not authorize deleting every persistent value for the issuing account. A certificate key may be held by a delegated server with no authority over the account's other domains, so this creates an account-wide denial-of-service path. Certificate-key-triggered pruning is deferred until after `-02`; any later proposal needs a separate authority, scope, and threat-model decision.",
+              "createdAt": "2026-08-02T21:14:37Z",
+              "updatedAt": "2026-08-02T21:14:37Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABIHkrMA",
+          "commit": {
+            "abbreviatedOid": "d09710a"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-08-02T21:46:39Z",
+          "updatedAt": "2026-08-02T21:46:39Z",
+          "comments": [
+            {
+              "originalPosition": 5,
+              "body": "Oooh I didnt notice that in the text. Ill change it. But lets discuss the other changes first.",
+              "createdAt": "2026-08-02T21:46:39Z",
+              "updatedAt": "2026-08-02T21:46:39Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABIHlO8Q",
+          "commit": {
+            "abbreviatedOid": "d09710a"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-08-02T21:50:00Z",
+          "updatedAt": "2026-08-02T21:50:01Z",
+          "comments": [
+            {
+              "originalPosition": 16,
+              "body": "Exactly what 249 says. That the CA must recheck DNS (still present in DNS), it can't just store the values and check against a local database to authorize the domain without asking DNS at all.\r\n\r\nMeaning, the stored \"approved\" authorizations does not replace the normal authorization procedure. It just authorizes the CA to accept a stored value that was previously approved even if the hash no longer computes.",
+              "createdAt": "2026-08-02T21:50:01Z",
+              "updatedAt": "2026-08-02T21:50:01Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABIHl1ow",
+          "commit": {
+            "abbreviatedOid": "d09710a"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-08-02T21:56:05Z",
+          "updatedAt": "2026-08-02T21:56:05Z",
+          "comments": [
+            {
+              "originalPosition": 8,
+              "body": "Correct, the storage key must be account and domain - in this way, a prior accepted authorization for lets say example.com would not authorize for example.org even if they have a identical record in DNS.\r\n\r\nMeaning, each prior acceptance gets \"locked\" to the domain basically.\r\n\r\n\r\nExample:\r\nLets say I compute a record using *, my account key, and my account uri.\r\nNow I can provision this record to any domain.\r\n\r\nIf I now provision the record to example.com and example.org\r\n\r\nThen I validate example.com\r\n\r\nThen I keyChange my account to a new key.\r\n\r\nThe result of my proposal means, that example.com will validate (since that record validated at least once) but example.org will refuse to validate.",
+              "createdAt": "2026-08-02T21:56:05Z",
+              "updatedAt": "2026-08-02T21:56:05Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABIHme6g",
+          "commit": {
+            "abbreviatedOid": "d09710a"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-08-02T22:01:28Z",
+          "updatedAt": "2026-08-02T22:01:29Z",
+          "comments": [
+            {
+              "originalPosition": 13,
+              "body": "Here is the problem:\r\n\r\nThe previous deactivation would deactivate a stored key - cross account.\r\nIf the rule really meant only keys on the very same account and that the CA should not scan for deactivated account cross-account, then the rule is completely unneccessary since a deactivated account is unuseable - it can't create orders, it can't fetch certificates, it can't create authorizations, it can't submit challenges, nothing.\r\n\r\nSo for example:\r\nIf AcctA with keyA keychanges into keyB.\r\nThen acctB is created with keyA\r\n\r\nif acctB would now be deactivated:\r\nThen acctA would need to be unable to validate using a stored record for the prior keyA.\r\n\r\nAnd I understand why thats important: If AcctA is comrpomised, and attacker changes key into keyB, the real owner is unable to access the account. So this is why the key-deactivation mechanism is important -> The real owner can then create an account using keyA, and then immediately deactivate it, to rob AcctA of its issuance rights for the domain from which the account was stolen from.\r\n\r\n\r\nSince the new system now stores HASHES, it would be unable to check for key-usage cross-account - since that would require reversing the hash.\r\n\r\nBut I think there need to be a system, where a account owner who got his account stolen, can \"nuke\" the prior validations without having access to DNS so he could delete the record. And here is where certificate keypair revocation comes into play.\r\n\r\n\r\nNote that the rule was requiring the CA to scan the key thumbprint for cross-account deactivation.\r\nToday, an deactivated account CANNOT be used to issue certificates at all, so a \"deactivation takes precendence\" rules isn't needed if you aren't out for a cross-account scan.",
+              "createdAt": "2026-08-02T22:01:28Z",
+              "updatedAt": "2026-08-02T22:11:35Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABIHmwYg",
+          "commit": {
+            "abbreviatedOid": "d09710a"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-08-02T22:02:54Z",
+          "updatedAt": "2026-08-02T22:02:54Z",
+          "comments": [
+            {
+              "originalPosition": 45,
+              "body": "Could you explain more what you mean with the \"planted account attack\"?",
+              "createdAt": "2026-08-02T22:02:54Z",
+              "updatedAt": "2026-08-02T22:02:54Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABIHnJww",
+          "commit": {
+            "abbreviatedOid": "d09710a"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-08-02T22:05:13Z",
+          "updatedAt": "2026-08-02T22:05:13Z",
+          "comments": [
+            {
+              "originalPosition": 55,
+              "body": "Yeah, I agree about that, but thats the only mechanism for which an account could \"revoke\" an issuing account possibility to gain new certificates using old stored URI hashes if the account owner lost control of the account.\r\n\r\nOne way would be to limit this type of revocation to only the domains present in the certificate being revoked, so it would render only those stored \"key rotated\" URI hashes deleted?",
+              "createdAt": "2026-08-02T22:05:13Z",
+              "updatedAt": "2026-08-02T22:05:37Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABIHndoA",
+          "commit": {
+            "abbreviatedOid": "d09710a"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-08-02T22:07:04Z",
+          "updatedAt": "2026-08-02T22:07:04Z",
+          "comments": [
+            {
+              "originalPosition": 8,
+              "body": "I agree with a better idea would be to store the whole account URI. Or even better, the whole DNS record (the whole DNS TXT resource).\r\n\r\nSo a record can only survive if its unchanged from a keyrotation. Once it being changed, the record MUST be updated to the new key. That should make any attacks on the system much harder.",
+              "createdAt": "2026-08-02T22:07:04Z",
+              "updatedAt": "2026-08-02T22:07:04Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABIQ2oQg",
+          "commit": {
+            "abbreviatedOid": "d09710a"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-08-04T00:12:39Z",
+          "updatedAt": "2026-08-04T00:12:39Z",
+          "comments": [
+            {
+              "originalPosition": 45,
+              "body": "Shorthand for the pre-registered-account substitution Max raised on #64 and #69. Since the record's accounturi is an opaque hash, the domain owner can't determine which account an unfamiliar value names; recomputation only confirms a guess. Two ways such a value reaches DNS. One, someone is persuaded to publish the attacker's complete precomputed value (a hosting or integrator flow that says \"add this TXT record to enable certificates\"); that record identifies the attacker's account at the target CA immediately. Two, an ACME intermediary hands the client a foreign account URL, and the client publishes H(domain, victim key, attacker URL). That record matches no account today, but it isn't dead: the keyChange duplicate-key check (RFC 8555 7.3.5) only refuses keys currently held by another account, so once the victim rotates away from that key and it later leaks, the attacker can bind the leaked key to their pre-registered account and the planted record validates for them. (If the victim never held an account at that CA, even the rotation step is unnecessary; the leak alone suffices.) Rotation-then-compromise is exactly the window this thread is about.\n\nThat's why prior successful validation can't prove the domain owner meant to authorize the account. It proves only that this account matched this record at that time. Storing the value therefore supports CA-local continuity for the same account and validation domain, and nothing stronger.\n\nOn the creation side, the author proposal (pending co-author/WG review) is that the client prove its key authenticates to the exact account URL used in the digest (POST-as-GET) before publishing. That checks the key and URL in the digest belong to one account the client controls, which forecloses the second path before anything reaches DNS. It doesn't help when someone pastes a complete precomputed value straight into DNS, it doesn't stop an attacker who writes the record directly during a DNS compromise, and a proxy that terminates the client's TLS toward the CA can fake the proof, so those belong in Security Considerations as residual risks.\n",
+              "createdAt": "2026-08-04T00:12:39Z",
+              "updatedAt": "2026-08-04T00:12:39Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABIQ5N5A",
+          "commit": {
+            "abbreviatedOid": "d09710a"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-08-04T00:23:47Z",
+          "updatedAt": "2026-08-04T00:23:47Z",
+          "comments": [
+            {
+              "originalPosition": 45,
+              "body": "My suggestion to solve this problem, is to use my proposal in the comment on the issue:\r\nStore the whole TXT record, and ONLY accept that for the PARTICULAR account.\r\n\r\nSo when a account A validates a DNS-PERSIST-01 record, the CA will check:\r\n\r\ndoes the TXT record EXACTLY match a previously stored TXT record for this account and for this domain?\r\nThen skip the accounturi check (no digesting) - and only check persistUntil, MPIC and CAA. (the issuer-domain doesn't need to be checked since thats part of the stored value).\r\n\r\nThen authorize the issuance.\r\n\r\nIf it doesn't exist - THEN:\r\nDigest domain, accounturi and JWK thumbprint. Does it match the hash? YES then authorize the issuance (provided persistUntil, issuer-domain, MPIC and CAA checks out)\r\nSTORE the complete TXT record for the account and domain. (meaning account AND domain should be key)\r\n\r\nIf it doesn't match, then:\r\nDigest \"*\", accounturi and JWK thumbprint. Does it match the hash? YES, then authorize the issuance (provided perssistUntil, issuer-domain, MPIC and CAA checks out)\r\nSTORE the complete TXT record for the account and domain. (meaning account AND domain should be key)\r\n\r\n(Note here that the domain should be stored even if its an \"\\*\" record - why you might ask - this LOCKS the stored record to the previously authorized domain - so even if its an \"\\*\" record, it CANT be moved to another domain UNLESS the hash is for a current key of the account - MEANING any \"old keys\" need to have a previous issued certificate to be able to \"remain\" in DNS unchanged over a keyChange)\r\n",
+              "createdAt": "2026-08-04T00:23:47Z",
+              "updatedAt": "2026-08-04T00:59:15Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABIQ5dww",
+          "commit": {
+            "abbreviatedOid": "d09710a"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-08-04T00:24:58Z",
+          "updatedAt": "2026-08-04T00:24:58Z",
+          "comments": [
+            {
+              "originalPosition": 45,
+              "body": "Im TOTALLY against a extra request for \"verifying\" a accounturi. Why?\r\n\r\nBecause, to be effective, the check must be made mandatory - for example by adding a token value that must be inserted into DNS. (which defeats the purpose of a \"PERSIST\")\r\n\r\nAnd it also wastes resources by additional requests.",
+              "createdAt": "2026-08-04T00:24:58Z",
+              "updatedAt": "2026-08-04T00:24:58Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABIQ7uDA",
+          "commit": {
+            "abbreviatedOid": "d09710a"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-08-04T00:35:33Z",
+          "updatedAt": "2026-08-04T00:35:33Z",
+          "comments": [
+            {
+              "originalPosition": 45,
+              "body": "Note that the mechanism (with disabling \"concurrent\" deactivated keys cross-account) you are describing would not prevent the H(domain, victim key, attacker URL) attack, since the victim key does not belong to a deactivated account. The attacker has control of the victim key as soon as it leaks.\r\n\r\nOnly way this would be prevented is blacklisting old keys after each keychange, so keyChanged keys effectively becomes attached to a \"new virtual\" account that is automatically deactivated.",
+              "createdAt": "2026-08-04T00:35:33Z",
+              "updatedAt": "2026-08-04T00:35:34Z"
             }
           ]
         }
