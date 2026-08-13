@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-08-09T00:56:43.651511+00:00",
+  "timestamp": "2026-08-13T01:06:04.330896+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -5840,6 +5840,32 @@
           ]
         }
       ]
+    },
+    {
+      "number": 71,
+      "id": "PR_kwDOO4VY2c79mJod",
+      "title": "Add pre-provisioned validation example and actor clarifications",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/71",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Stacked on #67; targets `birgelee-02-candidate`.\n\nEvery flow example starts from a CA-provided challenge object, and every example that names a publisher has the ACME client publish the record, so readers conclude the client must hold DNS credentials and publish per order, as in dns-01. Pre-provisioning is a deliberate design property: the directory `issuerDomainNames` metadata added for #60 exists to support it, and public CA documentation already frames the record as a standing authorization that keeps DNS changes and DNS credentials out of the issuance path (https://letsencrypt.org/2026/02/18/dns-persist-01). The draft itself never states the enabling facts \u2014 the record value derives from account, domain, and CA parameters rather than a per-challenge token, computing it involves no private-key operation, and publication can be delegated. Recent implementer questions confirmed the text does not answer this on its own.\n\nChanges:\n\n- New Pre-Provisioned Validation Example: a DNS operator, not the ACME client, computes and publishes the record before any order exists, reusing the Hashed-URI Example test vector; a later newOrder request validates against the already-present record, with the Just-in-Time alternative and its first-validation restriction noted.\n- Introduction: one sentence stating that publication decouples from the ACME transaction in both time and actor.\n- Conventions and Definitions: DNS actions attributed to \"the client\" may be performed by another party acting for the domain owner, except where an ACME message exchange or the account's private key is involved.\n- Pre-Provisioning Records: the earliest computation point is account creation, since the account URL is a hash input; a new paragraph lists the shareable inputs and the account-URL disclosure and correlation caveat.\n- DNS Provider Considerations: three bullets for provider-side publication workflows, including that no record-management operation requires the account private key.\n- Changelog entry.\n\nRelationship to open issues: the new text takes no position on account key rollover (#69); the example involves no rotation, and the Introduction wording avoids implying record durability across rotation. The example exercises the directory metadata added for #60 (already merged into #67) and changes no normative text in that area; #60 remains open pending #67. The disclosure caveat cross-references the existing privacy analysis (#61) without changing it. The pre-publication account-resource check under discussion in #64 is not part of this PR; if adopted, its actor scoping should account for the delegation documented here.\n",
+      "createdAt": "2026-08-11T15:37:22Z",
+      "updatedAt": "2026-08-11T15:37:22Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "birgelee-02-candidate",
+      "baseRefOid": "ddaf2aa0c4f6959cca521508a4e1ad89d785f068",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "preprovisioning-example",
+      "headRefOid": "c67d13cb5ba398c831dfdd17547cbb3baa7dc48a",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
     }
   ]
 }
