@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-08-23T00:41:50.795489+00:00",
+  "timestamp": "2026-08-30T02:26:31.355169+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -1575,7 +1575,7 @@
       "labels": [],
       "body": "Having the dns-persist-01 record contain only information provided by the ACME server opens the possibility for Meddler-in-the-Middle attacks. The attack flow would be something like:\n- Set up a malicious ACME server\n- Get a victim to configure your server's directory URL in their ACME client\n- When the victim registers an account with your server, register a new account with a real ACME server, and return _that_ account's URI verbatim\n- When the victim provisions a dns-persist-01 record, the record will actually authorize the attacker's ACME account at the real CA; the attacker can now issue arbitrary certificates for the victim's domain\n\nThe original RFC 8555 discusses this exact attack in its [Security Considerations section](https://datatracker.ietf.org/doc/html/rfc8555#section-10.2). The mitigation used by those original ACME challenges is that the token the Applicant needs to present consists of two parts:\n1. The random value provided by the server; and\n2. A hash of the applicant's ACME account public key\n\nImportantly, (2) is computed entirely offline -- both the ACME client and the ACME server compute it independently. And while the malicious actor _can_ compute the hash of the victim's pubkey (it's public, after all), the malicious actor _can't_ convince the ACME server that that's the Key Authorization it should be looking for. When the malicious actor tries to get a cert for the victim's domain from the real ACME server, that server will expect to see a hash of the _attacker's_ pubkey, and there's no reason for the victim to have provisioned that value.\n\nThus, I believe that dns-persist-01, in order to mitigate this same attack, must include a value computed over the applicant's ACME client pubkey.\n\nI will note that this introduces a tradeoff: improve security by keeping DNS API credentials far away from webservers and ACME clients, but impair security by preventing applicants from rotating their ACME client keys. If anyone has suggestions for how to prevent this attack without also preventing key rotation, I'd love to hear it.\n\nSee this thread on the ACME mailing list for further discussion: https://mailarchive.ietf.org/arch/msg/acme/i_kd1g7vFaWO8x3_Ukh6Iz3nems/",
       "createdAt": "2026-05-15T22:49:11Z",
-      "updatedAt": "2026-08-20T14:05:48Z",
+      "updatedAt": "2026-08-28T17:14:53Z",
       "closedAt": null,
       "comments": [
         {
@@ -1962,6 +1962,13 @@
           "body": "> Do you think ballot sc088v3 should be ACME\u2011exclusive?\n> \n> I noticed Aaron mentioned Account / Client key. As far as I know, the most popular scenario that uses keys to authenticate subscribers is ACME SSL certificate enrollment.\n\nI think a separate ACME-specific method is cleaner than making SC-088v3\u2019s Method 22 exclusive to ACME.\n\nThat split is already under discussion in [cabforum/servercert#677](https://github.com/cabforum/servercert/issues/677). Method 22 would remain generic, while a new method would bind normatively to `dns-persist-01` and its ACME-specific security requirements. Aaron has stated a preference for that path. No consensus or ballot exists yet.",
           "createdAt": "2026-08-20T14:05:48Z",
           "updatedAt": "2026-08-20T14:05:48Z"
+        },
+        {
+          "author": "wgreenberg",
+          "authorAssociation": "NONE",
+          "body": "hi folks. i'm working on Certbot's dns-persist support, and while the broad strokes are there, i was waiting on this issue to solidify before landing the feature. is there an estimated timeline for when the updated spec will land, or when LetsEncrypt will deploy support for dns-persist?",
+          "createdAt": "2026-08-28T17:14:52Z",
+          "updatedAt": "2026-08-28T17:14:52Z"
         }
       ]
     },
