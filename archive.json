@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-08-30T02:26:31.355169+00:00",
+  "timestamp": "2026-09-17T02:26:10.537313+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -2128,6 +2128,22 @@
           "updatedAt": "2026-08-06T02:19:11Z"
         }
       ]
+    },
+    {
+      "number": 72,
+      "id": "I_kwDOO4VY2c8AAAABRexmRw",
+      "title": "Clarify url example in dns-persist-01 challenge object",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/72",
+      "state": "OPEN",
+      "author": "bilalashraf123",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "Section 3.1 defines the url member of the dns-persist-01 challenge object as the URL to which the client posts the response.\n\nHowever, the example uses:\n\nhttps://ca.example/acme/authz/1234/0\n\nThis is potentially confusing because the /authz/ path strongly suggests that the URL identifies an authorization resource, whereas the url member is part of a challenge object and is used as the challenge URL.\n\nFor example, RFC 8555 distinguishes between:\n\n**Authorization URL:**\nhttps://ca.example/acme/authz/1234\n\n**Challenge URL:**\nhttps://ca.example/acme/chall/5678\n\nTherefore, it may be clearer to use a challenge-oriented URL in the example, such as:\n\nhttps://ca.example/acme/chall/5678\n\n**Suggested change:**\n\nConsider changing the example from:\n\n\"url\": \"https://ca.example/acme/authz/1234/0\"\n\nto something like:\n\n\"url\": \"https://ca.example/acme/chall/5678\"\n\nThis would make the distinction between the authorization resource and the challenge resource clearer to implementers and avoid confusion when implementing the ACME resource model from RFC 8555.\n\n",
+      "createdAt": "2026-09-15T22:39:20Z",
+      "updatedAt": "2026-09-15T22:39:20Z",
+      "closedAt": null,
+      "comments": []
     }
   ],
   "pulls": [
