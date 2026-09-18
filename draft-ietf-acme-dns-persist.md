@@ -76,7 +76,7 @@ Examples include:
 - Scenarios requiring wildcard certificates where domain control is proven once and reused over an extended period.
 - Internet of Things (IoT) deployments where devices may not be able to host an HTTP service or coordinate DNS updates in real-time.
 
-This document defines a new ACME challenge type, "dns-persist-01". This method proves control over a Fully Qualified Domain Name (FQDN) by confirming the presence of a persistent DNS TXT record containing CA and account identification information.
+This document defines a new ACME challenge type, "dns-persist-01". This method proves control over a Fully Qualified Domain Name (FQDN) by confirming the presence of a persistent DNS TXT record containing CA and account identification information. Because the record's value is derived from account, domain, and CA parameters rather than from a per-challenge token, the record can be published before any certificate request and by a party other than the ACME client (see {{pre-provisioning-records}}).
 
 The record format is based on the "issue-value" syntax from {{!RFC8659}}, incorporating an `issuer-domain-name` and a mandatory `accounturi` parameter whose value is defined in {{validation-record-format}}. The parameter name is reused from the CAA `accounturi` parameter defined in {{!RFC8657}}, Section 3; {{caa-interaction}} explains the relationship between them. The `accounturi` is a hashed URI that cryptographically binds the account to the domain being validated. This design provides strong binding between the domain, the CA, and the entity requesting validation.
 
@@ -111,6 +111,8 @@ Certification Authorities operating under various trust program requirements wil
 
 **persistUntil**
 :   An optional parameter in the validation record that specifies the timestamp after which the validation record should no longer be considered valid by CAs. The value MUST be a base-10 encoded integer representing a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds). Client pre-flight guidance appears in {{client-implementation-guidelines}}.
+
+This document follows {{!RFC8555}} in attributing DNS provisioning actions to the ACME client. Except where a requirement explicitly involves an ACME message exchange or the account's private key, a DNS action attributed to the client MAY instead be performed by another party acting on behalf of the domain owner, such as a DNS operator; {{pre-provisioning-records}} describes the values such a party needs. Requirements on the content of `_validation-persist` records apply to the published record regardless of which party publishes it.
 
 # The "dns-persist-01" Challenge {#dns-persist-01-challenge}
 
@@ -336,12 +338,14 @@ This mechanism enables efficient reuse of persistent validation records while ma
 
 ## Pre-Provisioning Records {#pre-provisioning-records}
 
-Domain owners MAY provision `_validation-persist` TXT records before requesting any certificates, provided they can compute the `accounturi` value. When constructing records without a challenge object, the following values MUST be used:
+Domain owners MAY provision `_validation-persist` TXT records before requesting any certificates, provided they can compute the `accounturi` value. The earliest point at which this value can be computed is ACME account creation, because the account URL returned in the newAccount response ({{!RFC8555}}, Section 7.3) is an input to the hash; no order, authorization, or challenge object is required to compute or publish the record. When constructing records without a challenge object, the following values MUST be used:
 
 - **accounturi**: The hashed URI, computed as specified in {{validation-record-format}}. A client knows its own ACME account URL (as returned in the `Location` header of the account creation response, {{!RFC8555}}, Section 7.3), the FQDN it is provisioning, and its current account key, so it can compute and publish the hashed URI itself from the CA's `accountHashPrefix` without a per-provisioning request to the CA. A client that wishes to reuse a single record across multiple domains MAY instead use the domain-omitted opt-out form (`domain_name` set to `*`, see {{validation-record-format}}).
 - **issuer-domain-name**: A CA offering the dns-persist-01 challenge type advertises its Issuer Domain Names in the `issuerDomainNames` array of its directory `meta` object (see {{directory-issuer-domain-names}}). Clients pre-provisioning records SHOULD use one of these values; a value obtained elsewhere is not guaranteed to appear in a later challenge and can leave the record unusable.
 
 For a pre-provisioned record, the client computes the hashed `accounturi` itself, outside the ACME challenge-response flow, from its own ACME account URL, its current account key, and the CA's `accountHashPrefix`. The client obtains the `accountHashPrefix` from the CA's directory ({{!RFC8555}}, Section 7.1.1) and SHOULD retrieve the directory over an authenticated channel, so that the record is placed under the intended CA's infrastructure. Because the hashed URI cryptographically binds the account key (see {{hashed-uri-security}}), a record computed with the client's genuine account key cannot be made to validate for a different account; this key binding is what lets a domain owner safely pre-provision without the challenge-response exchange.
+
+Computing the hashed URI requires no private-key operation; the inputs are the account URL, the account key's public JWK Thumbprint, the domain name (or the `*` opt-out), the CA's `accountHashPrefix`, and the hash-algorithm identifier, all of which the account holder can share with another party. A domain owner MAY therefore delegate computation and publication of a `_validation-persist` record to a party that does not operate the ACME client and holds no ACME credentials, such as a DNS operator; the ACME client itself needs no DNS credentials in this arrangement. Sharing these values with such a party discloses the account URL, which the hashed form otherwise keeps out of public DNS, and enables that party to correlate the account's records across domains (see {{account-uri-privacy}}); the key binding described in {{hashed-uri-security}} is unaffected by which party performs the computation.
 
 Organizations pre-provisioning records SHOULD maintain an inventory of `_validation-persist` records and the ACME accounts they reference. Records MAY include a `persistUntil` parameter to bound their effective lifetime (see {{persist-until-parameter-considerations}}). Domain owners SHOULD audit `_validation-persist` records after any DNS infrastructure security incident, as pre-provisioned records persist beyond the window of compromise.
 
@@ -680,6 +684,9 @@ DNS providers supporting this validation method should consider:
 - Implementing appropriate access controls for validation record management
 - Providing audit logging for validation record changes
 - Considering dedicated interfaces or APIs for ACME validation record management
+- Supporting workflows in which the provider computes and publishes `_validation-persist` records on a domain owner's behalf from the shareable values listed in {{pre-provisioning-records}}, none of which include private key material
+- Never requesting or storing ACME account private keys, which no record-management operation described in this document requires
+- Providing inventory and audit views of `_validation-persist` records to support the inventory practices described in {{pre-provisioning-records}}
 
 # Examples {#examples}
 
@@ -740,6 +747,38 @@ NpDnSwUthQK8zCgFdefYxAdAVPnygMLbs9US6oO-5ug
 ~~~
 
 The resulting hashed URI, `https://ca.example/account-hash/sha-256/NpDnSwUthQK8zCgFdefYxAdAVPnygMLbs9US6oO-5ug`, does not depend on the domain and MAY be reused across domains.
+
+
+## Pre-Provisioned Validation Example {#pre-provisioned-validation-example}
+
+This example illustrates the pre-provisioning flow described in {{pre-provisioning-records}}: the `_validation-persist` record for "example.com" is computed and published before any order exists, by a party other than the ACME client.
+
+1.  Prerequisite: the domain owner's ACME client has an account with the CA; the account URL `https://ca.example/acct/123` was returned in the `Location` header of the newAccount response. No order, authorization, or challenge object exists yet.
+
+2.  The CA's directory `meta` object advertises the values needed to pre-provision a record:
+
+    ~~~json
+    {
+      "meta": {
+        "accountHashPrefix": "https://ca.example/account-hash/",
+        "issuerDomainNames": ["authority.example", "ca.example.net"]
+      }
+    }
+    ~~~
+    {: #ex-preprovisioned-directory-meta title="Directory Metadata for Pre-Provisioning"}
+
+    Per {{directory-issuer-domain-names}}, a name taken from this array is guaranteed to satisfy the `issuer-domain-name` requirement of any `dns-persist-01` challenge this CA issues later.
+
+3.  The account holder supplies the account URL `https://ca.example/acct/123` and the account key's public JWK Thumbprint (encoded as `NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs`, as in {{hashed-uri-example}}) to the DNS operator managing the zone, a party distinct from the ACME client. No private key material is shared. Using the same inputs and result as {{hashed-uri-example}}, that party computes the hashed URI and publishes the TXT record:
+
+    ~~~ dns
+    _validation-persist.example.com. IN TXT ("authority.example;"
+    " accounturi=https://ca.example/account-hash/"
+    "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw")
+    ~~~
+    {: #ex-preprovisioned title="Pre-Provisioned Validation Record"}
+
+4.  At any later time, the client submits a newOrder request. If the CA returns a pending `dns-persist-01` challenge, the client responds to it and the CA validates the already-present record through DNS queries; no DNS change is needed at order time. A CA implementing Just-in-Time validation ({{just-in-time-validation}}) may instead evaluate the record when the authorization is created and return it already valid, subject to the restrictions in that section; because the account in this example has not previously completed a `dns-persist-01` validation, a CA following that section's account restriction would take the pending-challenge path for this first order.
 
 
 ## Wildcard Validation Example {#wildcard-validation-example}
@@ -835,3 +874,4 @@ RFC Editor: please remove this section before publication.
 - Removed DNS TTL as a validation data reuse limit; reuse remains subject to `persistUntil` and the CA's Validation Data Reuse Period. Renamed {{validation-data-reuse}} accordingly and removed the related TTL-specific implementation guidance (#42).
 - Corrected the stale Account Key Rotation text: the account URL is stable, but the hashed `accounturi` changes with the account key, and continued acceptance of a prior key is governed by {{verification-procedure}}.
 - Added the required directory `issuerDomainNames` metadata field and the D ⊆ C consistency rule with the challenge object's `issuerDomainNames`; the C ⊆ I rule against `caaIdentities` applies when the CA advertises `caaIdentities` (#60).
+- Added a pre-provisioned validation example and clarified that computing and publishing a `_validation-persist` record requires no private-key operation and can be performed out of band by a party other than the ACME client, at any point after account creation.
