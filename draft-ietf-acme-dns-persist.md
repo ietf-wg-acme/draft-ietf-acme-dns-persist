@@ -193,6 +193,8 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
     `<hash-alg>` MUST be the exact Hash Name String registered in the "Named Information Hash Algorithm Registry" defined by {{!RFC6920}}, Section 9.4. Both clients and CAs implementing dns-persist-01 MUST support the registered `sha-256` Hash Name String, which identifies SHA-256 {{FIPS180-4}}: a client MUST be able to compute, and a CA MUST accept, a hashed URI that uses this token, so that every conforming implementation interoperates without prior negotiation. A CA MAY accept other registered algorithms and MUST document each additional algorithm it accepts. An additional algorithm MUST have a registered digest length of at least 256 bits and MUST remain collision resistant at the time of use. A client MAY use an optional algorithm only after establishing from the CA's documentation that the CA accepts it. This document defines no separate algorithm-negotiation mechanism.
 
+    A CA MUST reject with a `malformed` error ({{!RFC8555}}, Section 6.7) any `_validation-persist` record whose `<hash-alg>` token identifies a hash algorithm the CA no longer accepts, including records the CA previously validated under that algorithm. If a CA deprecates or discontinues acceptance of a hash algorithm, domain owners MUST re-provision records using an accepted hash algorithm.
+
     `<base64url hash value>` is the base64url encoding {{!RFC4648}}, with trailing padding (`=`) omitted, of the hash digest computed with the identified algorithm over the following octet string:
 
     ~~~
@@ -205,7 +207,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
     2. `domain_name` is, by default, the FQDN being validated: the Validation Domain Name with its leading `_validation-persist` label removed and no trailing dot, in the normalized lowercase A-label form produced by {{normalization-algorithm}}. This form is US-ASCII. This is the FQDN at which the `_validation-persist` record is provisioned, not the FQDN of the certificate ultimately requested; binding the record to its own domain is what makes the hashed URI domain-specific (see {{hashed-uri-security}}).
 
        As an exception, a client MAY set `domain_name` to the single US-ASCII octet `*` (0x2a; `length_of_domain` is then 0x01) to opt out of the domain-correlation mitigation. The resulting hashed URI does not depend on the domain and MAY therefore be reused across domains. A CA MUST accept a hashed URI computed with `domain_name` set to `*`. The privacy trade-off of this opt-out is described in {{hashed-uri-security}}.
-    3. `key` is the 43 ASCII octets of the unpadded base64url encoding {{!RFC4648}} of the SHA-256 JWK Thumbprint {{!RFC7638}} of a public key associated with the ACME account. This is the encoding used for the thumbprint component of an ACME key authorization ({{!RFC8555}}, Section 8.1), so a client can reuse that component without decoding it. When provisioning a `_validation-persist` record, the client MUST use the account's current key. A CA MUST accept a hashed URI generated with the current key associated with the account. Additionally, a CA MUST accept a hashed URI generated with a prior key previously associated with the account that is known to the CA per the key retention obligation in {{verification-procedure}}, subject to the deactivation and key-rotation limits stated there. This allows a record provisioned before a key rotation to continue to validate. The rationale for these requirements is given in {{hashed-uri-security}}.
+    3. `key` is the 43 ASCII octets of the unpadded base64url encoding {{!RFC4648}} of the SHA-256 JWK Thumbprint {{!RFC7638}} of a public key associated with the ACME account. This is the encoding used for the thumbprint component of an ACME key authorization ({{!RFC8555}}, Section 8.1), so a client can reuse that component without decoding it. When provisioning a `_validation-persist` record, the client MUST use the account's current key. A CA MUST accept a hashed URI generated with the current key associated with the account. Additionally, a CA MUST accept a hashed URI generated with a prior key previously associated with the account that is known to the CA per the key retention obligation in {{verification-procedure}}, subject to the deactivation and retention rules stated there. This allows a record provisioned before a key rotation to continue to validate. The rationale for these requirements is given in {{hashed-uri-security}}.
     4. `account_URL` is the ACME account URL ({{!RFC8555}}, Section 7.3). A URI is US-ASCII per {{!RFC3986}}, so it is encoded as those US-ASCII octets.
 
     The CA MUST verify that the hashed URI in the DNS record authorizes the ACME account making the request, by recomputing it as described in {{verification-procedure}}; if no recomputation matches, the CA MUST reject the record.
@@ -220,7 +222,9 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
     If the `policy` parameter is absent, or if its value is anything other than `wildcard`, the CA MUST proceed as if the `policy` parameter were not present (i.e., the validation applies only to the specific FQDN).
 
-5.  The issue-value MAY contain a `persistUntil` parameter. If present, the value MUST be a base-10 encoded integer representing a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds). If the value is not a valid base-10 integer, the CA MUST treat the record as malformed and reject it. After the specified timestamp, a CA MUST NOT use the record for a new validation attempt or reuse validation data previously obtained from it.
+5.  The issue-value MAY contain a `persistUntil` parameter. If present, the value MUST be a base-10 encoded integer representing a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds). If the value is not a valid base-10 integer, the CA MUST treat the record as malformed and reject it.
+
+    When a CA validates a `_validation-persist` record containing a `persistUntil` parameter with timestamp T, the CA MUST NOT set the `expires` field of the resulting authorization object ({{!RFC8555}}, Section 7.1.4) later than T, and MUST NOT rely on that validation to issue certificates after T. After timestamp T, a CA MUST NOT consider the record valid for new validation attempts. Already-issued certificates are unaffected by the expiration of a `persistUntil` timestamp.
 
 This specification defines the following case-handling rules for parameter values in dns-persist-01 records:
 
@@ -243,19 +247,16 @@ The ACME server verifies the challenge by performing a DNS lookup for TXT record
 
 To verify a hashed-URI `accounturi` value, the CA already knows the requesting account's URL and the FQDN being validated. The CA computes the expected hashed URI as defined in {{validation-record-format}} over each ACME public key it retains for that account (see below); for each such key it computes the value twice, once using the FQDN being validated as `domain_name` and once using the domain-omitted opt-out form (`domain_name` set to `*`). The CA treats the record as satisfying the requirement if its `accounturi` value equals any of these computed hashed URIs under Simple String Comparison ({{!RFC3986}}, Section 6.2.1). Retaining an account's prior key thumbprints allows records provisioned before a key rotation to continue validating.
 
-To recompute these hashed URIs, a CA has a data-retention obligation: it MUST retain an association between each ACME account and the SHA-256 JWK Thumbprints of the public keys that account has used, and it MUST retain, for each currently valid certificate, the link from that certificate to the specific key that computed the hashed URI of the `_validation-persist` record that most recently validated a domain for it. The following rules govern this retained data and the acceptance of the keys behind it, listed in order of precedence with earlier rules overriding later ones:
+To recompute these hashed URIs, a CA has a data-retention obligation: it MUST retain an association between each ACME account and the SHA-256 JWK Thumbprints of all public keys that account has used since the CA began accepting `dns-persist-01` records. The following rules govern this retained data and the acceptance of the keys behind it, listed in order of precedence with earlier rules overriding later ones:
 
-1. **Deactivation overrides retention.** A CA MUST NOT accept a hashed URI computed from a key of a deactivated ACME account, regardless of any retention rule below and regardless of whether a currently valid certificate depends on that key. Deactivating an account ({{!RFC8555}}, Section 7.3.6) therefore stops all of that account's `_validation-persist` records from validating immediately, which is the intended behavior for a suspected key or account compromise.
-2. **Certificate-backed retention.** A CA MUST retain the thumbprint of the key used to compute the hashed URI of any `_validation-persist` record that most recently validated a domain for a currently valid certificate, and MUST NOT prune it while that certificate remains valid, regardless of the key's age or any key-rotation bound. This ensures a record backing an in-use certificate does not cease to validate through routine key rotation.
-3. **General retention.** Subject to the rules above, a CA SHOULD retain the thumbprint of every public key an account has used since the CA began accepting `dns-persist-01` records, so that a record computed under any of those keys continues to validate. A CA MAY bound acceptance of a rotated-out key with a `keyRotationPeriod` (see {{key-rotation-period}}); once no currently valid certificate depends on a given key's hashed URI, and any applicable `keyRotationPeriod` has elapsed, the CA MAY prune that key's thumbprint.
+1. **Deactivation overrides retention.** A CA MUST NOT accept a hashed URI computed from a key of a deactivated ACME account, regardless of any retention rule below. Deactivating an account ({{!RFC8555}}, Section 7.3.6) stops all of that account's `_validation-persist` records from validating immediately, which is the intended behavior for a suspected key or account compromise. The CA MUST evaluate account status from live account state at each validation attempt; an account proof or status observed at record publication time MUST NOT substitute for live validation-time account evaluation. Once an account is deactivated, the CA MAY prune all retained key thumbprints for that account.
+2. **Witnessed key retention.** Subject to rule 1, a CA MUST retain the SHA-256 JWK Thumbprint of every public key an account has used, bounded only by the lifetime of the account, so that a record computed under any of those keys continues to validate across routine key rotations.
 
-## Account Key Rotation Period {#key-rotation-period}
+A CA MAY cache computed or accepted hashed URIs; such caching MUST NOT change any acceptance outcome.
 
-A CA MAY advertise a `keyRotationPeriod` in the `meta` object of its directory ({{!RFC8555}}, Section 7.1.1). When present, its value MUST be a non-negative integer number of seconds. It bounds how long, after a public key ceases to be the current key of an ACME account (for example, because the account rotated to a new key per {{!RFC8555}}, Section 7.3.5), the CA continues to accept hashed URIs computed with that prior key.
+The CA MUST evaluate `persistUntil`, `policy`, `issuer-domain-name`, and any unrecognized parameters from fresh DNS data retrieved during each validation attempt. No previously observed or cached value of these fields overrides the values read during the current validation.
 
-After the period elapses, the CA MAY cease accepting the rotated-out key, subject to the precedence rules in {{verification-procedure}}: certificate-backed retention keeps a key acceptable while a currently valid certificate depends on it even after the period has elapsed, and account deactivation stops acceptance immediately even before the period elapses. A CA that does not advertise a `keyRotationPeriod` retains and accepts prior keys per the general retention guidance in {{verification-procedure}}.
-
-The `keyRotationPeriod` gives domain owners an upper bound on how long a `_validation-persist` record computed with a since-rotated key remains usable, and gives CAs a defined point at which prior-key thumbprints may be pruned. Clients SHOULD republish `_validation-persist` records using the account's current key after a key rotation, and SHOULD do so before the CA's `keyRotationPeriod` elapses, so that validation does not lapse.
+When recomputing expected hashed URIs over retained keys, the CA MUST evaluate the account's current key first, and SHOULD evaluate remaining retained keys in reverse chronological order of their use.
 
 ## Multiple Issuer Support {#multiple-issuer-support}
 
@@ -345,11 +346,15 @@ Domain owners MAY provision `_validation-persist` TXT records before requesting 
 
 For a pre-provisioned record, the client computes the hashed `accounturi` itself, outside the ACME challenge-response flow, from its own ACME account URL, its current account key, and the CA's `accountHashPrefix`. The client obtains the `accountHashPrefix` from the CA's directory ({{!RFC8555}}, Section 7.1.1) and SHOULD retrieve the directory over an authenticated channel, so that the record is placed under the intended CA's infrastructure. Because the hashed URI cryptographically binds the account key (see {{hashed-uri-security}}), a record computed with the client's genuine account key cannot be made to validate for a different account; this key binding is what lets a domain owner safely pre-provision without the challenge-response exchange.
 
-Computing the hashed URI requires no private-key operation; the inputs are the account URL, the account key's public JWK Thumbprint, the domain name (or the `*` opt-out), the CA's `accountHashPrefix`, and the hash-algorithm identifier, all of which the account holder can share with another party. A domain owner MAY therefore delegate computation and publication of a `_validation-persist` record to a party that does not operate the ACME client and holds no ACME credentials, such as a DNS operator; the ACME client itself needs no DNS credentials in this arrangement. Sharing these values with such a party discloses the account URL, which the hashed form otherwise keeps out of public DNS, and enables that party to correlate the account's records across domains (see {{account-uri-privacy}}); the key binding described in {{hashed-uri-security}} is unaffected by which party performs the computation.
+Computing the hashed URI requires no private-key operation; the inputs are the account URL, the account key's public JWK Thumbprint, the domain name (or the `*` opt-out), the CA's `accountHashPrefix`, and the hash-algorithm identifier, all of which the account holder can share with another party. A domain owner MAY therefore delegate computation and publication of a `_validation-persist` record to a party that does not operate the ACME client and holds no ACME credentials, such as a DNS operator; the ACME client itself needs no DNS credentials in this arrangement.
+
+Before delegating the computation or publication of a `_validation-persist` record, the account holder MUST verify the account URL by sending an authenticated POST request to the exact account URL used in the digest. Per {{!RFC8555}}, Section 6.3, the payload of the JWS MUST be the empty octet string `""`. The client MUST follow no redirects and MUST verify that the returned account object has a `status` of `valid` ({{!RFC8555}}, Section 7.1.2). A JWS payload of `"{}"` MUST be rejected as non-conforming for this check. A successful proof for an unchanged (account URL, account key) pair MAY satisfy later pre-publication checks. This proof authenticates that the requesting key controls the exact account URL used in the digest; it does not authenticate the account to the domain name being validated, which is established by the domain owner publishing the record in their DNS zone. The domain owner and the delegated party MUST use an authenticated channel to transmit the account URL, key thumbprint, domain name, `accountHashPrefix`, and algorithm identifier outside the ACME channel. Domain owners SHOULD also publish a CAA `accounturi` parameter ({{!RFC8657}}) specifying their account URL as an independent reinforcing authorization.
+
+Sharing these values with such a party discloses the account URL, which the hashed form otherwise keeps out of public DNS, and enables that party to correlate the account's records across domains (see {{account-uri-privacy}}); the key binding described in {{hashed-uri-security}} is unaffected by which party performs the computation.
 
 Organizations pre-provisioning records SHOULD maintain an inventory of `_validation-persist` records and the ACME accounts they reference. Records MAY include a `persistUntil` parameter to bound their effective lifetime (see {{persist-until-parameter-considerations}}). Domain owners SHOULD audit `_validation-persist` records after any DNS infrastructure security incident, as pre-provisioned records persist beyond the window of compromise.
 
-CAs implementing `dns-persist-01` SHOULD maintain a stable `accountHashPrefix` and stable account URLs for the lifetime of an account, and SHOULD document their stability guarantees, since the hashed URI is computed over the account URL and served under the prefix. If a CA must change its `accountHashPrefix` or account-URL structure, it SHOULD provide a transition period during which hashed URIs under both the old and new forms are accepted for validation.
+CAs implementing `dns-persist-01` MUST maintain a stable `accountHashPrefix` and stable account URLs for the lifetime of an account once advertised, and MUST document their stability guarantees, since the hashed URI is computed over the account URL and served under the prefix. If a CA must change its `accountHashPrefix` or account-URL structure, it MUST provide a migration period during which hashed URIs under both the old and new forms are accepted for validation.
 
 # Wildcard and Subdomain Certificate Validation {#wildcard-certificate-validation}
 
@@ -425,7 +430,7 @@ Clients SHOULD protect their ACME account keys with the same level of security a
 
 ### Account Key Rotation {#account-key-rotation}
 
-The ACME account URL is the stable identifier for the account and persists across key rotations ({{!RFC8555}}, Section 7.3). The `accounturi` parameter, however, is a hashed URI computed in part over the account's current key ({{validation-record-format}}). When a client rotates its account key following the procedures defined in {{!RFC8555}}, Section 7.3.5, the hashed value in an existing DNS TXT record changes because `key` is one of its inputs, even though the account URL has not changed. An existing record continues to validate only for as long as the CA accepts the prior key that produced it, under the retention rules in {{verification-procedure}} and any `keyRotationPeriod` advertised per {{key-rotation-period}}; it is not a permanent exemption from republication. Clients SHOULD republish `_validation-persist` records with the hashed URI recomputed under the account's new key promptly after a rotation, as also noted in {{key-rotation-period}}; a client that does not do so risks a validation failure once the CA stops accepting the prior key.
+When an account key rotates following the procedures defined in {{!RFC8555}}, Section 7.3.5, the ACME account URL remains unchanged. The hashed URI in existing records changes because `key` is an input to the hash. Existing records remain valid under the retention rules in {{verification-procedure}}. Clients SHOULD republish `_validation-persist` records with the hashed URI recomputed under the account's new key promptly after a rotation. Republication ensures records reflect current credentials, which facilitates operational hygiene and auditing.
 
 ### Account URI Privacy {#account-uri-privacy}
 
@@ -451,7 +456,7 @@ The hashed URI is the sole `accounturi` form ({{validation-record-format}}). It 
 
 **Uniqueness of the binding.** What {{!RFC8657}}, Section 5.4 requires of an `accounturi` is reverse-direction uniqueness: a single `accounturi` value must not identify two different accounts. This holds because `account_URL` is one of the hash inputs and the hash is collision resistant, so each hashed URI uniquely identifies one account. The forward direction is intentionally one-to-many — one account yields a different value per domain — which is the privacy property above.
 
-**Acceptance of prior keys.** A CA accepts digests generated with an account's prior keys so that records provisioned before a rotation survive without republication ({{!RFC8555}}, Section 7.3.5), subject to the deactivation, certificate-backed retention, and key-rotation-period rules in {{verification-procedure}} and {{key-rotation-period}}. Such a record was committed to the account's URL when it was provisioned, so even if the key in the record is one that was later rotated out, the domain owner's intent to authorize that account is preserved. Account deactivation overrides this acceptance: once an account is deactivated, no digest computed from any of its keys validates, which is the emergency stop for a suspected key compromise.
+**Acceptance of prior keys.** A CA accepts digests generated with an account's prior keys so that records provisioned before a rotation survive without republication ({{!RFC8555}}, Section 7.3.5), subject to the deactivation and retention rules in {{verification-procedure}}. This acceptance aligns with {{!RFC8555}}, Section 7.3.5, which establishes that changing an account key should not have collateral impact on existing authorizations. Such a record was committed to the account's URL when it was provisioned, so even if the key in the record is one that was later rotated out, the domain owner's intent to authorize that account is preserved. Retaining historical public key thumbprints creates no capability for an attacker: under {{!RFC8555}}, Section 7.3.5, a rotated-out key cannot authenticate subsequent requests, and registering a fresh account with an old key yields a different account URL that produces a different hashed URI. Furthermore, no CA acceptance policy can automatically distinguish an honest key rotation from a hostile one, so time-bounded acceptance provides no defense against account takeover; the effective controls against account takeover remain account deactivation, DNS record removal, and the `persistUntil` parameter. Account deactivation overrides this acceptance: once an account is deactivated, no digest computed from any of its keys validates, which is the emergency stop for a suspected key compromise.
 
 **Limits of the privacy protection.** This construction is a best-effort obfuscation, not a cryptographically strong privacy mechanism. It resists bulk correlation and casual enumeration of account URLs, but a determined adversary with a-priori knowledge of candidate account URLs and their account keys can recover the true account URL. Domain owners who require stronger unlinkability SHOULD use separate ACME accounts for domains that must not be correlated.
 
@@ -512,7 +517,7 @@ For CAs subject to requirements like the CA/Browser Forum Baseline Requirements,
 
 This validation method is explicitly designed for persistence and reuse. The period for which a CA may rely on validation data is its `Validation Data Reuse Period` (as defined in {{conventions-and-definitions}}), bounded by the CA's own policy, applicable root program requirements, and any `persistUntil` constraint on the record ({{validation-record-format}}). The DNS TTL of the `_validation-persist` record governs caching at the DNS layer only; it is not a validation data reuse limit, and a CA MUST NOT derive the effective validation data reuse period from the record's observed TTL.
 
-CAs MAY reuse validation data obtained through this method for the duration of their Validation Data Reuse Period. CAs MUST also respect any `persistUntil` constraint as specified in {{validation-record-format}}. For a validation attempt that queries DNS, removing or changing the TXT record takes effect after resolver caches expire, as described in {{revocation-and-invalidation}}. Record removal does not invalidate previously obtained validation data before its allowed reuse period expires.
+CAs MAY reuse validation data obtained through this method for the duration of their Validation Data Reuse Period, subject to the `expires` constraint established by any `persistUntil` parameter on the validated record (see {{validation-record-format}}). For a validation attempt that queries DNS, removing or changing the TXT record takes effect after resolver caches expire, as described in {{revocation-and-invalidation}}. Record removal or later modification of `persistUntil` in DNS does not retroactively invalidate or shorten previously obtained validation data before its established authorization expiration.
 
 ## persistUntil Parameter Considerations {#persist-until-parameter-considerations}
 
@@ -541,8 +546,6 @@ The following table summarizes the applicability and timing of these actions:
 | Remove DNS record | New validations fail after resolver cache expiry; domain-owner action, no CA involvement |
 | Deactivate ACME account | New validations fail immediately; overrides key retention (see {{verification-procedure}}) |
 
-Independently of these actions, a CA MAY bound how long a record computed with a since-rotated key remains acceptable by advertising a `keyRotationPeriod` (see {{key-rotation-period}}). This bounds acceptance over time but is a routine lifecycle limit, not an immediate revocation mechanism.
-
 ACME Clients SHOULD provide clear mechanisms for users to:
 
 - Remove the `_validation-persist` DNS TXT record.
@@ -552,7 +555,7 @@ Certificate Authorities (CAs) implementing this method MUST:
 
 - During a validation attempt, fail the validation if the corresponding DNS TXT record is no longer present or if its content does not meet the requirements of this specification (e.g., incorrect `issuer-domain-name`, missing `accounturi`, altered `policy`).
 
-- Respect the `persistUntil` constraint as specified in {{validation-record-format}}, rejecting new validation attempts after the specified timestamp even if the record remains present.
+- Respect the `persistUntil` constraint as specified in {{validation-record-format}}, setting authorization expiration to no later than the specified timestamp and rejecting new validation attempts after the timestamp elapses.
 
 - Ensure their internal systems are capable of efficiently handling the validation failure when DNS records are removed or become invalid.
 
@@ -583,10 +586,6 @@ IANA is requested to register the following entries in the "Fields in the 'meta'
 
 - **Field Name**: accountHashPrefix
 - **Field Type**: string
-- **Reference**: This document
-
-- **Field Name**: keyRotationPeriod
-- **Field Type**: integer
 - **Reference**: This document
 
 - **Field Name**: issuerDomainNames
@@ -665,6 +664,8 @@ Note that these error codes apply to validation attempts on specific challenges.
 
 These error codes help ACME clients distinguish between different types of validation failures and take appropriate corrective actions.
 
+To mitigate potential denial-of-service risks from accounts with extensive key rollover history, CAs MUST rate-limit failed validation attempts per domain and account.
+
 ## Client Implementation Guidelines {#client-implementation-guidelines}
 
 ACME clients implementing this validation method should consider:
@@ -674,6 +675,8 @@ ACME clients implementing this validation method should consider:
 - Implementing validation record monitoring and alerting
 - Designing appropriate error handling for validation failures
 - Considering the security implications of persistent records in their threat models
+
+Clients that delegate record publication to third parties (such as DNS providers) MUST perform the pre-publication account check specified in {{pre-provisioning-records}} before transmitting inputs.
 
 Clients that manage or provision `_validation-persist` records SHOULD inspect their own local provisioning state (rather than relying on a DNS lookup) before initiating a new order, and SHOULD warn the operator if a record's `persistUntil` value has already expired or is likely to expire before validation completes. A client that skips this check risks initiating a validation attempt that the CA will reject with an `unauthorized` error (see {{ca-implementation-guidelines}}) instead of reporting an actionable, locally diagnosed cause.
 
@@ -864,7 +867,12 @@ RFC Editor: please remove this section before publication.
 - Specified the digest as `H(length_of_domain || domain_name || key || account_URL)`, with a leading length octet delimiting the domain name.
 - Added a mandatory domain-omitted opt-out (`domain_name` set to `*`) for correlation opt-out and cross-domain record reuse.
 - Specified CA key retention as a data-retention obligation with ranked precedence (deactivation overrides certificate-backed retention overrides general retention); account deactivation is an immediate override.
-- Added the `keyRotationPeriod` directory metadata field.
+- Retired the temporal key rotation window mechanisms (keyRotationPeriod directory metadata and keyRolloverWindow); prior-key acceptance is governed by CA retention.
+- Specified uniform witnessed-thumbprint retention as a MUST bounded only by account lifetime, with pruning permitted upon account deactivation.
+- Replaced the -01 reuse-unaffected text with a requirement that CAs clamp authorization `expires` to `persistUntil`.
+- Upgraded `accountHashPrefix` and account-URL stability to a MUST with mandatory dual acceptance during migration periods.
+- Added a pre-publication account-resource proof (authenticated POST-as-GET with empty payload `""` verifying `status=valid`) before delegating record publication.
+- Mitigated recomputation denial-of-service by evaluating current keys first, evaluating historical keys in reverse chronological order, and rate-limiting failed validations.
 - Renamed the challenge object's plural field from `issuer-domain-names` to `issuerDomainNames` to align with ACME's camelCase convention ({{!RFC8555}}); the singular DNS `issuer-domain-name` parameter and `persistUntil` are unchanged (#56).
 - Clarified that `key` in the digest is the 43-octet unpadded base64url encoding of the SHA-256 JWK Thumbprint {{!RFC7638}}, not the 32 raw digest octets, matching the encoding already used in ACME key authorizations ({{!RFC8555}}, Section 8.1).
 - Required `sha-256` support in both clients and CAs for interoperability, moved `<hash-alg>` to the Hash Name String registry defined by {{!RFC6920}}, excluded truncated digests shorter than 256 bits, and removed the document-local slash-to-hyphen substitution rule.
