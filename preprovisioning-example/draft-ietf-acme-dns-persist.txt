@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 23 January 2027                           Crosslayer Labs, Inc.
+Expires: 22 March 2027                             Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                            22 July 2026
+                                                       18 September 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -63,7 +63,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 23 January 2027.
+   This Internet-Draft will expire on 22 March 2027.
 
 Copyright Notice
 
@@ -135,9 +135,10 @@ Table of Contents
    10. Examples
      10.1.  Basic Validation Example (FQDN Only)
      10.2.  Hashed-URI Example
-     10.3.  Wildcard Validation Example
-     10.4.  Validation Example with persistUntil
-     10.5.  Wildcard Validation Example with persistUntil
+     10.3.  Pre-Provisioned Validation Example
+     10.4.  Wildcard Validation Example
+     10.5.  Validation Example with persistUntil
+     10.6.  Wildcard Validation Example with persistUntil
    11. References
      11.1.  Normative References
      11.2.  Informative References
@@ -177,7 +178,11 @@ Table of Contents
    This document defines a new ACME challenge type, "dns-persist-01".
    This method proves control over a Fully Qualified Domain Name (FQDN)
    by confirming the presence of a persistent DNS TXT record containing
-   CA and account identification information.
+   CA and account identification information.  Because the record's
+   value is derived from account, domain, and CA parameters rather than
+   from a per-challenge token, the record can be published before any
+   certificate request and by a party other than the ACME client (see
+   Section 4.6).
 
    The record format is based on the "issue-value" syntax from
    [RFC8659], incorporating an issuer-domain-name and a mandatory
@@ -253,6 +258,15 @@ Table of Contents
       encoded integer representing a UNIX timestamp (the number of
       seconds since 1970-01-01T00:00:00Z ignoring leap seconds).  Client
       pre-flight guidance appears in Section 9.4.
+
+   This document follows [RFC8555] in attributing DNS provisioning
+   actions to the ACME client.  Except where a requirement explicitly
+   involves an ACME message exchange or the account's private key, a DNS
+   action attributed to the client MAY instead be performed by another
+   party acting on behalf of the domain owner, such as a DNS operator;
+   Section 4.6 describes the values such a party needs.  Requirements on
+   the content of _validation-persist records apply to the published
+   record regardless of which party publishes it.
 
 3.  The "dns-persist-01" Challenge
 
@@ -797,8 +811,12 @@ Table of Contents
 
    Domain owners MAY provision _validation-persist TXT records before
    requesting any certificates, provided they can compute the accounturi
-   value.  When constructing records without a challenge object, the
-   following values MUST be used:
+   value.  The earliest point at which this value can be computed is
+   ACME account creation, because the account URL returned in the
+   newAccount response ([RFC8555], Section 7.3) is an input to the hash;
+   no order, authorization, or challenge object is required to compute
+   or publish the record.  When constructing records without a challenge
+   object, the following values MUST be used:
 
    *  *accounturi*: The hashed URI, computed as specified in
       Section 4.1.  A client knows its own ACME account URL (as returned
@@ -829,6 +847,21 @@ Table of Contents
    validate for a different account; this key binding is what lets a
    domain owner safely pre-provision without the challenge-response
    exchange.
+
+   Computing the hashed URI requires no private-key operation; the
+   inputs are the account URL, the account key's public JWK Thumbprint,
+   the domain name (or the * opt-out), the CA's accountHashPrefix, and
+   the hash-algorithm identifier, all of which the account holder can
+   share with another party.  A domain owner MAY therefore delegate
+   computation and publication of a _validation-persist record to a
+   party that does not operate the ACME client and holds no ACME
+   credentials, such as a DNS operator; the ACME client itself needs no
+   DNS credentials in this arrangement.  Sharing these values with such
+   a party discloses the account URL, which the hashed form otherwise
+   keeps out of public DNS, and enables that party to correlate the
+   account's records across domains (see Section 7.2.2); the key binding
+   described in Section 7.2.3 is unaffected by which party performs the
+   computation.
 
    Organizations pre-provisioning records SHOULD maintain an inventory
    of _validation-persist records and the ACME accounts they reference.
@@ -1612,6 +1645,17 @@ Table of Contents
    *  Considering dedicated interfaces or APIs for ACME validation
       record management
 
+   *  Supporting workflows in which the provider computes and publishes
+      _validation-persist records on a domain owner's behalf from the
+      shareable values listed in Section 4.6, none of which include
+      private key material
+
+   *  Never requesting or storing ACME account private keys, which no
+      record-management operation described in this document requires
+
+   *  Providing inventory and audit views of _validation-persist records
+      to support the inventory practices described in Section 4.6
+
 10.  Examples
 
 10.1.  Basic Validation Example (FQDN Only)
@@ -1687,7 +1731,61 @@ Table of Contents
    NpDnSwUthQK8zCgFdefYxAdAVPnygMLbs9US6oO-5ug, does not depend on the
    domain and MAY be reused across domains.
 
-10.3.  Wildcard Validation Example
+10.3.  Pre-Provisioned Validation Example
+
+   This example illustrates the pre-provisioning flow described in
+   Section 4.6: the _validation-persist record for "example.com" is
+   computed and published before any order exists, by a party other than
+   the ACME client.
+
+   1.  Prerequisite: the domain owner's ACME client has an account with
+       the CA; the account URL https://ca.example/acct/123 was returned
+       in the Location header of the newAccount response.  No order,
+       authorization, or challenge object exists yet.
+
+   2.  The CA's directory meta object advertises the values needed to
+       pre-provision a record:
+
+       {
+         "meta": {
+           "accountHashPrefix": "https://ca.example/account-hash/",
+           "issuerDomainNames": ["authority.example", "ca.example.net"]
+         }
+       }
+
+               Figure 6: Directory Metadata for Pre-Provisioning
+
+       Per Section 3.2, a name taken from this array is guaranteed to
+       satisfy the issuer-domain-name requirement of any dns-persist-01
+       challenge this CA issues later.
+
+   3.  The account holder supplies the account URL https://ca.example/
+       acct/123 and the account key's public JWK Thumbprint (encoded as
+       NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs, as in Section 10.2)
+       to the DNS operator managing the zone, a party distinct from the
+       ACME client.  No private key material is shared.  Using the same
+       inputs and result as Section 10.2, that party computes the hashed
+       URI and publishes the TXT record:
+
+       _validation-persist.example.com. IN TXT ("authority.example;"
+       " accounturi=https://ca.example/account-hash/"
+       "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw")
+
+                  Figure 7: Pre-Provisioned Validation Record
+
+   4.  At any later time, the client submits a newOrder request.  If the
+       CA returns a pending dns-persist-01 challenge, the client
+       responds to it and the CA validates the already-present record
+       through DNS queries; no DNS change is needed at order time.  A CA
+       implementing Just-in-Time validation (Section 4.5) may instead
+       evaluate the record when the authorization is created and return
+       it already valid, subject to the restrictions in that section;
+       because the account in this example has not previously completed
+       a dns-persist-01 validation, a CA following that section's
+       account restriction would take the pending-challenge path for
+       this first order.
+
+10.4.  Wildcard Validation Example
 
    For validation of "*.example.com" (which also validates "example.com"
    and specific subdomains like "www.example.com") by a CA using
@@ -1705,13 +1803,13 @@ Table of Contents
        "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw;"
        " policy=wildcard")
 
-                  Figure 6: Wildcard Policy Validation Record
+                  Figure 8: Wildcard Policy Validation Record
 
    3.  CA validates the record through DNS queries.  This validation
        authorizes certificates for "example.com", "*.example.com", and
        specific subdomains like "www.example.com".
 
-10.4.  Validation Example with persistUntil
+10.5.  Validation Example with persistUntil
 
    For validation of "example.com" with an explicit expiration date:
 
@@ -1727,13 +1825,13 @@ Table of Contents
        "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw;"
        " persistUntil=1721952000")
 
-                Figure 7: Validation Record with Expiration Time
+                Figure 9: Validation Record with Expiration Time
 
    3.  CA validates the record.  This validation is sufficient only for
        "example.com" and will not be considered valid after the
        specified timestamp (2024-07-26T00:00:00Z).
 
-10.5.  Wildcard Validation Example with persistUntil
+10.6.  Wildcard Validation Example with persistUntil
 
    For validation of "*.example.com" with an explicit expiration date:
 
@@ -1750,7 +1848,7 @@ Table of Contents
        " policy=wildcard;"
        " persistUntil=1721952000")
 
-           Figure 8: Wildcard Validation Record with Expiration Time
+           Figure 10: Wildcard Validation Record with Expiration Time
 
    3.  CA validates the record.  This validation authorizes certificates
        for "example.com", "*.example.com", and specific subdomains, but
@@ -1947,6 +2045,11 @@ Since draft-ietf-acme-dns-persist-01
       the D ⊆ C consistency rule with the challenge object's
       issuerDomainNames; the C ⊆ I rule against caaIdentities applies
       when the CA advertises caaIdentities (#60).
+
+   *  Added a pre-provisioned validation example and clarified that
+      computing and publishing a _validation-persist record requires no
+      private-key operation and can be performed out of band by a party
+      other than the ACME client, at any point after account creation.
 
 Authors' Addresses
 
