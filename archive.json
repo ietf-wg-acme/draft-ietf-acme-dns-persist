@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-09-17T02:26:10.537313+00:00",
+  "timestamp": "2026-09-20T02:23:44.152394+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -4597,13 +4597,13 @@
       "labels": [],
       "body": "Makes a client-computed hashed URI the sole `accounturi` form, replacing the three modes of -01: the raw ACME account URL (3a), alternative URIs (3b), and subscriber-account URIs (3c). This branch is the working candidate for -02.\n\nThe hashed URI is `<accountHashPrefix>/<hash-alg>/<base64url digest>`, where the digest is computed over `length_of_domain || domain_name || key || account_URL`. Binding the account key closes the substitution gap of a raw account URL: a record validates only for an account that controls the key, so a poisoned delivery channel cannot bind a record to an unintended account. Binding the domain gives each domain a distinct record value, which mitigates the correlation risk noted in RFC 8657, Section 5.9. A client that wants one record reused across domains can set `domain_name` to `*` and accept the correlation trade-off.\n\nChanges:\n\n1. Define the hashed-URI construction, with `sha-256` as the initial algorithm and agility through the `<hash-alg>` token.\n2. Specify verification by CA-side recomputation, plus the key-retention rules that let records survive routine key rotation. Precedence: account deactivation overrides all retention, then certificate-backed retention, then general retention.\n3. Add two directory `meta` fields with IANA registrations: `accountHashPrefix` (base URI for hashed values) and `keyRotationPeriod` (bound on prior-key acceptance).\n4. Remove modes 3b and 3c and their dependent text: subscriber-compromise and broad-scope security considerations, DNS-spoofing amplification, mode-specific error handling, and the three-mode revocation table.\n5. Rewrite the security considerations around the hashed URI: non-transferability, substitution resistance, enumeration cost, and the stated limits of the privacy protection.\n6. Add a worked hashed-URI example that doubles as a test vector, including the domain-omitted `*` form, and update all record examples.\n",
       "createdAt": "2026-07-06T23:14:18Z",
-      "updatedAt": "2026-07-26T02:53:38Z",
+      "updatedAt": "2026-09-19T04:43:41Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
-      "baseRefOid": "355fb4f6218c3a3856dbcf16d73b13870d4461c5",
+      "baseRefOid": "30239597bdf1b31df7c549d87cd80ca9e5def2c2",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "birgelee-02-candidate",
-      "headRefOid": "ddaf2aa0c4f6959cca521508a4e1ad89d785f068",
+      "headRefOid": "cb19c9fb952ccbccc818383b2fd25dfa19901ee9",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -5253,6 +5253,84 @@
               "updatedAt": "2026-07-26T03:17:10Z"
             }
           ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABOQP3zQ",
+          "commit": {
+            "abbreviatedOid": "cb19c9f"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "### \ud83d\udfe1 Changes recommended\n\nUnresolved critical findings affect persistence semantics, URI parsing, and validation-data retention/deactivation.\n\n*Get a fresh assessment by requesting another Copilot review.*\n\n<details>\n<summary>Pull request overview</summary>\n\nReplaces the three `accounturi` modes with a single client-computed hashed URI, updating validation, retention, metadata, security guidance, and examples.\n\n**Changes:**\n- Defines hash construction, verification, and key-rotation retention rules.\n- Adds directory metadata and IANA registrations.\n- Revises persistence, reuse, revocation, pre-provisioning, and examples.\n</details>\n\n<details>\n<summary>File summaries</summary>\n\n| File | Review summary |\r\n|---|---|\r\n| `draft-ietf-acme-dns-persist.md` | Critical findings: `persistUntil` semantics (2 votes), unsafe `accountHashPrefix` parsing (1), and validation-data retention after rotation/deactivation (1). Moderate findings: unstable metadata, unbounded retained-key work, and extendable retention bounds (1 each). Nits: pre-provisioning workflow (1), uncalled-out `issuerDomainNames` change (2), FIPS citation form (1), and substitution-resistance rationale (1). |\n</details>\n\n<details>\n<summary>Review details</summary>\n\n### Suppressed comments (6)\n\n**draft-ietf-acme-dns-persist.md:256**\n* `keyRotationPeriod` is described here as an upper bound, but the certificate-backed-retention rule above keeps a rotated-out key acceptable while any currently valid certificate depends on it. A renewal made with the old record can create another currently valid certificate and extend that dependency, so the advertised period may never force republication. This conflicts with the stated bound and the still-open rollover design in issue #69; either remove the upper-bound claim or define a non-extendable retention rule.\n```\nThe `keyRotationPeriod` gives domain owners an upper bound on how long a `_validation-persist` record computed with a since-rotated key remains usable, and gives CAs a defined point at which prior-key thumbprints may be pruned. Clients SHOULD republish `_validation-persist` records using the account's current key after a key rotation, and SHOULD do so before the CA's `keyRotationPeriod` elapses, so that validation does not lapse.\n```\n**draft-ietf-acme-dns-persist.md:166**\n* `D` is taken from an unversioned directory response, but this rule makes clients reject challenges missing any value previously observed in `D`, while the preceding rule promises those values will always appear. If a CA changes its advertised issuer names between directory retrieval and challenge issuance, a pre-provisioned record can become unusable, and a stale client can reject a conforming challenge. Define stability/versioning/expiry for this metadata or weaken the guarantee; this is the problem tracked by open issue #60.\n```\nA client MUST treat a missing or nonconforming directory `issuerDomainNames` array as unavailable for pre-provisioning. A missing or nonconforming `caaIdentities` array does not affect pre-provisioning; it only makes the I comparisons unavailable. A client MAY still process an interactive `dns-persist-01` challenge. When D is available, the client MUST consider a challenge malformed if any value in D is absent from C. When I is available, the client MUST consider a challenge malformed if any value in C is absent from I.\n```\n**draft-ietf-acme-dns-persist.md:341**\n* Pre-provisioning is still described as a client both knowing the key and publishing the record, even though this construction needs only the account URL and public thumbprint and is intended to decouple DNS publication from the ACME exchange. A delegated DNS operator therefore cannot tell from this text that it may create the record, and a client without DNS credentials has no stated workflow. Clarify the permitted actor split; this is the subject of open PR #71.\n```\n- **accounturi**: The hashed URI, computed as specified in {{validation-record-format}}. A client knows its own ACME account URL (as returned in the `Location` header of the account creation response, {{!RFC8555}}, Section 7.3), the FQDN it is provisioning, and its current account key, so it can compute and publish the hashed URI itself from the CA's `accountHashPrefix` without a per-provisioning request to the CA. A client that wishes to reuse a single record across multiple domains MAY instead use the domain-omitted opt-out form (`domain_name` set to `*`, see {{validation-record-format}}).\n```\n**draft-ietf-acme-dns-persist.md:248**\n* Verification in line 242 hashes once per retained key, but these rules do not bound the number of retained keys: without `keyRotationPeriod` the set grows for the account's lifetime, and even with a period an account can rotate arbitrarily often inside that window. A client (or compromised account) can therefore cause unbounded retention and per-validation work. Bound the retained-key count/rotation rate or define a verification strategy that does not linearly scan all historical keys.\n```\n3. **General retention.** Subject to the rules above, a CA SHOULD retain the thumbprint of every public key an account has used since the CA began accepting `dns-persist-01` records, so that a record computed under any of those keys continues to validate. A CA MAY bound acceptance of a rotated-out key with a `keyRotationPeriod` (see {{key-rotation-period}}); once no currently valid certificate depends on a given key's hashed URI, and any applicable `keyRotationPeriod` has elapsed, the CA MAY prune that key's thumbprint.\n```\n**draft-ietf-acme-dns-persist.md:192**\n* The newly added FIPS reference is declared under `normative`, but this citation is bare (`{{FIPS180-4}}`). Use the normative citation form (`{{!FIPS180-4}}`) so kramdown-rfc classifies it consistently with the other normative references.\n```\n    `<hash-alg>` MUST be the exact Hash Name String registered in the \"Named Information Hash Algorithm Registry\" defined by {{!RFC6920}}, Section 9.4. Both clients and CAs implementing dns-persist-01 MUST support the registered `sha-256` Hash Name String, which identifies SHA-256 {{FIPS180-4}}: a client MUST be able to compute, and a CA MUST accept, a hashed URI that uses this token, so that every conforming implementation interoperates without prior negotiation. A CA MAY accept other registered algorithms and MUST document each additional algorithm it accepts. An additional algorithm MUST have a registered digest length of at least 256 bits and MUST remain collision resistant at the time of use. A client MAY use an optional algorithm only after establishing from the CA's documentation that the CA accepts it. This document defines no separate algorithm-negotiation mechanism.\n```\n**draft-ietf-acme-dns-persist.md:438**\n* The security argument here attributes substitution resistance to the attacker not holding the victim's private key, but `key` is only the public 43-byte JWK thumbprint, so anyone can compute candidate digests. The actual argument is CA-side recomputation against the authenticated account's current or retained key history plus collision resistance; rewrite this paragraph so it also remains accurate for retained prior keys.\n```\n**Non-transferability and substitution resistance.** A raw account URL is only a URL commitment: its integrity is only as good as the channel that delivered the URL to the domain owner, and if that channel is poisoned the record binds to an account the owner did not intend, so RFC 8555 non-transferability is not preserved. The hashed URI closes this gap by additionally binding the account key. A CA recomputes the digest over the requesting account's own key, so a record validates for an account only if it was computed with a key that account controls. An attacker therefore cannot make an honest CA accept, for the attacker's account, a digest the victim published, because the attacker does not hold the victim's private key; and an attacker who substitutes a different account URL still cannot produce a validating record without the corresponding key. This substitution resistance is the reason this document defines only the hashed URI and does not permit a raw account URL.\n```\n\n- **Files reviewed:** 1/1 changed files\n- **Comments generated:** 4\n- **Review effort level:** Lite\n</details>\n\n---\n\n\ud83d\udca1 <a href=\"/ietf-wg-acme/draft-ietf-acme-dns-persist/new/main?filename=.github/skills/code-review/SKILL.md\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Add a `code-review` agent skill</a> or configure MCP servers for context-aware, tailored reviews. <a href=\"https://docs.github.com/copilot/how-tos/use-copilot-agents/request-a-code-review/use-code-review?tool=webui#mcp-servers-and-agent-skills\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more in the docs.</a>",
+          "createdAt": "2026-09-18T19:02:17Z",
+          "updatedAt": "2026-09-18T19:02:18Z",
+          "comments": [
+            {
+              "originalPosition": 120,
+              "body": "`accountHashPrefix` is only constrained to make the concatenation a valid URI, but the result is embedded directly as an RFC 8659 issue-value. A valid URI may contain a literal `;` (for example in its path), which is the issue-value parameter delimiter; such a prefix would split `accounturi` and make the record unparsable. Constrain the advertised prefix to an issue-value-safe URI prefix and make the separator required rather than relying on the example's trailing slash.",
+              "createdAt": "2026-09-18T19:02:17Z",
+              "updatedAt": "2026-09-18T19:02:18Z"
+            },
+            {
+              "originalPosition": 157,
+              "body": "This changes `persistUntil` semantics from the removed -01 text: it now invalidates previously obtained validation data instead of applying only to new validation attempts. That changes certificate-renewal/reuse behavior, but the PR description does not call out this protocol change, and open issue #38 discusses only a client-side preflight check. Please explicitly justify and document whether this semantic change is intentional.",
+              "createdAt": "2026-09-18T19:02:17Z",
+              "updatedAt": "2026-09-18T19:02:18Z"
+            },
+            {
+              "originalPosition": 194,
+              "body": "`keyRotationPeriod` is described as an upper bound and account deactivation as immediate, but the reuse rules still permit previously obtained validation data to be reused for the Validation Data Reuse Period. Without an explicit recheck or invalidation, cached validation can continue authorizing after the period or after account deactivation, contradicting the lifecycle claims in this section and the revocation text. This retention choice is also the subject of open issue #69 and PR #70; resolve or qualify it before making these security claims.",
+              "createdAt": "2026-09-18T19:02:18Z",
+              "updatedAt": "2026-09-18T19:02:18Z"
+            },
+            {
+              "originalPosition": 442,
+              "body": "The PR description says that two directory `meta` fields are added, but this change also registers `issuerDomainNames` and makes it mandatory for every CA offering this challenge. That is a separate, interoperability-affecting change; please update the PR description and approval scope to call it out explicitly.",
+              "createdAt": "2026-09-18T19:02:18Z",
+              "updatedAt": "2026-09-18T19:02:18Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABOSCAow",
+          "commit": {
+            "abbreviatedOid": "cb19c9f"
+          },
+          "author": "sebastiannielsen",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "CHANGES_REQUESTED",
+          "body": "",
+          "createdAt": "2026-09-18T23:15:37Z",
+          "updatedAt": "2026-09-18T23:16:11Z",
+          "comments": [
+            {
+              "originalPosition": 17,
+              "body": "I think that we should NOT use .well-known for this.\n\nThis because ACME is its own protocol, and does not need to be universially recongnizable. Meaning, I do not think we should register a .well-known.",
+              "createdAt": "2026-09-18T23:15:37Z",
+              "updatedAt": "2026-09-18T23:16:11Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABOTNrdw",
+          "commit": {
+            "abbreviatedOid": "08d9368"
+          },
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-09-19T04:43:41Z",
+          "updatedAt": "2026-09-19T04:43:41Z",
+          "comments": [
+            {
+              "originalPosition": 17,
+              "body": "this is an old line and we have since moved away from this. it an ACME directory object now.",
+              "createdAt": "2026-09-19T04:43:41Z",
+              "updatedAt": "2026-09-19T04:43:41Z"
+            }
+          ]
         }
       ]
     },
@@ -5399,10 +5477,10 @@
       "labels": [],
       "body": "This implements #69 by changing key retention into retaining previously validated URI hashes instead.\r\n\r\nThis however removes the ability for the CA from preventing issuances for a disabled key (that have been rotated out) since the CA cannot reverse a stored hash.\r\n\r\nThis is compensated for by allowing a certificate keypair based revocation, to also prune all previously used hashed URIs, which allows a account owner of a compromised ACME account, to prevent issuance using that account, even if the ACME account owner doesn't temporarly not have access to DNS to remove the record, by requesting a certificate keypair-based revocation.",
       "createdAt": "2026-08-02T11:23:26Z",
-      "updatedAt": "2026-08-06T02:04:18Z",
+      "updatedAt": "2026-09-18T18:55:55Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "birgelee-02-candidate",
-      "baseRefOid": "ddaf2aa0c4f6959cca521508a4e1ad89d785f068",
+      "baseRefOid": "cb19c9fb952ccbccc818383b2fd25dfa19901ee9",
       "headRepository": "sebastiannielsen/draft-ietf-acme-dns-persist",
       "headRefName": "patch-1",
       "headRefOid": "d09710ac00c57d8e394fdb7a4b0821270d8ff6a9",
@@ -5890,19 +5968,46 @@
       "labels": [],
       "body": "Stacked on #67; targets `birgelee-02-candidate`.\n\nEvery flow example starts from a CA-provided challenge object, and every example that names a publisher has the ACME client publish the record, so readers conclude the client must hold DNS credentials and publish per order, as in dns-01. Pre-provisioning is a deliberate design property: the directory `issuerDomainNames` metadata added for #60 exists to support it, and public CA documentation already frames the record as a standing authorization that keeps DNS changes and DNS credentials out of the issuance path (https://letsencrypt.org/2026/02/18/dns-persist-01). The draft itself never states the enabling facts \u2014 the record value derives from account, domain, and CA parameters rather than a per-challenge token, computing it involves no private-key operation, and publication can be delegated. Recent implementer questions confirmed the text does not answer this on its own.\n\nChanges:\n\n- New Pre-Provisioned Validation Example: a DNS operator, not the ACME client, computes and publishes the record before any order exists, reusing the Hashed-URI Example test vector; a later newOrder request validates against the already-present record, with the Just-in-Time alternative and its first-validation restriction noted.\n- Introduction: one sentence stating that publication decouples from the ACME transaction in both time and actor.\n- Conventions and Definitions: DNS actions attributed to \"the client\" may be performed by another party acting for the domain owner, except where an ACME message exchange or the account's private key is involved.\n- Pre-Provisioning Records: the earliest computation point is account creation, since the account URL is a hash input; a new paragraph lists the shareable inputs and the account-URL disclosure and correlation caveat.\n- DNS Provider Considerations: three bullets for provider-side publication workflows, including that no record-management operation requires the account private key.\n- Changelog entry.\n\nRelationship to open issues: the new text takes no position on account key rollover (#69); the example involves no rotation, and the Introduction wording avoids implying record durability across rotation. The example exercises the directory metadata added for #60 (already merged into #67) and changes no normative text in that area; #60 remains open pending #67. The disclosure caveat cross-references the existing privacy analysis (#61) without changing it. The pre-publication account-resource check under discussion in #64 is not part of this PR; if adopted, its actor scoping should account for the delegation documented here.\n",
       "createdAt": "2026-08-11T15:37:22Z",
-      "updatedAt": "2026-08-11T15:37:22Z",
+      "updatedAt": "2026-09-18T18:57:02Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "birgelee-02-candidate",
-      "baseRefOid": "ddaf2aa0c4f6959cca521508a4e1ad89d785f068",
+      "baseRefOid": "cb19c9fb952ccbccc818383b2fd25dfa19901ee9",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "preprovisioning-example",
-      "headRefOid": "c67d13cb5ba398c831dfdd17547cbb3baa7dc48a",
+      "headRefOid": "44ec69570b9580e2d1f958120864a989dac7a699",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
       "comments": [],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABOQMxZA",
+          "commit": {
+            "abbreviatedOid": "c67d13c"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "### \ud83d\udfe1 Changes recommended\n\nTwo unresolved review comments remain.\n\n*Get a fresh assessment by requesting another Copilot review.*\n\n<details>\n<summary>Pull request overview</summary>\n\nAdds pre-provisioned DNS validation guidance, delegated publication workflows, and a worked example.\n\n**Changes:**\n- Adds pre-provisioning semantics and validation example.\n- Clarifies delegated DNS actions and shareable inputs.\n- Adds provider guidance and changelog updates.\n</details>\n\n<details>\n<summary>File summaries</summary>\n\n| File | Summary |\r\n|---|---|\r\n| `draft-ietf-acme-dns-persist.md` | Adds the documented pre-provisioning content. Remaining comments: qualify directory metadata stability (moderate, 2 votes) and correct the rationale for the new SHOULD (nit, 2 votes). |\n</details>\n\n<details>\n<summary>Review details</summary>\n\n- **Files reviewed:** 1/1 changed files\n- **Comments generated:** 2\n- **Review effort level:** Lite\n</details>\n\n---\n\n\ud83d\udca1 <a href=\"/ietf-wg-acme/draft-ietf-acme-dns-persist/new/birgelee-02-candidate?filename=.github/skills/code-review/SKILL.md\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Add a `code-review` agent skill</a> or configure MCP servers for context-aware, tailored reviews. <a href=\"https://docs.github.com/copilot/how-tos/use-copilot-agents/request-a-code-review/use-code-review?tool=webui#mcp-servers-and-agent-skills\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more in the docs.</a>",
+          "createdAt": "2026-09-18T18:57:01Z",
+          "updatedAt": "2026-09-18T18:57:02Z",
+          "comments": [
+            {
+              "originalPosition": 67,
+              "body": "This example overstates the directory metadata guarantee. The current contract in #60 requires the values in the directory's current `D` set to be included in each challenge's `C` set, but it does not require a CA to keep a value in `D` forever; after the directory changes, a record created from the old array may no longer match a later challenge. Please qualify this sentence to the period during which the CA continues to advertise the name, or resolve that stability requirement in #60 before presenting it as unconditional.",
+              "createdAt": "2026-09-18T18:57:01Z",
+              "updatedAt": "2026-09-18T18:57:02Z"
+            },
+            {
+              "originalPosition": 28,
+              "body": "The rationale for this new SHOULD is inaccurate: the TXT record is published under the domain owner's DNS zone, not under the CA's infrastructure. The authenticated directory protects the `accountHashPrefix`/issuer metadata inputs; if that protection is skipped, the concrete failure is that a tampered response can make the client construct a record the intended CA will not accept. Please state that consequence explicitly (as required for SHOULDs by \u00a72) and include all hash inputs listed here.",
+              "createdAt": "2026-09-18T18:57:02Z",
+              "updatedAt": "2026-09-18T18:57:02Z"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
