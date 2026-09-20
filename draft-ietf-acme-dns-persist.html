@@ -11,26 +11,26 @@
 <meta content='
        This document specifies "dns-persist-01", a new validation method for the Automated Certificate Management Environment (ACME) protocol. This method allows a Certification Authority (CA) to verify control over a domain by confirming the presence of a persistent DNS TXT record containing CA and account identification information. This method is particularly suited for environments where traditional challenge methods are impractical, such as multi-tenant hosting platforms, enterprise DNS environments, and IoT deployments. The validation method is designed with a strong focus on security and robustness, incorporating widely adopted industry best practices for persistent domain control validation. This design aims to make it suitable for Certification Authorities operating under various policy environments, including those that align with the CA/Browser Forum Baseline Requirements. 
     ' name="description">
-<meta content="xml2rfc 3.34.0" name="generator">
+<meta content="xml2rfc 3.34.1" name="generator">
 <meta content="acme" name="keyword">
 <meta content="dns" name="keyword">
 <meta content="validation" name="keyword">
 <meta content="persistent" name="keyword">
 <meta content="draft-ietf-acme-dns-persist-latest" name="ietf.draft">
 <!-- Generator version information:
-  xml2rfc 3.34.0
-    Python 3.14.5
-    ConfigArgParse 1.7.5
+  xml2rfc 3.34.1
+    Python 3.14.7
+    ConfigArgParse 1.7.7
     google-i18n-address 3.1.1
     intervaltree 3.2.1
     Jinja2 3.1.6
     lxml 6.1.1
     natsort 8.4.0
-    platformdirs 4.10.1
+    platformdirs 4.11.10
     pycountry 24.6.1
     PyYAML 6.0.3
     requests 2.33.1
-    wcwidth 0.8.2
+    wcwidth 0.8.4
 -->
 <link href="draft-ietf-acme-dns-persist.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
@@ -66,7 +66,6 @@
   src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
   unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
-
 @font-face {
   font-family: 'Lora';
   font-style: italic;
@@ -115,7 +114,6 @@
   src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
-
 @font-face {
   font-family: 'Lora';
   font-style: normal;
@@ -180,7 +178,6 @@
   font-display: swap;
   src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
 }
 
 @font-face {
@@ -1049,11 +1046,11 @@ svg {
 <thead><tr>
 <td class="left">Internet-Draft</td>
 <td class="center">ACME Persistent DNS Challenge</td>
-<td class="right">July 2026</td>
+<td class="right">September 2026</td>
 </tr></thead>
 <tfoot><tr>
 <td class="left">Heurich, et al.</td>
-<td class="center">Expires 28 January 2027</td>
+<td class="center">Expires 24 March 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1066,12 +1063,12 @@ svg {
 <dd class="internet-draft">draft-ietf-acme-dns-persist-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-07-27" class="published">27 July 2026</time>
+<time datetime="2026-09-20" class="published">20 September 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-01-28">28 January 2027</time></dd>
+<dd class="expires"><time datetime="2027-03-24">24 March 2027</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -1128,7 +1125,7 @@ svg {
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 28 January 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 24 March 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1173,6 +1170,9 @@ svg {
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
                 <p id="section-toc.1-1.3.2.1.1"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-challenge-object" class="internal xref">Challenge Object</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2">
+                <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-directory-metadata-for-issu" class="internal xref">Directory Metadata for Issuer Domain Names</a></p>
 </li>
             </ul>
 </li>
@@ -1242,37 +1242,24 @@ svg {
                 <p id="section-toc.1-1.7.2.2.1"><a href="#section-7.2" class="auto internal xref">7.2</a>.  <a href="#name-account-binding-security" class="internal xref">Account Binding Security</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2.2.1">
-                    <p id="section-toc.1-1.7.2.2.2.1.1"><a href="#section-7.2.1" class="auto internal xref">7.2.1</a>.  <a href="#name-subscriber-credential-compr" class="internal xref">Subscriber Credential Compromise</a></p>
+                    <p id="section-toc.1-1.7.2.2.2.1.1"><a href="#section-7.2.1" class="auto internal xref">7.2.1</a>.  <a href="#name-account-key-rotation" class="internal xref">Account Key Rotation</a></p>
 </li>
                   <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2.2.2">
-                    <p id="section-toc.1-1.7.2.2.2.2.1"><a href="#section-7.2.2" class="auto internal xref">7.2.2</a>.  <a href="#name-account-key-rotation" class="internal xref">Account Key Rotation</a></p>
+                    <p id="section-toc.1-1.7.2.2.2.2.1"><a href="#section-7.2.2" class="auto internal xref">7.2.2</a>.  <a href="#name-account-uri-privacy" class="internal xref">Account URI Privacy</a></p>
 </li>
                   <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2.2.3">
-                    <p id="section-toc.1-1.7.2.2.2.3.1"><a href="#section-7.2.3" class="auto internal xref">7.2.3</a>.  <a href="#name-substitution-of-the-account" class="internal xref">Substitution of the Account URI</a></p>
-</li>
-                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2.2.4">
-                    <p id="section-toc.1-1.7.2.2.2.4.1"><a href="#section-7.2.4" class="auto internal xref">7.2.4</a>.  <a href="#name-account-uri-privacy" class="internal xref">Account URI Privacy</a></p>
+                    <p id="section-toc.1-1.7.2.2.2.3.1"><a href="#section-7.2.3" class="auto internal xref">7.2.3</a>.  <a href="#name-hashed-account-uris" class="internal xref">Hashed Account URIs</a></p>
 </li>
                 </ul>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.3">
                 <p id="section-toc.1-1.7.2.3.1"><a href="#section-7.3" class="auto internal xref">7.3</a>.  <a href="#name-subdomain-validation-risks" class="internal xref">Subdomain Validation Risks</a></p>
-<ul class="compact toc ulBare ulEmpty">
-<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.3.2.1">
-                    <p id="section-toc.1-1.7.2.3.2.1.1"><a href="#section-7.3.1" class="auto internal xref">7.3.1</a>.  <a href="#name-subscriber-uris-and-broad-a" class="internal xref">Subscriber URIs and Broad Authorization Scope</a></p>
-</li>
-                </ul>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.4">
                 <p id="section-toc.1-1.7.2.4.1"><a href="#section-7.4" class="auto internal xref">7.4</a>.  <a href="#name-cross-ca-validation-reuse" class="internal xref">Cross-CA Validation Reuse</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.5">
                 <p id="section-toc.1-1.7.2.5.1"><a href="#section-7.5" class="auto internal xref">7.5</a>.  <a href="#name-record-tampering-and-integr" class="internal xref">Record Tampering and Integrity</a></p>
-<ul class="compact toc ulBare ulEmpty">
-<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.5.2.1">
-                    <p id="section-toc.1-1.7.2.5.2.1.1"><a href="#section-7.5.1" class="auto internal xref">7.5.1</a>.  <a href="#name-dns-spoofing-amplification-" class="internal xref">DNS Spoofing Amplification with Subscriber URIs</a></p>
-</li>
-                </ul>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.6">
                 <p id="section-toc.1-1.7.2.6.1"><a href="#section-7.6" class="auto internal xref">7.6</a>.  <a href="#name-issuer-domain-name-normaliz" class="internal xref">Issuer Domain Name Normalization and Limits</a></p>
@@ -1292,7 +1279,7 @@ svg {
                 </ul>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.9">
-                <p id="section-toc.1-1.7.2.9.1"><a href="#section-7.9" class="auto internal xref">7.9</a>.  <a href="#name-validation-data-reuse-and-t" class="internal xref">Validation Data Reuse and TTL Handling</a></p>
+                <p id="section-toc.1-1.7.2.9.1"><a href="#section-7.9" class="auto internal xref">7.9</a>.  <a href="#name-validation-data-reuse" class="internal xref">Validation Data Reuse</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.10">
                 <p id="section-toc.1-1.7.2.10.1"><a href="#section-7.10" class="auto internal xref">7.10</a>. <a href="#name-persistuntil-parameter-cons" class="internal xref">persistUntil Parameter Considerations</a></p>
@@ -1310,6 +1297,9 @@ svg {
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.2">
                 <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-underscored-and-globally-sc" class="internal xref">Underscored and Globally Scoped DNS Node Names Registry</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.3">
+                <p id="section-toc.1-1.8.2.3.1"><a href="#section-8.3" class="auto internal xref">8.3</a>.  <a href="#name-acme-directory-metadata-fie" class="internal xref">ACME Directory Metadata Fields</a></p>
 </li>
             </ul>
 </li>
@@ -1345,13 +1335,19 @@ svg {
                 <p id="section-toc.1-1.10.2.1.1"><a href="#section-10.1" class="auto internal xref">10.1</a>.  <a href="#name-basic-validation-example-fq" class="internal xref">Basic Validation Example (FQDN Only)</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.2">
-                <p id="section-toc.1-1.10.2.2.1"><a href="#section-10.2" class="auto internal xref">10.2</a>.  <a href="#name-wildcard-validation-example" class="internal xref">Wildcard Validation Example</a></p>
+                <p id="section-toc.1-1.10.2.2.1"><a href="#section-10.2" class="auto internal xref">10.2</a>.  <a href="#name-hashed-uri-example" class="internal xref">Hashed-URI Example</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.3">
-                <p id="section-toc.1-1.10.2.3.1"><a href="#section-10.3" class="auto internal xref">10.3</a>.  <a href="#name-validation-example-with-per" class="internal xref">Validation Example with persistUntil</a></p>
+                <p id="section-toc.1-1.10.2.3.1"><a href="#section-10.3" class="auto internal xref">10.3</a>.  <a href="#name-pre-provisioned-validation-" class="internal xref">Pre-Provisioned Validation Example</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.4">
-                <p id="section-toc.1-1.10.2.4.1"><a href="#section-10.4" class="auto internal xref">10.4</a>.  <a href="#name-wildcard-validation-example-" class="internal xref">Wildcard Validation Example with persistUntil</a></p>
+                <p id="section-toc.1-1.10.2.4.1"><a href="#section-10.4" class="auto internal xref">10.4</a>.  <a href="#name-wildcard-validation-example" class="internal xref">Wildcard Validation Example</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.5">
+                <p id="section-toc.1-1.10.2.5.1"><a href="#section-10.5" class="auto internal xref">10.5</a>.  <a href="#name-validation-example-with-per" class="internal xref">Validation Example with persistUntil</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.6">
+                <p id="section-toc.1-1.10.2.6.1"><a href="#section-10.6" class="auto internal xref">10.6</a>.  <a href="#name-wildcard-validation-example-" class="internal xref">Wildcard Validation Example with persistUntil</a></p>
 </li>
             </ul>
 </li>
@@ -1370,7 +1366,15 @@ svg {
             <p id="section-toc.1-1.12.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
-            <p id="section-toc.1-1.13.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
+            <p id="section-toc.1-1.13.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-change-log" class="internal xref">Change Log</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.1">
+                <p id="section-toc.1-1.13.2.1.1"><a href="#appendix-B.1" class="auto internal xref"></a><a href="#name-since-draft-ietf-acme-dns-p" class="internal xref">Since draft-ietf-acme-dns-persist-01</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
 </li>
         </ul>
 </nav>
@@ -1400,8 +1404,8 @@ svg {
           <p id="section-1-3.5.1">Internet of Things (IoT) deployments where devices may not be able to host an HTTP service or coordinate DNS updates in real-time.<a href="#section-1-3.5.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="section-1-4">This document defines a new ACME challenge type, "dns-persist-01". This method proves control over a Fully Qualified Domain Name (FQDN) by confirming the presence of a persistent DNS TXT record containing CA and account identification information.<a href="#section-1-4" class="pilcrow">¶</a></p>
-<p id="section-1-5">The record format is based on the "issue-value" syntax from <span>[<a href="#RFC8659" class="cite xref">RFC8659</a>]</span>, incorporating an <code>issuer-domain-name</code> and a mandatory <code>accounturi</code> parameter <span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span> that identifies the applicant's account or a subscriber account encompassing it. This design provides strong binding between the domain, the CA, and the entity requesting validation.<a href="#section-1-5" class="pilcrow">¶</a></p>
+<p id="section-1-4">This document defines a new ACME challenge type, "dns-persist-01". This method proves control over a Fully Qualified Domain Name (FQDN) by confirming the presence of a persistent DNS TXT record containing CA and account identification information. Because the record's value is derived from account, domain, and CA parameters rather than from a per-challenge token, the record can be published before any certificate request and by a party other than the ACME client (see <a href="#pre-provisioning-records" class="auto internal xref">Section 4.5</a>).<a href="#section-1-4" class="pilcrow">¶</a></p>
+<p id="section-1-5">The record format is based on the "issue-value" syntax from <span>[<a href="#RFC8659" class="cite xref">RFC8659</a>]</span>, incorporating an <code>issuer-domain-name</code> and a mandatory <code>accounturi</code> parameter whose value is defined in <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>. The parameter name is reused from the CAA <code>accounturi</code> parameter defined in <span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>, Section 3; <a href="#caa-interaction" class="auto internal xref">Section 7.7</a> explains the relationship between them. The <code>accounturi</code> is a hashed URI that cryptographically binds the account to the domain being validated. This design provides strong binding between the domain, the CA, and the entity requesting validation.<a href="#section-1-5" class="pilcrow">¶</a></p>
 <div id="robustness-and-alignment">
 <section id="section-1.1">
         <h3 id="name-robustness-and-alignment-wi">
@@ -1413,10 +1417,7 @@ svg {
             <p id="section-1.1-2.1.1">The use of a well-defined, unique DNS label (e.g., "_validation-persist") for persistent validation records, minimizing potential conflicts.<a href="#section-1.1-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-1.1-2.2">
-            <p id="section-1.1-2.2.1">Consideration of DNS TTL values when determining the effective validity period of an authorization, balancing persistence with responsiveness to DNS changes (see <a href="#validation-data-reuse-and-ttl-handling" class="auto internal xref">Section 7.9</a>).<a href="#section-1.1-2.2.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="section-1.1-2.3">
-            <p id="section-1.1-2.3.1">Explicit binding of the domain validation to an ACME account or subscriber account through a unique identifier, establishing clear accountability and enhancing security against unauthorized use.<a href="#section-1.1-2.3.1" class="pilcrow">¶</a></p>
+            <p id="section-1.1-2.2.1">Explicit binding of the domain validation to an ACME account through a unique identifier, establishing clear accountability and enhancing security against unauthorized use.<a href="#section-1.1-2.2.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
 <p id="section-1.1-3">Certification Authorities operating under various trust program requirements will find this technical framework suitable for their domain validation needs, as its design inherently supports robust and auditable validation practices.<a href="#section-1.1-3" class="pilcrow">¶</a></p>
@@ -1448,25 +1449,21 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
 <dt id="section-2-2.5"><strong>Issuer Domain Name</strong></dt>
         <dd style="margin-left: 1.5em" id="section-2-2.6">
           <p id="section-2-2.6.1">A domain name disclosed by the CA in Section 4.2 of the CA's Certificate Policy and/or Certification Practices Statement to identify the CA for the purposes of this validation method.<a href="#section-2-2.6.1" class="pilcrow">¶</a></p>
-<p id="section-2-2.6.2">Note: The <code>issuer-domain-names</code> provided in the challenge object <span class="bcp14">MAY</span> be drawn from the machine-readable <code>caaIdentities</code> array in the ACME server's directory object, as specified in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.1.1. This creates a clearer programmatic link between the server's advertised identities and the challenge object.<a href="#section-2-2.6.2" class="pilcrow">¶</a></p>
+<p id="section-2-2.6.2">The directory and challenge-object fields that carry Issuer Domain Names, and their relationship to <code>caaIdentities</code>, are defined in <a href="#directory-issuer-domain-names" class="auto internal xref">Section 3.2</a> and <a href="#challenge-object" class="auto internal xref">Section 3.1</a>.<a href="#section-2-2.6.2" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="section-2-2.7"><strong>Subscriber Account</strong></dt>
+<dt id="section-2-2.7"><strong>Validation Data Reuse Period</strong></dt>
         <dd style="margin-left: 1.5em" id="section-2-2.8">
-          <p id="section-2-2.8.1">A "CA account" (<span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>, Section 3) that encompasses one or more ACME accounts and represents their common subscriber. A URI identifying a subscriber account is called a "subscriber-account URI." This document uses "subscriber account" in preference to the RFC 8657 term "CA account" because ACME accounts are also CA accounts, and the two must be distinguished.<a href="#section-2-2.8.1" class="pilcrow">¶</a></p>
+          <p id="section-2-2.8.1">The period during which a CA may rely on validation data, as defined by the CA's practices and applicable requirements.<a href="#section-2-2.8.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="section-2-2.9"><strong>Validation Data Reuse Period</strong></dt>
+<dt id="section-2-2.9"><strong>persistUntil</strong></dt>
         <dd style="margin-left: 1.5em" id="section-2-2.10">
-          <p id="section-2-2.10.1">The period during which a CA may rely on validation data, as defined by the CA's practices and applicable requirements.<a href="#section-2-2.10.1" class="pilcrow">¶</a></p>
-</dd>
-        <dd class="break"></dd>
-<dt id="section-2-2.11"><strong>persistUntil</strong></dt>
-        <dd style="margin-left: 1.5em" id="section-2-2.12">
-          <p id="section-2-2.12.1">An optional parameter in the validation record that specifies the timestamp after which the validation record should no longer be considered valid by CAs. The value <span class="bcp14">MUST</span> be a base-10 encoded integer representing a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds).<a href="#section-2-2.12.1" class="pilcrow">¶</a></p>
+          <p id="section-2-2.10.1">An optional parameter in the validation record that specifies the timestamp after which the validation record should no longer be considered valid by CAs. The value <span class="bcp14">MUST</span> be a base-10 encoded integer representing a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds). Client pre-flight guidance appears in <a href="#client-implementation-guidelines" class="auto internal xref">Section 9.4</a>.<a href="#section-2-2.10.1" class="pilcrow">¶</a></p>
 </dd>
       <dd class="break"></dd>
 </dl>
+<p id="section-2-3">This document follows <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span> in attributing DNS provisioning actions to the ACME client. Except where a requirement explicitly involves an ACME message exchange or the account's private key, a DNS action attributed to the client <span class="bcp14">MAY</span> instead be performed by another party acting on behalf of the domain owner, such as a DNS operator; <a href="#pre-provisioning-records" class="auto internal xref">Section 4.5</a> describes the values such a party needs. Requirements on the content of <code>_validation-persist</code> records apply to the published record regardless of which party publishes it.<a href="#section-2-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="dns-persist-01-challenge">
@@ -1493,25 +1490,22 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
             <p id="section-3.1-2.3.1"><strong>status</strong> (required, string): The status of this challenge<a href="#section-3.1-2.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-3.1-2.4">
-            <p id="section-3.1-2.4.1"><strong>accounturi</strong> (required, string): A URI identifying the specific ACME account requesting validation or a subscriber account encompassing it (see <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>), using the identifier format specified in <span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>, Section 3. This is the URI the CA expects in the DNS record and the mechanism by which the CA communicates alternative URIs to the client. Clients that pre-provisioned a record using their ACME account URL (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3) <span class="bcp14">SHOULD</span> verify the value identifies the same account. Note that independent verification is possible for mode 3a (Simple String Comparison), may be possible for mode 3b (if the CA exposes the URI-to-account mapping), and is not possible for mode 3c (clients must trust the CA's subscriber-account association).<a href="#section-3.1-2.4.1" class="pilcrow">¶</a></p>
+            <p id="section-3.1-2.4.1"><strong>issuerDomainNames</strong> (required, array of strings): A list of one or more Issuer Domain Names. The client <span class="bcp14">MUST</span> choose one of these domain names to include in the DNS TXT record. The challenge is successful if a valid TXT record is found that uses any one of the provided domain names.<a href="#section-3.1-2.4.1" class="pilcrow">¶</a></p>
+<p id="section-3.1-2.4.2">
+Each string in the array <span class="bcp14">MUST</span> be a domain name that complies with the following normalization rules:<a href="#section-3.1-2.4.2" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-3.1-2.4.3">
+<li id="section-3.1-2.4.3.1">
+                <p id="section-3.1-2.4.3.1.1">The domain name <span class="bcp14">MUST</span> be represented in A-label format (Punycode, <span>[<a href="#RFC5890" class="cite xref">RFC5890</a>]</span>).<a href="#section-3.1-2.4.3.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-3.1-2.5">
-            <p id="section-3.1-2.5.1"><strong>issuer-domain-names</strong> (required, array of strings): A list of one or more Issuer Domain Names. The client <span class="bcp14">MUST</span> choose one of these domain names to include in the DNS TXT record. The challenge is successful if a valid TXT record is found that uses any one of the provided domain names.<a href="#section-3.1-2.5.1" class="pilcrow">¶</a></p>
-<p id="section-3.1-2.5.2">
-Each string in the array <span class="bcp14">MUST</span> be a domain name that complies with the following normalization rules:<a href="#section-3.1-2.5.2" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-3.1-2.5.3">
-<li id="section-3.1-2.5.3.1">
-                <p id="section-3.1-2.5.3.1.1">The domain name <span class="bcp14">MUST</span> be represented in A-label format (Punycode, <span>[<a href="#RFC5890" class="cite xref">RFC5890</a>]</span>).<a href="#section-3.1-2.5.3.1.1" class="pilcrow">¶</a></p>
+              <li id="section-3.1-2.4.3.2">
+                <p id="section-3.1-2.4.3.2.1">All characters <span class="bcp14">MUST</span> be lowercase.<a href="#section-3.1-2.4.3.2.1" class="pilcrow">¶</a></p>
 </li>
-              <li id="section-3.1-2.5.3.2">
-                <p id="section-3.1-2.5.3.2.1">All characters <span class="bcp14">MUST</span> be lowercase.<a href="#section-3.1-2.5.3.2.1" class="pilcrow">¶</a></p>
-</li>
-              <li id="section-3.1-2.5.3.3">
-                <p id="section-3.1-2.5.3.3.1">The domain name <span class="bcp14">MUST NOT</span> have a trailing dot.<a href="#section-3.1-2.5.3.3.1" class="pilcrow">¶</a></p>
+              <li id="section-3.1-2.4.3.3">
+                <p id="section-3.1-2.4.3.3.1">The domain name <span class="bcp14">MUST NOT</span> have a trailing dot.<a href="#section-3.1-2.4.3.3.1" class="pilcrow">¶</a></p>
 </li>
             </ol>
-<p id="section-3.1-2.5.4">
-The server <span class="bcp14">MUST</span> ensure the array is not empty. Servers <span class="bcp14">MUST NOT</span> send more than 10 issuer domain names. This limit serves as a practical measure to prevent denial-of-service vectors against clients. Clients <span class="bcp14">MUST</span> consider a challenge malformed if the <code>issuer-domain-names</code> array is empty or if it contains more than 10 entries, and <span class="bcp14">MUST</span> reject such challenges. Each domain name <span class="bcp14">MUST NOT</span> exceed 253 octets in length.<a href="#section-3.1-2.5.4" class="pilcrow">¶</a></p>
+<p id="section-3.1-2.4.4">
+The server <span class="bcp14">MUST</span> ensure the array is not empty. Servers <span class="bcp14">MUST NOT</span> send more than 10 issuer domain names. This limit serves as a practical measure to prevent denial-of-service vectors against clients. Clients <span class="bcp14">MUST</span> consider a challenge malformed if the <code>issuerDomainNames</code> array is empty or if it contains more than 10 entries, and <span class="bcp14">MUST</span> reject such challenges. Each domain name <span class="bcp14">MUST NOT</span> exceed 253 octets in length.<a href="#section-3.1-2.4.4" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-3.1-3">The following shows an example challenge object:<a href="#section-3.1-3" class="pilcrow">¶</a></p>
@@ -1523,8 +1517,7 @@ The server <span class="bcp14">MUST</span> ensure the array is not empty. Server
   "type": "dns-persist-01",
   "url": "https://ca.example/acme/authz/1234/0",
   "status": "pending",
-  "accounturi": "https://ca.example/acct/123",
-  "issuer-domain-names": ["authority.example", "ca.example.net"]
+  "issuerDomainNames": ["authority.example", "ca.example.net"]
 }
 </pre>
 </div>
@@ -1532,6 +1525,30 @@ The server <span class="bcp14">MUST</span> ensure the array is not empty. Server
 <a href="#name-example-dns-persist-01-chal" class="selfRef">Example dns-persist-01 Challenge Object</a>
           </figcaption></figure>
 </div>
+</section>
+</div>
+<div id="directory-issuer-domain-names">
+<section id="section-3.2">
+        <h3 id="name-directory-metadata-for-issu">
+<a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-directory-metadata-for-issu" class="section-name selfRef">Directory Metadata for Issuer Domain Names</a>
+        </h3>
+<p id="section-3.2-1">A CA offering the <code>dns-persist-01</code> challenge type <span class="bcp14">MUST</span> advertise an <code>issuerDomainNames</code> array in the <code>meta</code> object of its directory (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.1.1). This directory-level array lets a client discover Issuer Domain Names before opening any authorization, so it can pre-provision <code>_validation-persist</code> records per <a href="#pre-provisioning-records" class="auto internal xref">Section 4.5</a> without an interactive order.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+<p id="section-3.2-2">The directory <code>issuerDomainNames</code> array <span class="bcp14">MUST</span> use the same normalization and length rules as the challenge object's <code>issuerDomainNames</code> array (<a href="#challenge-object" class="auto internal xref">Section 3.1</a>): each entry <span class="bcp14">MUST</span> be a lowercase A-label domain name with no trailing dot and <span class="bcp14">MUST NOT</span> exceed 253 octets. The array <span class="bcp14">MUST NOT</span> be empty and <span class="bcp14">MUST NOT</span> contain more than 10 entries.<a href="#section-3.2-2" class="pilcrow">¶</a></p>
+<p id="section-3.2-3">Let D be the set of values in the directory <code>issuerDomainNames</code> array, and let I be the set of values in the directory <code>caaIdentities</code> array (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.1.1), represented as lowercase A-label domain names with no trailing dot. This document does not require a CA to advertise <code>caaIdentities</code>; a CA that does not perform CAA validation has no names to disclose there. For each <code>dns-persist-01</code> challenge object the CA issues, let C be the set of values in that challenge's <code>issuerDomainNames</code> array. The CA <span class="bcp14">MUST</span> satisfy these requirements:<a href="#section-3.2-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3.2-4.1">
+            <p id="section-3.2-4.1.1">Every value in D <span class="bcp14">MUST</span> appear in C. A client that pre-provisions a record using a name from D is therefore guaranteed that the name will satisfy the <code>issuer-domain-name</code> requirement of any <code>dns-persist-01</code> challenge that CA issues later, without first opening an authorization.<a href="#section-3.2-4.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-3.2-4.2">
+            <p id="section-3.2-4.2.1">C <span class="bcp14">MAY</span> include values beyond D while remaining within the 10-entry maximum in <a href="#challenge-object" class="auto internal xref">Section 3.1</a>, so a CA can offer challenge-specific names in addition to its pre-provisioning baseline.<a href="#section-3.2-4.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-3.2-4.3">
+            <p id="section-3.2-4.3.1">If the CA advertises <code>caaIdentities</code>, every value in C <span class="bcp14">MUST</span> also appear in I. This prevents a CA that participates in CAA validation from accepting an <code>issuer-domain-name</code> it has not also disclosed through <code>caaIdentities</code>.<a href="#section-3.2-4.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-3.2-5">For these subset comparisons, the CA <span class="bcp14">MUST</span> compare <code>caaIdentities</code> values, when advertised, after applying the same lowercase A-label and trailing-dot rules used for D and C.<a href="#section-3.2-5" class="pilcrow">¶</a></p>
+<p id="section-3.2-6"><code>caaIdentities</code> values of publicly trusted CAs are kept distinct by the CA/Browser Forum disclosure and audit regime. Identities of CAs outside that regime have no equivalent protection against another CA recognizing the same name, so a domain owner who adds such an identity to a CAA policy accepts that reuse caveat.<a href="#section-3.2-6" class="pilcrow">¶</a></p>
+<p id="section-3.2-7">A client <span class="bcp14">MUST</span> treat a missing or nonconforming directory <code>issuerDomainNames</code> array as unavailable for pre-provisioning. A missing or nonconforming <code>caaIdentities</code> array does not affect pre-provisioning; it only makes the I comparisons unavailable. A client <span class="bcp14">MAY</span> still process an interactive <code>dns-persist-01</code> challenge. When D is available, the client <span class="bcp14">MUST</span> consider a challenge malformed if any value in D is absent from C. When I is available, the client <span class="bcp14">MUST</span> consider a challenge malformed if any value in C is absent from I.<a href="#section-3.2-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1555,42 +1572,46 @@ The server <span class="bcp14">MUST</span> ensure the array is not empty. Server
             <p id="section-4.1-2.1.1">The RDATA value <span class="bcp14">MUST</span> conform to the issue-value syntax defined in <span>[<a href="#RFC8659" class="cite xref">RFC8659</a>]</span>, Section 4.2. To ensure forward compatibility, the server <span class="bcp14">MUST</span> ignore any parameter within the issue-value that has an unrecognized tag.<a href="#section-4.1-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.1-2.2">
-            <p id="section-4.1-2.2.1">The <code>issuer-domain-name</code> portion of the issue-value <span class="bcp14">MUST</span> be one of the Issuer Domain Names provided by the CA in the <code>issuer-domain-names</code> array of the challenge object. If the <code>issuer-domain-name</code> does not match any of the provided values, the CA <span class="bcp14">MUST</span> reject the record.<a href="#section-4.1-2.2.1" class="pilcrow">¶</a></p>
+            <p id="section-4.1-2.2.1">The <code>issuer-domain-name</code> portion of the issue-value <span class="bcp14">MUST</span> be one of the Issuer Domain Names provided by the CA in the <code>issuerDomainNames</code> array of the challenge object. If the <code>issuer-domain-name</code> does not match any of the provided values, the CA <span class="bcp14">MUST</span> reject the record.<a href="#section-4.1-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.1-2.3">
-            <p id="section-4.1-2.3.1">The issue-value <span class="bcp14">MUST</span> contain an <code>accounturi</code> parameter whose value is a URI that identifies the ACME account requesting validation, either directly or through a subscriber-account association.<a href="#section-4.1-2.3.1" class="pilcrow">¶</a></p>
-<p id="section-4.1-2.3.2">
-The <code>accounturi</code> value <span class="bcp14">MUST</span> conform to one of the following three modes:<a href="#section-4.1-2.3.2" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-4.1-2.3.3.1">
-                <p id="section-4.1-2.3.3.1.1"><strong>(3a) ACME account URL</strong>: CAs <span class="bcp14">SHOULD</span> accept the URI of the ACME account object (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3) as a valid <code>accounturi</code> value. A CA that does not accept the account URL directly <span class="bcp14">MUST</span> provide an alternative URI in the challenge <code>accounturi</code> field (mode 3b or 3c) and <span class="bcp14">MUST</span> document the accepted <code>accounturi</code> format in its Certificate Policy and/or Certification Practice Statement. A CA that advertises support for the dns-persist-01 challenge type <span class="bcp14">MUST</span> accept at least one form of <code>accounturi</code> value.<a href="#section-4.1-2.3.3.1.1" class="pilcrow">¶</a></p>
+            <p id="section-4.1-2.3.1">The issue-value <span class="bcp14">MUST</span> contain an <code>accounturi</code> parameter whose value is a hashed URI identifying the ACME account requesting validation. A hashed URI cryptographically binds the account to the domain being validated without publishing the account URL in cleartext. It is formed by concatenating the CA's <code>accountHashPrefix</code>, a hash-algorithm identifier, a "/" separator, and a base64url hash value:<a href="#section-4.1-2.3.1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.1-2.3.2">
+<pre>
+&lt;accountHashPrefix&gt;&lt;hash-alg&gt;/&lt;base64url hash value&gt;
+</pre><a href="#section-4.1-2.3.2" class="pilcrow">¶</a>
+</div>
+<p id="section-4.1-2.3.3">
+A CA that advertises support for the dns-persist-01 challenge type <span class="bcp14">MUST</span> advertise an <code>accountHashPrefix</code> string in the <code>meta</code> object of its directory (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.1.1). This prefix places hashed account URIs under the CA's infrastructure and lets a client construct them from the directory without a per-provisioning request to the CA. The CA <span class="bcp14">MUST</span> choose a prefix such that appending the remaining components yields a valid URI (for example, <code>https://ca.example/account-hash/</code>).<a href="#section-4.1-2.3.3" class="pilcrow">¶</a></p>
+<p id="section-4.1-2.3.4"><code>&lt;hash-alg&gt;</code> <span class="bcp14">MUST</span> be the exact Hash Name String registered in the "Named Information Hash Algorithm Registry" defined by <span>[<a href="#RFC6920" class="cite xref">RFC6920</a>]</span>, Section 9.4. Both clients and CAs implementing dns-persist-01 <span class="bcp14">MUST</span> support the registered <code>sha-256</code> Hash Name String, which identifies SHA-256 <span>[<a href="#FIPS180-4" class="cite xref">FIPS180-4</a>]</span>: a client <span class="bcp14">MUST</span> be able to compute, and a CA <span class="bcp14">MUST</span> accept, a hashed URI that uses this token, so that every conforming implementation interoperates without prior negotiation. A CA <span class="bcp14">MAY</span> accept other registered algorithms and <span class="bcp14">MUST</span> document each additional algorithm it accepts. An additional algorithm <span class="bcp14">MUST</span> have a registered digest length of at least 256 bits and <span class="bcp14">MUST</span> remain collision resistant at the time of use. A client <span class="bcp14">MAY</span> use an optional algorithm only after establishing from the CA's documentation that the CA accepts it. This document defines no separate algorithm-negotiation mechanism.<a href="#section-4.1-2.3.4" class="pilcrow">¶</a></p>
+<p id="section-4.1-2.3.5">
+A CA <span class="bcp14">MUST</span> reject with a <code>malformed</code> error (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 6.7) any <code>_validation-persist</code> record whose <code>&lt;hash-alg&gt;</code> token identifies a hash algorithm the CA no longer accepts, including records the CA previously validated under that algorithm. If a CA deprecates or discontinues acceptance of a hash algorithm, domain owners <span class="bcp14">MUST</span> re-provision records using an accepted hash algorithm.<a href="#section-4.1-2.3.5" class="pilcrow">¶</a></p>
+<p id="section-4.1-2.3.6"><code>&lt;base64url hash value&gt;</code> is the base64url encoding <span>[<a href="#RFC4648" class="cite xref">RFC4648</a>]</span>, with trailing padding (<code>=</code>) omitted, of the hash digest computed with the identified algorithm over the following octet string:<a href="#section-4.1-2.3.6" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.1-2.3.7">
+<pre>
+H(length_of_domain || domain_name || key || account_URL)
+</pre><a href="#section-4.1-2.3.7" class="pilcrow">¶</a>
+</div>
+<p id="section-4.1-2.3.8">
+where <code>H</code> is the identified hash algorithm and <code>||</code> denotes octet-string concatenation. The inputs are:<a href="#section-4.1-2.3.8" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.1-2.3.9">
+<li id="section-4.1-2.3.9.1">
+                <p id="section-4.1-2.3.9.1.1"><code>length_of_domain</code> is a single octet giving the length in octets of <code>domain_name</code>. A domain name is limited to 255 octets (<span>[<a href="#RFC1035" class="cite xref">RFC1035</a>]</span>, Section 2.3.4), so a single octet always suffices. This length prefix delimits <code>domain_name</code> from the fields that follow.<a href="#section-4.1-2.3.9.1.1" class="pilcrow">¶</a></p>
 </li>
-              <li class="normal" id="section-4.1-2.3.3.2">
-                <p id="section-4.1-2.3.3.2.1"><strong>(3b) Alternative URI</strong>: CAs <span class="bcp14">MAY</span> accept other URIs, provided each such URI uniquely and permanently identifies a single ACME account and satisfies the uniqueness requirements of <span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>, Section 5.4. CAs <span class="bcp14">MUST NOT</span> reassign a URI to a different account. When an ACME account is deactivated, CAs <span class="bcp14">MUST</span> treat all alternative URIs associated with that account as invalid for validation purposes.<a href="#section-4.1-2.3.3.2.1" class="pilcrow">¶</a></p>
+              <li id="section-4.1-2.3.9.2">
+                <p id="section-4.1-2.3.9.2.1"><code>domain_name</code> is, by default, the FQDN being validated: the Validation Domain Name with its leading <code>_validation-persist</code> label removed and no trailing dot, in the normalized lowercase A-label form produced by <a href="#normalization-algorithm" class="auto internal xref">Section 9.2</a>. This form is US-ASCII. This is the FQDN at which the <code>_validation-persist</code> record is provisioned, not the FQDN of the certificate ultimately requested; binding the record to its own domain is what makes the hashed URI domain-specific (see <a href="#hashed-uri-security" class="auto internal xref">Section 7.2.3</a>).<a href="#section-4.1-2.3.9.2.1" class="pilcrow">¶</a></p>
+<p id="section-4.1-2.3.9.2.2">
+As an exception, a client <span class="bcp14">MAY</span> set <code>domain_name</code> to the single US-ASCII octet <code>*</code> (0x2a; <code>length_of_domain</code> is then 0x01) to opt out of the domain-correlation mitigation. The resulting hashed URI does not depend on the domain and <span class="bcp14">MAY</span> therefore be reused across domains. A CA <span class="bcp14">MUST</span> accept a hashed URI computed with <code>domain_name</code> set to <code>*</code>. The privacy trade-off of this opt-out is described in <a href="#hashed-uri-security" class="auto internal xref">Section 7.2.3</a>.<a href="#section-4.1-2.3.9.2.2" class="pilcrow">¶</a></p>
 </li>
-              <li class="normal" id="section-4.1-2.3.3.3">
-                <p id="section-4.1-2.3.3.3.1"><strong>(3c) Subscriber-account URI</strong>: CAs <span class="bcp14">MAY</span> accept a URI that maps to multiple ACME accounts, provided the accounts constitute a "group of related entities" (<span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>, Section 3). If a CA supports subscriber-account URIs, it <span class="bcp14">MUST</span> enforce the following constraints:<a href="#section-4.1-2.3.3.3.1" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-4.1-2.3.3.3.2">
-<li id="section-4.1-2.3.3.3.2.1">
-                    <p id="section-4.1-2.3.3.3.2.1.1">The CA <span class="bcp14">MUST</span> verify that the requesting ACME account is associated with the subscriber account through its own account management system.<a href="#section-4.1-2.3.3.3.2.1.1" class="pilcrow">¶</a></p>
+              <li id="section-4.1-2.3.9.3">
+                <p id="section-4.1-2.3.9.3.1"><code>key</code> is the 43 ASCII octets of the unpadded base64url encoding <span>[<a href="#RFC4648" class="cite xref">RFC4648</a>]</span> of the SHA-256 JWK Thumbprint <span>[<a href="#RFC7638" class="cite xref">RFC7638</a>]</span> of a public key associated with the ACME account. This is the encoding used for the thumbprint component of an ACME key authorization (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 8.1), so a client can reuse that component without decoding it. When provisioning a <code>_validation-persist</code> record, the client <span class="bcp14">MUST</span> use the account's current key. A CA <span class="bcp14">MUST</span> accept a hashed URI generated with the current key associated with the account. Additionally, a CA <span class="bcp14">MUST</span> accept a hashed URI generated with a prior key previously associated with the account that is known to the CA per the key retention obligation in <a href="#verification-procedure" class="auto internal xref">Section 4.2</a>, subject to the deactivation and retention rules stated there. This allows a record provisioned before a key rotation to continue to validate. The rationale for these requirements is given in <a href="#hashed-uri-security" class="auto internal xref">Section 7.2.3</a>.<a href="#section-4.1-2.3.9.3.1" class="pilcrow">¶</a></p>
 </li>
-                  <li id="section-4.1-2.3.3.3.2.2">
-                    <p id="section-4.1-2.3.3.3.2.2.1">The CA <span class="bcp14">MUST</span> document the URI format and association model in its CP/CPS.<a href="#section-4.1-2.3.3.3.2.2.1" class="pilcrow">¶</a></p>
+              <li id="section-4.1-2.3.9.4">
+                <p id="section-4.1-2.3.9.4.1"><code>account_URL</code> is the ACME account URL (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3). A URI is US-ASCII per <span>[<a href="#RFC3986" class="cite xref">RFC3986</a>]</span>, so it is encoded as those US-ASCII octets.<a href="#section-4.1-2.3.9.4.1" class="pilcrow">¶</a></p>
 </li>
-                  <li id="section-4.1-2.3.3.3.2.3">
-                    <p id="section-4.1-2.3.3.3.2.3.1">The CA <span class="bcp14">MUST NOT</span> reassign a subscriber-account URI to a different subscriber. When a subscriber account is deactivated, the CA <span class="bcp14">MUST</span> treat the subscriber-account URI as invalid for validation purposes.<a href="#section-4.1-2.3.3.3.2.3.1" class="pilcrow">¶</a></p>
-</li>
-                  <li id="section-4.1-2.3.3.3.2.4">
-                    <p id="section-4.1-2.3.3.3.2.4.1">The CA <span class="bcp14">MUST</span> log which specific ACME account was used for each validation against a subscriber URI.<a href="#section-4.1-2.3.3.3.2.4.1" class="pilcrow">¶</a></p>
-</li>
-                  <li id="section-4.1-2.3.3.3.2.5">
-                    <p id="section-4.1-2.3.3.3.2.5.1">The CA <span class="bcp14">SHOULD</span> make subscriber-account URIs syntactically distinguishable from per-account URIs. If subscriber-account URIs are not distinguishable, clients and auditors cannot independently determine which verification model applies to a given <code>accounturi</code> value.<a href="#section-4.1-2.3.3.3.2.5.1" class="pilcrow">¶</a></p>
-</li>
-                </ol>
-</li>
-            </ul>
-<p id="section-4.1-2.3.4">
-For all modes, the CA <span class="bcp14">MUST</span> verify that the URI in the DNS record authorizes the ACME account making the request; if it does not, the CA <span class="bcp14">MUST</span> reject the record.<a href="#section-4.1-2.3.4" class="pilcrow">¶</a></p>
+            </ol>
+<p id="section-4.1-2.3.10">
+The CA <span class="bcp14">MUST</span> verify that the hashed URI in the DNS record authorizes the ACME account making the request, by recomputing it as described in <a href="#verification-procedure" class="auto internal xref">Section 4.2</a>; if no recomputation matches, the CA <span class="bcp14">MUST</span> reject the record.<a href="#section-4.1-2.3.10" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.1-2.4">
             <p id="section-4.1-2.4.1">The issue-value <span class="bcp14">MAY</span> contain a <code>policy</code> parameter. If present, this parameter modifies the validation scope. The <code>policy</code> parameter follows the 'tag=value' syntax from <span>[<a href="#RFC8659" class="cite xref">RFC8659</a>]</span>. Comparison of the values defined for this parameter <span class="bcp14">MUST</span> be case-insensitive (e.g., "WILDCARD" and "wildcard" are equivalent).<a href="#section-4.1-2.4.1" class="pilcrow">¶</a></p>
@@ -1607,13 +1628,15 @@ The following value for the <code>policy</code> parameter is defined with respec
 If the <code>policy</code> parameter is absent, or if its value is anything other than <code>wildcard</code>, the CA <span class="bcp14">MUST</span> proceed as if the <code>policy</code> parameter were not present (i.e., the validation applies only to the specific FQDN).<a href="#section-4.1-2.4.5" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.1-2.5">
-            <p id="section-4.1-2.5.1">The issue-value <span class="bcp14">MAY</span> contain a <code>persistUntil</code> parameter. If present, the value <span class="bcp14">MUST</span> be a base-10 encoded integer representing a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds). If the value is not a valid base-10 integer, the CA <span class="bcp14">MUST</span> treat the record as malformed and reject it. CAs <span class="bcp14">MUST NOT</span> consider this validation record valid for new validation attempts after the specified timestamp. However, this does not affect the reuse of already-validated data.<a href="#section-4.1-2.5.1" class="pilcrow">¶</a></p>
+            <p id="section-4.1-2.5.1">The issue-value <span class="bcp14">MAY</span> contain a <code>persistUntil</code> parameter. If present, the value <span class="bcp14">MUST</span> be a base-10 encoded integer representing a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds). If the value is not a valid base-10 integer, the CA <span class="bcp14">MUST</span> treat the record as malformed and reject it.<a href="#section-4.1-2.5.1" class="pilcrow">¶</a></p>
+<p id="section-4.1-2.5.2">
+When a CA validates a <code>_validation-persist</code> record containing a <code>persistUntil</code> parameter with timestamp T, the CA <span class="bcp14">MUST NOT</span> set the <code>expires</code> field of the resulting authorization object (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.1.4) later than T, and <span class="bcp14">MUST NOT</span> rely on that validation to issue certificates after T. After timestamp T, a CA <span class="bcp14">MUST NOT</span> consider the record valid for new validation attempts. Already-issued certificates are unaffected by the expiration of a <code>persistUntil</code> timestamp.<a href="#section-4.1-2.5.2" class="pilcrow">¶</a></p>
 </li>
         </ol>
 <p id="section-4.1-3">This specification defines the following case-handling rules for parameter values in dns-persist-01 records:<a href="#section-4.1-3" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-4.1-4.1">
-            <p id="section-4.1-4.1.1"><code>accounturi</code>: The value is a URI. For ACME account URLs and alternative URIs, CAs <span class="bcp14">MUST</span> compare <code>accounturi</code> values using Simple String Comparison per <span>[<a href="#RFC3986" class="cite xref">RFC3986</a>]</span>, Section 6.2.1, with no case-folding or other normalization. For Subscriber-account URIs, CAs <span class="bcp14">MUST</span> perform CA-internal verification of the URI.<a href="#section-4.1-4.1.1" class="pilcrow">¶</a></p>
+            <p id="section-4.1-4.1.1"><code>accounturi</code>: The value is a hashed URI. CAs <span class="bcp14">MUST</span> compare <code>accounturi</code> values using Simple String Comparison per <span>[<a href="#RFC3986" class="cite xref">RFC3986</a>]</span>, Section 6.2.1, with no case-folding or other normalization.<a href="#section-4.1-4.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.1-4.2">
             <p id="section-4.1-4.2.1"><code>policy</code>: Case-insensitive, as specified in item 4 above.<a href="#section-4.1-4.2.1" class="pilcrow">¶</a></p>
@@ -1622,13 +1645,14 @@ If the <code>policy</code> parameter is absent, or if its value is anything othe
             <p id="section-4.1-4.3.1"><code>persistUntil</code>: The value is a base-10 integer. Case does not apply.<a href="#section-4.1-4.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-4.1-5">For example, for validation of the FQDN "example.com" with issuer domain name "authority.example" and account URI "https://ca.example/acct/123", the DNS TXT record would contain:<a href="#section-4.1-5" class="pilcrow">¶</a></p>
+<p id="section-4.1-5">For example, for validation of the FQDN "example.com" with issuer domain name "authority.example", where the CA advertises an <code>accountHashPrefix</code> of "https://ca.example/account-hash/" and the account's hashed URI (see <a href="#hashed-uri-example" class="auto internal xref">Section 10.2</a> for the full computation) is "https://ca.example/account-hash/sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw", the DNS TXT record would contain:<a href="#section-4.1-5" class="pilcrow">¶</a></p>
 <span id="name-basic-validation-txt-record"></span><div id="ex-basic-validation">
 <figure id="figure-2">
           <div class="lang-dns sourcecode" id="section-4.1-6.1">
 <pre>
 _validation-persist.example.com. IN TXT ("authority.example;"
-" accounturi=https://ca.example/acct/123")
+" accounturi=https://ca.example/account-hash/"
+"sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw")
 </pre>
 </div>
 <figcaption><a href="#figure-2" class="selfRef">Figure 2</a>:
@@ -1642,7 +1666,20 @@ _validation-persist.example.com. IN TXT ("authority.example;"
         <h3 id="name-verification-procedure">
 <a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-verification-procedure" class="section-name selfRef">Verification Procedure</a>
         </h3>
-<p id="section-4.2-1">The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Validation Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its <code>issuer-domain-name</code> value <span class="bcp14">MUST</span> match one of the values provided in the <code>issuer-domain-names</code> array from the challenge object, and it <span class="bcp14">MUST</span> contain an <code>accounturi</code> parameter that identifies the requesting account, either directly (modes 3a and 3b) or through subscriber-account association (mode 3c), as defined in <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>. When comparing issuer domain names, the server <span class="bcp14">MUST</span> adhere to the normalization rules specified in <a href="#challenge-object" class="auto internal xref">Section 3.1</a>. The server also interprets any <code>policy</code> parameter values according to this specification. If no record meeting all requirements is found, the server <span class="bcp14">MUST</span> treat the challenge as failed.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.2-1">The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Validation Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its <code>issuer-domain-name</code> value <span class="bcp14">MUST</span> match one of the values provided in the <code>issuerDomainNames</code> array from the challenge object, and its <code>accounturi</code> parameter <span class="bcp14">MUST</span> be a hashed URI that identifies the requesting account, as defined in <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>. When comparing issuer domain names, the server <span class="bcp14">MUST</span> adhere to the normalization rules specified in <a href="#challenge-object" class="auto internal xref">Section 3.1</a>. The server also interprets any <code>policy</code> parameter values according to this specification. If no record meeting all requirements is found, the server <span class="bcp14">MUST</span> treat the challenge as failed.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.2-2">To verify a hashed-URI <code>accounturi</code> value, the CA already knows the requesting account's URL and the FQDN being validated. The CA computes the expected hashed URI as defined in <a href="#validation-record-format" class="auto internal xref">Section 4.1</a> over each ACME public key it retains for that account (see below); for each such key it computes the value twice, once using the FQDN being validated as <code>domain_name</code> and once using the domain-omitted opt-out form (<code>domain_name</code> set to <code>*</code>). The CA treats the record as satisfying the requirement if its <code>accounturi</code> value equals any of these computed hashed URIs under Simple String Comparison (<span>[<a href="#RFC3986" class="cite xref">RFC3986</a>]</span>, Section 6.2.1). Retaining an account's prior key thumbprints allows records provisioned before a key rotation to continue validating.<a href="#section-4.2-2" class="pilcrow">¶</a></p>
+<p id="section-4.2-3">To recompute these hashed URIs, a CA has a data-retention obligation: it <span class="bcp14">MUST</span> retain an association between each ACME account and the SHA-256 JWK Thumbprints of all public keys that account has used since the CA began accepting <code>dns-persist-01</code> records. The following rules govern this retained data and the acceptance of the keys behind it, listed in order of precedence with earlier rules overriding later ones:<a href="#section-4.2-3" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.2-4">
+<li id="section-4.2-4.1">
+            <p id="section-4.2-4.1.1"><strong>Deactivation overrides retention.</strong> A CA <span class="bcp14">MUST NOT</span> accept a hashed URI computed from a key of a deactivated ACME account, regardless of any retention rule below. Deactivating an account (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3.6) stops all of that account's <code>_validation-persist</code> records from validating immediately, which is the intended behavior for a suspected key or account compromise. The CA <span class="bcp14">MUST</span> evaluate account status from live account state at each validation attempt; an account proof or status observed at record publication time <span class="bcp14">MUST NOT</span> substitute for live validation-time account evaluation. Once an account is deactivated, the CA <span class="bcp14">MAY</span> prune all retained key thumbprints for that account.<a href="#section-4.2-4.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-4.2-4.2">
+            <p id="section-4.2-4.2.1"><strong>Witnessed key retention.</strong> Subject to rule 1, a CA <span class="bcp14">MUST</span> retain the SHA-256 JWK Thumbprint of every public key an account has used, bounded only by the lifetime of the account, so that a record computed under any of those keys continues to validate across routine key rotations.<a href="#section-4.2-4.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-4.2-5">A CA <span class="bcp14">MAY</span> cache computed or accepted hashed URIs; such caching <span class="bcp14">MUST NOT</span> change any acceptance outcome.<a href="#section-4.2-5" class="pilcrow">¶</a></p>
+<p id="section-4.2-6">The CA <span class="bcp14">MUST</span> evaluate <code>persistUntil</code>, <code>policy</code>, <code>issuer-domain-name</code>, and any unrecognized parameters from fresh DNS data retrieved during each validation attempt. No previously observed or cached value of these fields overrides the values read during the current validation.<a href="#section-4.2-6" class="pilcrow">¶</a></p>
+<p id="section-4.2-7">When recomputing expected hashed URIs over retained keys, the CA <span class="bcp14">MUST</span> evaluate the account's current key first, and <span class="bcp14">SHOULD</span> evaluate remaining retained keys in reverse chronological order of their use.<a href="#section-4.2-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="multiple-issuer-support">
@@ -1723,10 +1760,12 @@ _validation-persist.example.com. IN TXT ("authority.example;"
             <div class="lang-dns sourcecode" id="section-4.3.4-3.1">
 <pre>
 _validation-persist.example.org. 3600 IN TXT ("ca1.example;"
-" accounturi=https://ca1.example/acct/12345;"
+" accounturi=https://ca1.example/account-hash/"
+"sha-256/wjZNvLpIgf7zrr9KQo7zCLaG2Ea67KS4o4cAwSepsls;"
 " policy=wildcard")
 _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
-" accounturi=https://ca2.example/acct/67890;"
+" accounturi=https://ca2.example/account-hash/"
+"sha-256/Mpngr2LZCN9gPArggXqEu4pKtYZvLL5IxMStzyWrrXc;"
 " persistUntil=1767225600")
 </pre>
 </div>
@@ -1791,18 +1830,21 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
         <h3 id="name-pre-provisioning-records">
 <a href="#section-4.5" class="section-number selfRef">4.5. </a><a href="#name-pre-provisioning-records" class="section-name selfRef">Pre-Provisioning Records</a>
         </h3>
-<p id="section-4.5-1">Domain owners <span class="bcp14">MAY</span> provision <code>_validation-persist</code> TXT records before requesting any certificates, provided they have obtained an <code>accounturi</code> value. When constructing records without a challenge object, the following values <span class="bcp14">MUST</span> be used:<a href="#section-4.5-1" class="pilcrow">¶</a></p>
+<p id="section-4.5-1">Domain owners <span class="bcp14">MAY</span> provision <code>_validation-persist</code> TXT records before requesting any certificates, provided they can compute the <code>accounturi</code> value. The earliest point at which this value can be computed is ACME account creation, because the account URL returned in the newAccount response (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3) is an input to the hash; no order, authorization, or challenge object is required to compute or publish the record. When constructing records without a challenge object, the following values <span class="bcp14">MUST</span> be used:<a href="#section-4.5-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-4.5-2.1">
-            <p id="section-4.5-2.1.1"><strong>accounturi</strong>: The ACME account URL, as returned in the <code>Location</code> header of the account creation response (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3). If the CA supports subscriber-account URIs (mode 3c, see <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>), a subscriber-account URI <span class="bcp14">MAY</span> be used instead. Domain owners pre-provisioning with a subscriber-account URI are advised that ACME accounts added to the subscriber relationship after provisioning will automatically inherit the record's validation rights. If the CA returns a different URI in the challenge <code>accounturi</code> field (mode 3b or 3c), the client <span class="bcp14">SHOULD</span> update its <code>_validation-persist</code> TXT record to use the returned value.<a href="#section-4.5-2.1.1" class="pilcrow">¶</a></p>
+            <p id="section-4.5-2.1.1"><strong>accounturi</strong>: The hashed URI, computed as specified in <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>. A client knows its own ACME account URL (as returned in the <code>Location</code> header of the account creation response, <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3), the FQDN it is provisioning, and its current account key, so it can compute and publish the hashed URI itself from the CA's <code>accountHashPrefix</code> without a per-provisioning request to the CA. A client that wishes to reuse a single record across multiple domains <span class="bcp14">MAY</span> instead use the domain-omitted opt-out form (<code>domain_name</code> set to <code>*</code>, see <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>).<a href="#section-4.5-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.5-2.2">
-            <p id="section-4.5-2.2.1"><strong>issuer-domain-name</strong>: Clients <span class="bcp14">MAY</span> use the <code>caaIdentities</code> array from the ACME directory metadata (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.1.1) as a hint for <code>issuer-domain-name</code> selection. CAs that populate <code>caaIdentities</code> <span class="bcp14">SHOULD</span> ensure these values are consistent with the <code>issuer-domain-name</code> values they accept in <code>dns-persist-01</code> records. If <code>caaIdentities</code> is unavailable, the <code>issuer-domain-name</code> <span class="bcp14">MAY</span> be obtained from the CA's Certificate Policy or Certification Practice Statement.<a href="#section-4.5-2.2.1" class="pilcrow">¶</a></p>
+            <p id="section-4.5-2.2.1"><strong>issuer-domain-name</strong>: A CA offering the dns-persist-01 challenge type advertises its Issuer Domain Names in the <code>issuerDomainNames</code> array of its directory <code>meta</code> object (see <a href="#directory-issuer-domain-names" class="auto internal xref">Section 3.2</a>). Clients pre-provisioning records <span class="bcp14">SHOULD</span> use one of these values; a value obtained elsewhere is not guaranteed to appear in a later challenge and can leave the record unusable.<a href="#section-4.5-2.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-4.5-3">The <code>accounturi</code> value used for pre-provisioning is obtained outside the ACME challenge-response flow. The integrity of the pre-provisioned record therefore depends on the integrity of the channel that delivered the <code>accounturi</code> value to the domain owner, such as the ACME account creation response, a CA's subscriber portal, or CP/CPS documentation. Domain owners <span class="bcp14">SHOULD</span> obtain <code>accounturi</code> values only through authenticated channels to the CA. A value obtained through an unauthenticated or unverifiable channel cannot be distinguished from a substituted one, and validation may bind to an unintended account.<a href="#section-4.5-3" class="pilcrow">¶</a></p>
-<p id="section-4.5-4">Organizations pre-provisioning records <span class="bcp14">SHOULD</span> maintain an inventory of <code>_validation-persist</code> records and the ACME accounts they reference. Records <span class="bcp14">MAY</span> include a <code>persistUntil</code> parameter to bound their effective lifetime (see <a href="#persist-until-parameter-considerations" class="auto internal xref">Section 7.10</a>). Domain owners <span class="bcp14">SHOULD</span> audit <code>_validation-persist</code> records after any DNS infrastructure security incident, as pre-provisioned records persist beyond the window of compromise.<a href="#section-4.5-4" class="pilcrow">¶</a></p>
-<p id="section-4.5-5">CAs implementing <code>dns-persist-01</code> <span class="bcp14">SHOULD</span> maintain stable account URIs for the lifetime of the account and <span class="bcp14">SHOULD</span> document their URI stability guarantees. If a CA must change its URI structure, it <span class="bcp14">SHOULD</span> provide a transition period during which both old and new URIs are accepted for validation.<a href="#section-4.5-5" class="pilcrow">¶</a></p>
+<p id="section-4.5-3">For a pre-provisioned record, the client computes the hashed <code>accounturi</code> itself, outside the ACME challenge-response flow, from its own ACME account URL, its current account key, and the CA's <code>accountHashPrefix</code>. The client obtains the <code>accountHashPrefix</code> from the CA's directory (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.1.1) and <span class="bcp14">SHOULD</span> retrieve the directory over an authenticated channel, so that the record is placed under the intended CA's infrastructure. Because the hashed URI cryptographically binds the account key (see <a href="#hashed-uri-security" class="auto internal xref">Section 7.2.3</a>), a record computed with the client's genuine account key cannot be made to validate for a different account; this key binding is what lets a domain owner safely pre-provision without the challenge-response exchange.<a href="#section-4.5-3" class="pilcrow">¶</a></p>
+<p id="section-4.5-4">Computing the hashed URI requires no private-key operation; the inputs are the account URL, the account key's public JWK Thumbprint, the domain name (or the <code>*</code> opt-out), the CA's <code>accountHashPrefix</code>, and the hash-algorithm identifier, all of which the account holder can share with another party. A domain owner <span class="bcp14">MAY</span> therefore delegate computation and publication of a <code>_validation-persist</code> record to a party that does not operate the ACME client and holds no ACME credentials, such as a DNS operator; the ACME client itself needs no DNS credentials in this arrangement.<a href="#section-4.5-4" class="pilcrow">¶</a></p>
+<p id="section-4.5-5">Before delegating the computation or publication of a <code>_validation-persist</code> record, the account holder <span class="bcp14">MUST</span> verify the account URL by sending an authenticated POST request to the exact account URL used in the digest. Per <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 6.3, the payload of the JWS <span class="bcp14">MUST</span> be the empty octet string <code>""</code>. The client <span class="bcp14">MUST</span> follow no redirects and <span class="bcp14">MUST</span> verify that the returned account object has a <code>status</code> of <code>valid</code> (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.1.2). A JWS payload of <code>"{}"</code> <span class="bcp14">MUST</span> be rejected as non-conforming for this check. A successful proof for an unchanged (account URL, account key) pair <span class="bcp14">MAY</span> satisfy later pre-publication checks. This proof authenticates that the requesting key controls the exact account URL used in the digest; it does not authenticate the account to the domain name being validated, which is established by the domain owner publishing the record in their DNS zone. The domain owner and the delegated party <span class="bcp14">MUST</span> use an authenticated channel to transmit the account URL, key thumbprint, domain name, <code>accountHashPrefix</code>, and algorithm identifier outside the ACME channel. Domain owners <span class="bcp14">SHOULD</span> also publish a CAA <code>accounturi</code> parameter (<span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>) specifying their account URL as an independent reinforcing authorization.<a href="#section-4.5-5" class="pilcrow">¶</a></p>
+<p id="section-4.5-6">Sharing these values with such a party discloses the account URL, which the hashed form otherwise keeps out of public DNS, and enables that party to correlate the account's records across domains (see <a href="#account-uri-privacy" class="auto internal xref">Section 7.2.2</a>); the key binding described in <a href="#hashed-uri-security" class="auto internal xref">Section 7.2.3</a> is unaffected by which party performs the computation.<a href="#section-4.5-6" class="pilcrow">¶</a></p>
+<p id="section-4.5-7">Organizations pre-provisioning records <span class="bcp14">SHOULD</span> maintain an inventory of <code>_validation-persist</code> records and the ACME accounts they reference. Records <span class="bcp14">MAY</span> include a <code>persistUntil</code> parameter to bound their effective lifetime (see <a href="#persist-until-parameter-considerations" class="auto internal xref">Section 7.10</a>). Domain owners <span class="bcp14">SHOULD</span> audit <code>_validation-persist</code> records after any DNS infrastructure security incident, as pre-provisioned records persist beyond the window of compromise.<a href="#section-4.5-7" class="pilcrow">¶</a></p>
+<p id="section-4.5-8">CAs implementing <code>dns-persist-01</code> <span class="bcp14">MUST</span> maintain a stable <code>accountHashPrefix</code> and stable account URLs for the lifetime of an account once advertised, and <span class="bcp14">MUST</span> document their stability guarantees, since the hashed URI is computed over the account URL and served under the prefix. If a CA must change its <code>accountHashPrefix</code> or account-URL structure, it <span class="bcp14">MUST</span> provide a migration period during which hashed URIs under both the old and new forms are accepted for validation.<a href="#section-4.5-8" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1922,104 +1964,59 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
         <h3 id="name-account-binding-security">
 <a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-account-binding-security" class="section-name selfRef">Account Binding Security</a>
         </h3>
-<p id="section-7.2-1">The <code>accounturi</code> parameter provides strong binding between domain validation and the ACME account or subscriber account identified by the URI. However, this binding depends on the security of the account itself.<a href="#section-7.2-1" class="pilcrow">¶</a></p>
-<p id="section-7.2-2">The security of this method is fundamentally bound to the security of the ACME account's private key. For validation records using an ACME account URL (mode 3a) or an alternative URI (mode 3b), if this key is compromised, an attacker can immediately use any pre-existing <code>dns-persist-01</code> authorizations associated with that account to issue certificates, without needing any further access to the domain's DNS infrastructure. This elevates the importance of secure key management for ACME clients far above that required for transient challenge methods, as the window of opportunity for an attacker is tied to the lifetime of the persistent authorization, not a momentary challenge.<a href="#section-7.2-2" class="pilcrow">¶</a></p>
-<p id="section-7.2-3">For records using a Subscriber-account URI (mode 3c), security is bound to <em>any</em> ACME account key associated with that subscriber relationship, plus the security of the subscriber account management system itself.<a href="#section-7.2-3" class="pilcrow">¶</a></p>
-<p id="section-7.2-4">CAs <span class="bcp14">SHOULD</span> implement robust account security measures, including:<a href="#section-7.2-4" class="pilcrow">¶</a></p>
+<p id="section-7.2-1">The <code>accounturi</code> parameter provides strong binding between domain validation and the ACME account identified by the hashed URI. However, this binding depends on the security of the account itself.<a href="#section-7.2-1" class="pilcrow">¶</a></p>
+<p id="section-7.2-2">The security of this method is fundamentally bound to the security of the ACME account's private key. Because the <code>accounturi</code> is a hashed URI computed in part over the account key (see <a href="#hashed-uri-security" class="auto internal xref">Section 7.2.3</a>), if this key is compromised, an attacker can immediately use any pre-existing <code>dns-persist-01</code> authorizations associated with that account to issue certificates, without needing any further access to the domain's DNS infrastructure. This elevates the importance of secure key management for ACME clients far above that required for transient challenge methods, as the window of opportunity for an attacker is tied to the lifetime of the persistent authorization, not a momentary challenge.<a href="#section-7.2-2" class="pilcrow">¶</a></p>
+<p id="section-7.2-3">CAs <span class="bcp14">SHOULD</span> implement robust account security measures, including:<a href="#section-7.2-3" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-7.2-5.1">
-            <p id="section-7.2-5.1.1">Strong authentication requirements for ACME accounts<a href="#section-7.2-5.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-7.2-4.1">
+            <p id="section-7.2-4.1.1">Strong authentication requirements for ACME accounts<a href="#section-7.2-4.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-7.2-5.2">
-            <p id="section-7.2-5.2.1">Account activity monitoring and anomaly detection<a href="#section-7.2-5.2.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-7.2-4.2">
+            <p id="section-7.2-4.2.1">Account activity monitoring and anomaly detection<a href="#section-7.2-4.2.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-7.2-5.3">
-            <p id="section-7.2-5.3.1">Rapid account revocation capabilities<a href="#section-7.2-5.3.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-7.2-4.3">
+            <p id="section-7.2-4.3.1">Rapid account revocation capabilities<a href="#section-7.2-4.3.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-7.2-5.4">
-            <p id="section-7.2-5.4.1">Regular account security reviews<a href="#section-7.2-5.4.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-7.2-4.4">
+            <p id="section-7.2-4.4.1">Regular account security reviews<a href="#section-7.2-4.4.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-7.2-5.5">
-            <p id="section-7.2-5.5.1">Account key rotation policies and procedures<a href="#section-7.2-5.5.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-7.2-4.5">
+            <p id="section-7.2-4.5.1">Account key rotation policies and procedures<a href="#section-7.2-4.5.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-7.2-6">Clients <span class="bcp14">SHOULD</span> protect their ACME account keys with the same level of security as they would protect private keys for high-value certificates.<a href="#section-7.2-6" class="pilcrow">¶</a></p>
-<div id="subscriber-credential-compromise">
-<section id="section-7.2.1">
-          <h4 id="name-subscriber-credential-compr">
-<a href="#section-7.2.1" class="section-number selfRef">7.2.1. </a><a href="#name-subscriber-credential-compr" class="section-name selfRef">Subscriber Credential Compromise</a>
-          </h4>
-<p id="section-7.2.1-1">When a domain uses a Subscriber-account URI (mode 3c) for validation, a compromise of the CA's subscriber account management system (such as a customer portal or API) allows an attacker to add new ACME accounts to the subscriber relationship. These newly added accounts immediately inherit all persistent authorizations granted to the subscriber-account URI. This attack path is distinct from an ACME account key compromise, as it does not require compromising any existing ACME account private key. CAs supporting subscriber-account URIs <span class="bcp14">MUST</span> implement access controls and monitoring for their subscriber account management systems.<a href="#section-7.2.1-1" class="pilcrow">¶</a></p>
-</section>
-</div>
+<p id="section-7.2-5">Clients <span class="bcp14">SHOULD</span> protect their ACME account keys with the same level of security as they would protect private keys for high-value certificates.<a href="#section-7.2-5" class="pilcrow">¶</a></p>
 <div id="account-key-rotation">
-<section id="section-7.2.2">
+<section id="section-7.2.1">
           <h4 id="name-account-key-rotation">
-<a href="#section-7.2.2" class="section-number selfRef">7.2.2. </a><a href="#name-account-key-rotation" class="section-name selfRef">Account Key Rotation</a>
+<a href="#section-7.2.1" class="section-number selfRef">7.2.1. </a><a href="#name-account-key-rotation" class="section-name selfRef">Account Key Rotation</a>
           </h4>
-<p id="section-7.2.2-1">The <code>accounturi</code> parameter is a stable identifier for the ACME account that persists across key rotations. When a client rotates their account key following the procedures defined in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3.5, the <code>accounturi</code> remains unchanged. Therefore, existing DNS TXT records containing the <code>accounturi</code> parameter do not require modification when performing account key rotations.<a href="#section-7.2.2-1" class="pilcrow">¶</a></p>
-</section>
-</div>
-<div id="account-uri-substitution">
-<section id="section-7.2.3">
-          <h4 id="name-substitution-of-the-account">
-<a href="#section-7.2.3" class="section-number selfRef">7.2.3. </a><a href="#name-substitution-of-the-account" class="section-name selfRef">Substitution of the Account URI</a>
-          </h4>
-<p id="section-7.2.3-1">The <code>accounturi</code> parameter binds validation to a specific account, but the
-binding's verifiability varies across modes. A client that pre-provisioned a
-DNS record with one <code>accounturi</code> value may receive a different value in the
-challenge object's <code>accounturi</code> field. This substitution is not inherently
-malicious — it is the mechanism by which CAs communicate alternative URIs
-(mode 3b) or subscriber-account URIs (mode 3c) to clients. However, it
-creates a verifiability gradient:<a href="#section-7.2.3-1" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-7.2.3-2.1">
-              <p id="section-7.2.3-2.1.1"><strong>Mode 3a (ACME account URL):</strong> The client can verify the returned URI
-against its own account URL using Simple String Comparison
-(<span>[<a href="#RFC3986" class="cite xref">RFC3986</a>]</span>, Section 6.2.1). A mismatch is detectable.<a href="#section-7.2.3-2.1.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-7.2.3-2.2">
-              <p id="section-7.2.3-2.2.1"><strong>Mode 3b (alternative URI):</strong> The client may be able to verify the
-returned URI if the CA exposes a URI-to-account mapping. Otherwise, the
-client must trust the CA's assertion.<a href="#section-7.2.3-2.2.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-7.2.3-2.3">
-              <p id="section-7.2.3-2.3.1"><strong>Mode 3c (subscriber-account URI):</strong> The client cannot independently
-verify that the returned URI maps to its subscriber relationship.
-Verification depends entirely on the CA's account management system,
-which also bounds the scope of emergency mechanisms such as account
-deactivation (<a href="#revocation-and-invalidation" class="auto internal xref">Section 7.11</a>).<a href="#section-7.2.3-2.3.1" class="pilcrow">¶</a></p>
-</li>
-          </ul>
-<p id="section-7.2.3-3">This gradient means that a CA operating in mode 3b or 3c can direct a client
-to publish a DNS record binding validation to a URI the client cannot
-independently verify. The risk is bounded by the CA's existing trust
-relationship with the subscriber: a CA that substitutes a fraudulent URI
-has already violated its obligations under its CP/CPS and the subscriber
-agreement. The substitution does not grant the CA capabilities it does not
-already possess — a CA can issue certificates for any domain in its scope
-without dns-persist-01 validation.<a href="#section-7.2.3-3" class="pilcrow">¶</a></p>
-<p id="section-7.2.3-4">For ACME account URLs specifically, <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3 defines the
-account URL as the stable identifier returned in the Location header at
-account creation. This URL persists across key rollovers (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>,
-Section 7.3.5), and the account's key authorization (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>,
-Section 8.1) provides a verifiable cryptographic binding to the current
-account key at any point in time. Neither property is available for
-modes 3b and 3c, where the URI is CA-assigned and opaque.<a href="#section-7.2.3-4" class="pilcrow">¶</a></p>
-<p id="section-7.2.3-5">Verification options for clients that pre-provisioned records correspond
-to the verifiability gradient above; see <a href="#challenge-object" class="auto internal xref">Section 3.1</a> for the
-normative requirements. Clients unable to verify <span class="bcp14">SHOULD</span> log the
-substitution for operator review.<a href="#section-7.2.3-5" class="pilcrow">¶</a></p>
+<p id="section-7.2.1-1">When an account key rotates following the procedures defined in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3.5, the ACME account URL remains unchanged. The hashed URI in existing records changes because <code>key</code> is an input to the hash. Existing records remain valid under the retention rules in <a href="#verification-procedure" class="auto internal xref">Section 4.2</a>. Clients <span class="bcp14">SHOULD</span> republish <code>_validation-persist</code> records with the hashed URI recomputed under the account's new key promptly after a rotation. Republication ensures records reflect current credentials, which facilitates operational hygiene and auditing.<a href="#section-7.2.1-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="account-uri-privacy">
-<section id="section-7.2.4">
+<section id="section-7.2.2">
           <h4 id="name-account-uri-privacy">
-<a href="#section-7.2.4" class="section-number selfRef">7.2.4. </a><a href="#name-account-uri-privacy" class="section-name selfRef">Account URI Privacy</a>
+<a href="#section-7.2.2" class="section-number selfRef">7.2.2. </a><a href="#name-account-uri-privacy" class="section-name selfRef">Account URI Privacy</a>
           </h4>
-<p id="section-7.2.4-1">Because <code>_validation-persist</code> TXT records are publicly queryable and long-lived, the <code>accounturi</code> value is visible to any party that queries DNS. When the same URI appears in records for multiple domains, third parties can infer that those domains share the same ACME account and likely share infrastructure. This correlation risk is noted in <span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>, Section 5.9.<a href="#section-7.2.4-1" class="pilcrow">¶</a></p>
-<p id="section-7.2.4-2">CAs that accept alternative URIs (see item 3 of <a href="#challenge-response-and-verification" class="auto internal xref">Section 4</a>) can mitigate this risk by issuing distinct URIs for each domain or group of domains. Such URIs <span class="bcp14">SHOULD</span> be opaque and not easily enumerable. CAs <span class="bcp14">MUST</span> protect the integrity of any URI-to-account mapping with the same controls applied to other validation infrastructure. CAs that accept alternative URIs <span class="bcp14">SHOULD</span> document their URI issuance and lifecycle policies in their Certificate Policy or Certification Practice Statement.<a href="#section-7.2.4-2" class="pilcrow">¶</a></p>
-<p id="section-7.2.4-3">Domain owners who require privacy without CA cooperation can use separate ACME accounts for domains that should not be correlated. Note that the use of a Subscriber-account URI (mode 3c) represents a privacy inversion compared to the privacy model of mode 3b: a single visible URI correlates all domains across all ACME accounts belonging to that subscriber. Domain owners who require privacy <span class="bcp14">SHOULD</span> use mode 3b or separate ACME accounts, rather than subscriber-account URIs. Domain owners and auditors who require independent verifiability <span class="bcp14">SHOULD</span> use the ACME account URL directly, since third parties cannot independently determine which account is bound to an alternative URI.<a href="#section-7.2.4-3" class="pilcrow">¶</a></p>
+<p id="section-7.2.2-1">Because <code>_validation-persist</code> TXT records are publicly queryable and long-lived, the <code>accounturi</code> value is visible to any party that queries DNS. With a cleartext account identifier, the same value appearing in records for multiple domains would let third parties infer that those domains share the same ACME account and likely share infrastructure; this correlation risk is noted in <span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>, Section 5.9. The hashed URI defined in this document mitigates that risk by binding <code>domain_name</code> into the digest, so a given account produces a different <code>accounturi</code> value for each domain (see <a href="#hashed-uri-security" class="auto internal xref">Section 7.2.3</a>).<a href="#section-7.2.2-1" class="pilcrow">¶</a></p>
+<p id="section-7.2.2-2">Domain owners who require stronger privacy can additionally use separate ACME accounts for domains that should not be correlated. The domain-omitted opt-out form (<code>domain_name</code> set to <code>*</code>, see <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>) deliberately forgoes the per-domain mitigation: the same value then appears in every record that uses it, so a bulk observer can link those domains. A domain owner who uses the opt-out to reuse one record across domains accepts that linkage.<a href="#section-7.2.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="hashed-uri-security">
+<section id="section-7.2.3">
+          <h4 id="name-hashed-account-uris">
+<a href="#section-7.2.3" class="section-number selfRef">7.2.3. </a><a href="#name-hashed-account-uris" class="section-name selfRef">Hashed Account URIs</a>
+          </h4>
+<p id="section-7.2.3-1">The hashed URI is the sole <code>accounturi</code> form (<a href="#validation-record-format" class="auto internal xref">Section 4.1</a>). It serves two purposes: it cryptographically binds the requesting account to the domain so that a record cannot be transferred to authorize a different account, preserving the non-transferability property of <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>; and it reduces the correlation exposure described in <a href="#account-uri-privacy" class="auto internal xref">Section 7.2.2</a>. It does not hide the account from the CA, which necessarily learns the account URL when it recomputes and validates the record.<a href="#section-7.2.3-1" class="pilcrow">¶</a></p>
+<p id="section-7.2.3-2"><strong>Source of the authorization binding.</strong> The account holder commits to the account URL by publishing a digest computed over <code>account_URL</code>. Because the hash is collision resistant, this commitment is comparable to publishing the account URL directly, while the digest also incorporates the account key and the domain, as described below.<a href="#section-7.2.3-2" class="pilcrow">¶</a></p>
+<p id="section-7.2.3-3"><strong>Non-transferability and substitution resistance.</strong> A raw account URL is only a URL commitment: its integrity is only as good as the channel that delivered the URL to the domain owner, and if that channel is poisoned the record binds to an account the owner did not intend, so RFC 8555 non-transferability is not preserved. The hashed URI closes this gap by additionally binding the account key. A CA recomputes the digest over the requesting account's own key, so a record validates for an account only if it was computed with a key that account controls. An attacker therefore cannot make an honest CA accept, for the attacker's account, a digest the victim published, because the attacker does not hold the victim's private key; and an attacker who substitutes a different account URL still cannot produce a validating record without the corresponding key. This substitution resistance is the reason this document defines only the hashed URI and does not permit a raw account URL.<a href="#section-7.2.3-3" class="pilcrow">¶</a></p>
+<p id="section-7.2.3-4"><strong>Role of the account key (privacy).</strong> ACME account URLs are frequently low in entropy (e.g., a short, sequential account identifier of only a handful of digits). An adversary who knows a CA's account-URL structure could enumerate all plausible account URLs, hash each against a target domain, and recover the account URL behind a published digest, defeating the privacy goal. The account key's JWK Thumbprint is included as a high-entropy input that raises the cost of this enumeration.<a href="#section-7.2.3-4" class="pilcrow">¶</a></p>
+<p id="section-7.2.3-5"><strong>HTTP-01 key exposure.</strong> The key authorization for the <code>http-01</code> challenge (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 8.3) is transmitted over cleartext HTTP and contains the same unpadded base64url SHA-256 JWK Thumbprint used as the <code>key</code> input above. An on-path observer of an <code>http-01</code> validation for the account therefore learns the thumbprint, leaving only the account URL unknown when evaluating a published hashed URI. The observer must still enumerate candidate account URLs and recompute the digest, so the remaining protection for that observer is limited to the entropy of the account URL.<a href="#section-7.2.3-5" class="pilcrow">¶</a></p>
+<p id="section-7.2.3-6"><strong>Binding to the record's own domain.</strong> The digest binds <code>domain_name</code>, which is the FQDN at which the <code>_validation-persist</code> record is provisioned, not the FQDN of the certificate ultimately requested. This has two effects. First, the same account produces a different <code>accounturi</code> value in every domain's record, so a bulk observer cannot correlate domains by matching identical strings, as it could with a shared cleartext account URL. Second, because each record is bound to its own domain, there is no ambiguity under wildcard or CNAME'd provisioning about which name a given record authorizes, and a record cannot be lifted to a different domain. A domain owner who deliberately wants one record to authorize many names uses the domain-omitted opt-out (<code>domain_name</code> set to <code>*</code>), accepting the correlation trade-off described in <a href="#account-uri-privacy" class="auto internal xref">Section 7.2.2</a>.<a href="#section-7.2.3-6" class="pilcrow">¶</a></p>
+<p id="section-7.2.3-7"><strong>Digest construction.</strong> The digest is compared for exact equality against a value the CA recomputes over a fixed field structure (<a href="#validation-record-format" class="auto internal xref">Section 4.1</a>), so there is no attacker-controlled trailing input, and length-extension of the digest yields nothing an attacker can use. The <code>length_of_domain</code> prefix and the fixed 43-octet <code>key</code> make every field boundary unambiguous regardless of which octets appear in <code>domain_name</code> or <code>account_URL</code>, so no field can be shifted into another to construct a colliding preimage. The <code>key</code> uses the unpadded base64url thumbprint representation already present as the second component of an ACME key authorization (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 8.1), avoiding an unnecessary decode step.<a href="#section-7.2.3-7" class="pilcrow">¶</a></p>
+<p id="section-7.2.3-8"><strong>Uniqueness of the binding.</strong> What <span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>, Section 5.4 requires of an <code>accounturi</code> is reverse-direction uniqueness: a single <code>accounturi</code> value must not identify two different accounts. This holds because <code>account_URL</code> is one of the hash inputs and the hash is collision resistant, so each hashed URI uniquely identifies one account. The forward direction is intentionally one-to-many — one account yields a different value per domain — which is the privacy property above.<a href="#section-7.2.3-8" class="pilcrow">¶</a></p>
+<p id="section-7.2.3-9"><strong>Acceptance of prior keys.</strong> A CA accepts digests generated with an account's prior keys so that records provisioned before a rotation survive without republication (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3.5), subject to the deactivation and retention rules in <a href="#verification-procedure" class="auto internal xref">Section 4.2</a>. This acceptance aligns with <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3.5, which establishes that changing an account key should not have collateral impact on existing authorizations. Such a record was committed to the account's URL when it was provisioned, so even if the key in the record is one that was later rotated out, the domain owner's intent to authorize that account is preserved. Retaining historical public key thumbprints creates no capability for an attacker: under <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3.5, a rotated-out key cannot authenticate subsequent requests, and registering a fresh account with an old key yields a different account URL that produces a different hashed URI. Furthermore, no CA acceptance policy can automatically distinguish an honest key rotation from a hostile one, so time-bounded acceptance provides no defense against account takeover; the effective controls against account takeover remain account deactivation, DNS record removal, and the <code>persistUntil</code> parameter. Account deactivation overrides this acceptance: once an account is deactivated, no digest computed from any of its keys validates, which is the emergency stop for a suspected key compromise.<a href="#section-7.2.3-9" class="pilcrow">¶</a></p>
+<p id="section-7.2.3-10"><strong>Limits of the privacy protection.</strong> This construction is a best-effort obfuscation, not a cryptographically strong privacy mechanism. It resists bulk correlation and casual enumeration of account URLs, but a determined adversary with a-priori knowledge of candidate account URLs and their account keys can recover the true account URL. Domain owners who require stronger unlinkability <span class="bcp14">SHOULD</span> use separate ACME accounts for domains that must not be correlated.<a href="#section-7.2.3-10" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2058,27 +2055,6 @@ substitution for operator review.<a href="#section-7.2.3-5" class="pilcrow">¶</
             <p id="section-7.3-6.4.1">Provide clear governance policies for subdomain certificate authority<a href="#section-7.3-6.4.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<div id="subscriber-uris-and-broad-scope">
-<section id="section-7.3.1">
-          <h4 id="name-subscriber-uris-and-broad-a">
-<a href="#section-7.3.1" class="section-number selfRef">7.3.1. </a><a href="#name-subscriber-uris-and-broad-a" class="section-name selfRef">Subscriber URIs and Broad Authorization Scope</a>
-          </h4>
-<p id="section-7.3.1-1">The introduction of Subscriber-account URIs (mode 3c) creates several interactions that compound to significantly broaden the authorization scope of a single validation record. Domain owners and CAs must understand these combined risks:<a href="#section-7.3.1-1" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-7.3.1-2">
-<li id="section-7.3.1-2.1">
-              <p id="section-7.3.1-2.1.1"><strong>Subscriber URIs with Wildcard Policy:</strong> Combining <code>policy=wildcard</code> with a Subscriber-account URI creates the broadest possible authorization this protocol can express. It permits any ACME account associated with the subscriber to issue certificates for any subdomain of the validated domain, for the entire lifetime of the DNS record. If a single ACME account key under that subscriber is compromised out of potentially hundreds of thousands, the attacker gains unlimited subdomain issuance capability for the domain. Organizations using this combination are <span class="bcp14">RECOMMENDED</span> to strongly limit the record lifetime using the <code>persistUntil</code> parameter.<a href="#section-7.3.1-2.1.1" class="pilcrow">¶</a></p>
-</li>
-            <li id="section-7.3.1-2.2">
-              <p id="section-7.3.1-2.2.1"><strong>Subscriber URIs with Just-in-Time Validation:</strong> Just-in-Time (JIT) validation eliminates the detection window inherent in challenge-response validation. When JIT validation is used with a Subscriber-account URI, any account under the subscriber gets immediate, undetectable JIT access to issue certificates, including accounts that did not exist when the validation record was originally provisioned.<a href="#section-7.3.1-2.2.1" class="pilcrow">¶</a></p>
-</li>
-            <li id="section-7.3.1-2.3">
-              <p id="section-7.3.1-2.3.1"><strong>Subscriber URIs and Pre-Provisioning:</strong> As described in <a href="#pre-provisioning-records" class="auto internal xref">Section 4.5</a>, new ACME accounts created after a Subscriber-account URI is provisioned automatically inherit its validation rights. The domain owner relies entirely on the CA's subscriber account management system and has no direct visibility into which specific ACME accounts are being granted authorization by their DNS record.<a href="#section-7.3.1-2.3.1" class="pilcrow">¶</a></p>
-</li>
-          </ol>
-<p id="section-7.3.1-3">Note that once the <code>adn</code> response field is defined, it composes with <code>policy=wildcard</code> and subscriber URIs to further broaden authorization scope.<a href="#section-7.3.1-3" class="pilcrow">¶</a></p>
-<p id="section-7.3.1-4">Further security considerations regarding the revocation of these broad authorizations are discussed in <a href="#revocation-and-invalidation" class="auto internal xref">Section 7.11</a>, the semantic differences in account comparison are detailed in <a href="#challenge-response-and-verification" class="auto internal xref">Section 4</a> (item 3), the privacy implications are noted in <a href="#account-uri-privacy" class="auto internal xref">Section 7.2.4</a>, and the risks of subscriber credential compromise are covered in <a href="#subscriber-credential-compromise" class="auto internal xref">Section 7.2.1</a>.<a href="#section-7.3.1-4" class="pilcrow">¶</a></p>
-</section>
-</div>
 </section>
 </div>
 <div id="cross-ca-validation-reuse">
@@ -2096,14 +2072,6 @@ substitution for operator review.<a href="#section-7.2.3-5" class="pilcrow">¶</
         </h3>
 <p id="section-7.5-1">DNS records are generally not authenticated end-to-end, making them potentially vulnerable to tampering. CAs <span class="bcp14">SHOULD</span> implement additional integrity checks where possible and consider the overall security posture of the DNS infrastructure when relying on persistent validation records.<a href="#section-7.5-1" class="pilcrow">¶</a></p>
 <p id="section-7.5-2">Additionally, CAs <span class="bcp14">SHOULD</span> protect their <code>ACME directory URL</code> with appropriate security measures. Using DNSSEC to protect the CA's <code>ACME directory URL</code> is <span class="bcp14">RECOMMENDED</span>. An attacker who compromises the DNS for a CA's <code>ACME directory URL</code> could disrupt validation or potentially impersonate the CA in certain scenarios. While this is a systemic DNS security risk that extends beyond this specification, it is amplified by any mechanism that relies on DNS for identity.<a href="#section-7.5-2" class="pilcrow">¶</a></p>
-<div id="dns-spoofing-amplification-with-subscriber-uris">
-<section id="section-7.5.1">
-          <h4 id="name-dns-spoofing-amplification-">
-<a href="#section-7.5.1" class="section-number selfRef">7.5.1. </a><a href="#name-dns-spoofing-amplification-" class="section-name selfRef">DNS Spoofing Amplification with Subscriber URIs</a>
-          </h4>
-<p id="section-7.5.1-1">The value of a spoofed <code>_validation-persist</code> TXT record to an attacker is significantly amplified when the spoofed record uses a Subscriber-account URI. If an attacker manages to spoof a DNS response containing a Subscriber-account URI, they can use <em>any</em> compromised ACME key associated with that subscriber to issue certificates for the spoofed domain. This amplification of risk further emphasizes the necessity of strong DNS security measures, such as DNSSEC, when operating ACME infrastructure.<a href="#section-7.5.1-1" class="pilcrow">¶</a></p>
-</section>
-</div>
 </section>
 </div>
 <div id="issuer-domain-name-normalization-and-limits">
@@ -2111,7 +2079,7 @@ substitution for operator review.<a href="#section-7.2.3-5" class="pilcrow">¶</
         <h3 id="name-issuer-domain-name-normaliz">
 <a href="#section-7.6" class="section-number selfRef">7.6. </a><a href="#name-issuer-domain-name-normaliz" class="section-name selfRef">Issuer Domain Name Normalization and Limits</a>
         </h3>
-<p id="section-7.6-1">The <code>issuer-domain-names</code> field requires domain names to be provided in a normalized form (lowercase A-labels, no trailing dot) to prevent errors and security issues arising from case-sensitivity differences or Unicode homograph attacks. By requiring a canonical representation, servers and clients can perform simple byte-for-byte comparisons, ensuring interoperability and deterministic validation. The order of names in the array has no significance.<a href="#section-7.6-1" class="pilcrow">¶</a></p>
+<p id="section-7.6-1">The <code>issuerDomainNames</code> field requires domain names to be provided in a normalized form (lowercase A-labels, no trailing dot) to prevent errors and security issues arising from case-sensitivity differences or Unicode homograph attacks. By requiring a canonical representation, servers and clients can perform simple byte-for-byte comparisons, ensuring interoperability and deterministic validation. The order of names in the array has no significance.<a href="#section-7.6-1" class="pilcrow">¶</a></p>
 <p id="section-7.6-2">The server-side limit on the number of issuer domain names provided in a single challenge (e.g., 10) helps mitigate denial-of-service vectors where a client might be forced to perform an excessive number of DNS queries or a server might be burdened by validating against a large set of domains.<a href="#section-7.6-2" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -2120,7 +2088,7 @@ substitution for operator review.<a href="#section-7.2.3-5" class="pilcrow">¶</
         <h3 id="name-caa-interaction">
 <a href="#section-7.7" class="section-number selfRef">7.7. </a><a href="#name-caa-interaction" class="section-name selfRef">CAA Interaction</a>
         </h3>
-<p id="section-7.7-1">The <code>dns-persist-01</code> validation method is a valid <code>validationmethods</code> parameter value for CAA records per <span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>. Note that CAA <code>accounturi</code> and <code>dns-persist-01</code> <code>accounturi</code> are independent reinforcing checks — both can restrict issuance, and subscriber URIs in one do not automatically apply to the other.<a href="#section-7.7-1" class="pilcrow">¶</a></p>
+<p id="section-7.7-1">The <code>dns-persist-01</code> validation method is a valid <code>validationmethods</code> parameter value for CAA records per <span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>. Under <span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>, Section 3.1, a CAA <code>accounturi</code> for an ACME account is the URI of the ACME account object (the account URL); when the parameter is present, the CA matches that URI as part of CAA processing. The <code>dns-persist-01</code> <code>accounturi</code> is instead the hashed URI defined in <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>, which the CA matches by recomputing it while validating the <code>_validation-persist</code> record. These parameters occur in different DNS records and need not have the same value. They are independent reinforcing checks: both can restrict issuance, and the CA evaluates them separately.<a href="#section-7.7-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="dns-security-measures">
@@ -2148,13 +2116,13 @@ substitution for operator review.<a href="#section-7.2.3-5" class="pilcrow">¶</
 </div>
 </section>
 </div>
-<div id="validation-data-reuse-and-ttl-handling">
+<div id="validation-data-reuse">
 <section id="section-7.9">
-        <h3 id="name-validation-data-reuse-and-t">
-<a href="#section-7.9" class="section-number selfRef">7.9. </a><a href="#name-validation-data-reuse-and-t" class="section-name selfRef">Validation Data Reuse and TTL Handling</a>
+        <h3 id="name-validation-data-reuse">
+<a href="#section-7.9" class="section-number selfRef">7.9. </a><a href="#name-validation-data-reuse" class="section-name selfRef">Validation Data Reuse</a>
         </h3>
-<p id="section-7.9-1">This validation method is explicitly designed for persistence and reuse. The period for which a CA may rely on validation data is its <code>Validation Data Reuse Period</code> (as defined in <a href="#conventions-and-definitions" class="auto internal xref">Section 2</a>). However, if the DNS TXT record's Time-to-Live (TTL) is shorter than this period, the CA <span class="bcp14">MUST</span> treat the record's TTL as the effective validation data reuse period for that specific validation. A TTL of zero means the CA <span class="bcp14">MUST NOT</span> reuse the validation data beyond the current validation attempt.<a href="#section-7.9-1" class="pilcrow">¶</a></p>
-<p id="section-7.9-2">CAs <span class="bcp14">MAY</span> reuse validation data obtained through this method for the duration of their validation data reuse period, subject to the TTL constraints described in this section. CAs <span class="bcp14">MUST</span> also respect any <code>persistUntil</code> constraint as specified in <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>.<a href="#section-7.9-2" class="pilcrow">¶</a></p>
+<p id="section-7.9-1">This validation method is explicitly designed for persistence and reuse. The period for which a CA may rely on validation data is its <code>Validation Data Reuse Period</code> (as defined in <a href="#conventions-and-definitions" class="auto internal xref">Section 2</a>), bounded by the CA's own policy, applicable root program requirements, and any <code>persistUntil</code> constraint on the record (<a href="#validation-record-format" class="auto internal xref">Section 4.1</a>). The DNS TTL of the <code>_validation-persist</code> record governs caching at the DNS layer only; it is not a validation data reuse limit, and a CA <span class="bcp14">MUST NOT</span> derive the effective validation data reuse period from the record's observed TTL.<a href="#section-7.9-1" class="pilcrow">¶</a></p>
+<p id="section-7.9-2">CAs <span class="bcp14">MAY</span> reuse validation data obtained through this method for the duration of their Validation Data Reuse Period, subject to the <code>expires</code> constraint established by any <code>persistUntil</code> parameter on the validated record (see <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>). For a validation attempt that queries DNS, removing or changing the TXT record takes effect after resolver caches expire, as described in <a href="#revocation-and-invalidation" class="auto internal xref">Section 7.11</a>. Record removal or later modification of <code>persistUntil</code> in DNS does not retroactively invalidate or shorten previously obtained validation data before its established authorization expiration.<a href="#section-7.9-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="persist-until-parameter-considerations">
@@ -2192,48 +2160,33 @@ substitution for operator review.<a href="#section-7.2.3-5" class="pilcrow">¶</
         <h3 id="name-revocation-and-invalidation">
 <a href="#section-7.11" class="section-number selfRef">7.11. </a><a href="#name-revocation-and-invalidation" class="section-name selfRef">Revocation and Invalidation of Persistent Authorizations</a>
         </h3>
-<p id="section-7.11-1">The persistent nature of <code>dns-persist-01</code> authorizations means that a valid DNS TXT record can grant control for an extended period, potentially even if the domain owner's intent changes or if the associated account key is compromised. Therefore, explicit mechanisms for revoking or invalidating these persistent authorizations are critical. The available actions and their effects depend on the <code>accounturi</code> mode used in the validation record.<a href="#section-7.11-1" class="pilcrow">¶</a></p>
-<p id="section-7.11-2">There are three primary revocation and invalidation actions:<a href="#section-7.11-2" class="pilcrow">¶</a></p>
+<p id="section-7.11-1">The persistent nature of <code>dns-persist-01</code> authorizations means that a valid DNS TXT record can grant control for an extended period, potentially even if the domain owner's intent changes or if the associated account key is compromised. Therefore, explicit mechanisms for revoking or invalidating these persistent authorizations are critical.<a href="#section-7.11-1" class="pilcrow">¶</a></p>
+<p id="section-7.11-2">There are two primary revocation and invalidation actions:<a href="#section-7.11-2" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-7.11-3">
 <li id="section-7.11-3.1">
-            <p id="section-7.11-3.1.1"><strong>Remove DNS record:</strong> Removing the corresponding DNS TXT record from the Validation Domain Name is the standard method for an Applicant to invalidate a <code>dns-persist-01</code> authorization. After the record is removed and resolver caches have expired, new validation attempts for the domain will fail. This action applies to all three <code>accounturi</code> modes.<a href="#section-7.11-3.1.1" class="pilcrow">¶</a></p>
+            <p id="section-7.11-3.1.1"><strong>Remove DNS record:</strong> Removing the corresponding DNS TXT record from the Validation Domain Name is the standard method for an Applicant to invalidate a <code>dns-persist-01</code> authorization. After the record is removed and resolver caches have expired, new validation attempts for the domain will fail. This action is available to the domain owner and does not require CA involvement.<a href="#section-7.11-3.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-7.11-3.2">
-            <p id="section-7.11-3.2.1"><strong>Deactivate ACME account:</strong> For situations requiring immediate revocation of issuance capability (e.g., suspected account key compromise), an ACME account can be deactivated as specified in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3.6. For modes 3a (ACME URL) and 3b (Alternative URI), this serves as a full emergency measure, effectively invalidating the record's utility. For mode 3c (Subscriber-account URI), deactivating a single compromised ACME account prevents that ACME account from using the subscriber-level authorization, but does NOT affect other associated ACME accounts or invalidate the subscriber-level record.<a href="#section-7.11-3.2.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="section-7.11-3.3">
-            <p id="section-7.11-3.3.1"><strong>Deactivate subscriber account:</strong> For mode 3c only, an immediate deactivation of the entire subscriber account is required. When a subscriber account is deactivated, all associated ACME accounts immediately lose their validation rights derived from the subscriber-account URI. CAs supporting subscriber-account URIs <span class="bcp14">MUST</span> provide this mechanism.<a href="#section-7.11-3.3.1" class="pilcrow">¶</a></p>
+            <p id="section-7.11-3.2.1"><strong>Deactivate ACME account:</strong> For situations requiring immediate revocation of issuance capability (e.g., suspected account key compromise), the account bound by the record can be deactivated as specified in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.3.6. Per the deactivation rule in <a href="#verification-procedure" class="auto internal xref">Section 4.2</a>, a CA <span class="bcp14">MUST NOT</span> accept a hashed URI computed from any key of a deactivated account; deactivation therefore takes effect immediately and overrides key retention, including the certificate-backed retention of a key that a currently valid certificate depends on. This makes account deactivation a full emergency measure that invalidates the record's utility without waiting for DNS caches to expire.<a href="#section-7.11-3.2.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
-<p id="section-7.11-4">The following table summarizes the applicability and timing of these actions across the three modes:<a href="#section-7.11-4" class="pilcrow">¶</a></p>
+<p id="section-7.11-4">The following table summarizes the applicability and timing of these actions:<a href="#section-7.11-4" class="pilcrow">¶</a></p>
 <table class="center" id="table-1">
           <caption><a href="#table-1" class="selfRef">Table 1</a></caption>
 <thead>
             <tr>
               <th class="text-left" rowspan="1" colspan="1">Action</th>
-              <th class="text-left" rowspan="1" colspan="1">3a (ACME URL)</th>
-              <th class="text-left" rowspan="1" colspan="1">3b (Alt URI)</th>
-              <th class="text-left" rowspan="1" colspan="1">3c (Subscriber)</th>
+              <th class="text-left" rowspan="1" colspan="1">Effect</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Remove DNS record</td>
-              <td class="text-left" rowspan="1" colspan="1">✓ (after cache expiry)</td>
-              <td class="text-left" rowspan="1" colspan="1">✓ (after cache expiry)</td>
-              <td class="text-left" rowspan="1" colspan="1">✓ (after cache expiry)</td>
+              <td class="text-left" rowspan="1" colspan="1">New validations fail after resolver cache expiry; domain-owner action, no CA involvement</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Deactivate ACME account</td>
-              <td class="text-left" rowspan="1" colspan="1">✓ (immediate)</td>
-              <td class="text-left" rowspan="1" colspan="1">✓ (immediate)</td>
-              <td class="text-left" rowspan="1" colspan="1">✗ (only that account)</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">Deactivate subscriber account</td>
-              <td class="text-left" rowspan="1" colspan="1">N/A</td>
-              <td class="text-left" rowspan="1" colspan="1">N/A</td>
-              <td class="text-left" rowspan="1" colspan="1">✓ (immediate, all accounts)</td>
+              <td class="text-left" rowspan="1" colspan="1">New validations fail immediately; overrides key retention (see <a href="#verification-procedure" class="auto internal xref">Section 4.2</a>)</td>
             </tr>
           </tbody>
         </table>
@@ -2252,7 +2205,7 @@ substitution for operator review.<a href="#section-7.2.3-5" class="pilcrow">¶</
             <p id="section-7.11-9.1.1">During a validation attempt, fail the validation if the corresponding DNS TXT record is no longer present or if its content does not meet the requirements of this specification (e.g., incorrect <code>issuer-domain-name</code>, missing <code>accounturi</code>, altered <code>policy</code>).<a href="#section-7.11-9.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-7.11-9.2">
-            <p id="section-7.11-9.2.1">Respect the <code>persistUntil</code> constraint as specified in <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>, rejecting new validation attempts after the specified timestamp even if the record remains present.<a href="#section-7.11-9.2.1" class="pilcrow">¶</a></p>
+            <p id="section-7.11-9.2.1">Respect the <code>persistUntil</code> constraint as specified in <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>, setting authorization expiration to no later than the specified timestamp and rejecting new validation attempts after the timestamp elapses.<a href="#section-7.11-9.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-7.11-9.3">
             <p id="section-7.11-9.3.1">Ensure their internal systems are capable of efficiently handling the validation failure when DNS records are removed or become invalid.<a href="#section-7.11-9.3.1" class="pilcrow">¶</a></p>
@@ -2305,6 +2258,34 @@ substitution for operator review.<a href="#section-7.2.3-5" class="pilcrow">¶</
 </li>
           <li class="normal" id="section-8.2-2.3">
             <p id="section-8.2-2.3.1"><strong>Reference</strong>: This document<a href="#section-8.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="acme-directory-metadata-field">
+<section id="section-8.3">
+        <h3 id="name-acme-directory-metadata-fie">
+<a href="#section-8.3" class="section-number selfRef">8.3. </a><a href="#name-acme-directory-metadata-fie" class="section-name selfRef">ACME Directory Metadata Fields</a>
+        </h3>
+<p id="section-8.3-1">IANA is requested to register the following entries in the "Fields in the 'meta' Object within a Directory Object" registry defined in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 9.7.6:<a href="#section-8.3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.3-2.1">
+            <p id="section-8.3-2.1.1"><strong>Field Name</strong>: accountHashPrefix<a href="#section-8.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.3-2.2">
+            <p id="section-8.3-2.2.1"><strong>Field Type</strong>: string<a href="#section-8.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.3-2.3">
+            <p id="section-8.3-2.3.1"><strong>Reference</strong>: This document<a href="#section-8.3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.3-2.4">
+            <p id="section-8.3-2.4.1"><strong>Field Name</strong>: issuerDomainNames<a href="#section-8.3-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.3-2.5">
+            <p id="section-8.3-2.5.1"><strong>Field Type</strong>: array of string<a href="#section-8.3-2.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.3-2.6">
+            <p id="section-8.3-2.6.1"><strong>Reference</strong>: This document<a href="#section-8.3-2.6.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 </section>
@@ -2414,13 +2395,10 @@ _validation-persist.example.com. IN TXT ("first-255-bytes..."
             <p id="section-9.3-2.1.1">Establishing clear policies for Issuer Domain Name disclosure in Certificate Policies and Certification Practice Statements<a href="#section-9.3-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-9.3-2.2">
-            <p id="section-9.3-2.2.1">Developing procedures for handling validation record TTL variations<a href="#section-9.3-2.2.1" class="pilcrow">¶</a></p>
+            <p id="section-9.3-2.2.1">Creating account security monitoring and incident response procedures<a href="#section-9.3-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-9.3-2.3">
-            <p id="section-9.3-2.3.1">Creating account security monitoring and incident response procedures<a href="#section-9.3-2.3.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-9.3-2.4">
-            <p id="section-9.3-2.4.1">Providing clear documentation for clients on proper record construction<a href="#section-9.3-2.4.1" class="pilcrow">¶</a></p>
+            <p id="section-9.3-2.3.1">Providing clear documentation for clients on proper record construction<a href="#section-9.3-2.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <div id="error-handling">
@@ -2431,28 +2409,26 @@ _validation-persist.example.com. IN TXT ("first-255-bytes..."
 <p id="section-9.3.1-1">When implementing the "dns-persist-01" validation method, Certificate Authorities <span class="bcp14">SHOULD</span> return appropriate ACME error codes to provide clear feedback on validation failures. Specifically:<a href="#section-9.3.1-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-9.3.1-2.1">
-              <p id="section-9.3.1-2.1.1">CAs <span class="bcp14">SHOULD</span> return a <code>malformed</code> error (as defined in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>) when the TXT record has invalid syntax, such as duplicate parameters, invalid timestamp format in the <code>persistUntil</code> parameter, missing mandatory <code>accounturi</code> parameter, or other syntactic violations of the record format specified in this document.<a href="#section-9.3.1-2.1.1" class="pilcrow">¶</a></p>
+              <p id="section-9.3.1-2.1.1">CAs <span class="bcp14">SHOULD</span> return a <code>malformed</code> error (as defined in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>) when the TXT record has invalid syntax, such as duplicate parameters, invalid timestamp format in the <code>persistUntil</code> parameter, missing mandatory <code>accounturi</code> parameter, an <code>accounturi</code> that is not a well-formed hashed URI (for example, one not placed under the CA's <code>accountHashPrefix</code>, one using an algorithm identifier the CA does not accept, or one whose hash value is not valid base64url of the expected length), or other syntactic violations of the record format specified in this document.<a href="#section-9.3.1-2.1.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-9.3.1-2.2">
               <p id="section-9.3.1-2.2.1">CAs <span class="bcp14">SHOULD</span> return an <code>unauthorized</code> error (as defined in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>) when validation fails due to authorization issues, including:<a href="#section-9.3.1-2.2.1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-9.3.1-2.2.2.1">
-                  <p id="section-9.3.1-2.2.2.1.1">The <code>accounturi</code> parameter in the DNS TXT record does not identify the ACME account making the request (modes 3a and 3b)<a href="#section-9.3.1-2.2.2.1.1" class="pilcrow">¶</a></p>
+                  <p id="section-9.3.1-2.2.2.1.1">The <code>accounturi</code> hashed URI in the DNS TXT record does not, when recomputed by the CA over the requesting account's retained keys (see <a href="#verification-procedure" class="auto internal xref">Section 4.2</a>), match any value the CA accepts for that account<a href="#section-9.3.1-2.2.2.1.1" class="pilcrow">¶</a></p>
 </li>
                 <li class="normal" id="section-9.3.1-2.2.2.2">
-                  <p id="section-9.3.1-2.2.2.2.1">The <code>accounturi</code> parameter contains a subscriber-account URI (mode 3c) but the requesting ACME account is not associated with the claimed subscriber in the CA's account management system<a href="#section-9.3.1-2.2.2.2.1" class="pilcrow">¶</a></p>
+                  <p id="section-9.3.1-2.2.2.2.1">The <code>persistUntil</code> timestamp has expired, indicating that the validation record is no longer considered valid for new validation attempts<a href="#section-9.3.1-2.2.2.2.1" class="pilcrow">¶</a></p>
 </li>
                 <li class="normal" id="section-9.3.1-2.2.2.3">
-                  <p id="section-9.3.1-2.2.2.3.1">The <code>persistUntil</code> timestamp has expired, indicating that the validation record is no longer considered valid for new validation attempts<a href="#section-9.3.1-2.2.2.3.1" class="pilcrow">¶</a></p>
-</li>
-                <li class="normal" id="section-9.3.1-2.2.2.4">
-                  <p id="section-9.3.1-2.2.2.4.1">The <code>issuer-domain-name</code> in the DNS TXT record does not match any of the values provided in the <code>issuer-domain-names</code> array of the challenge object<a href="#section-9.3.1-2.2.2.4.1" class="pilcrow">¶</a></p>
+                  <p id="section-9.3.1-2.2.2.3.1">The <code>issuer-domain-name</code> in the DNS TXT record does not match any of the values provided in the <code>issuerDomainNames</code> array of the challenge object<a href="#section-9.3.1-2.2.2.3.1" class="pilcrow">¶</a></p>
 </li>
               </ul>
 </li>
           </ul>
 <p id="section-9.3.1-3">Note that these error codes apply to validation attempts on specific challenges. In the case of Just-in-Time Validation (see <a href="#just-in-time-validation" class="auto internal xref">Section 4.4</a>), when a CA finds a pre-existing DNS TXT record that does not meet validation requirements, the CA proceeds with the standard authorization flow by issuing a new <code>pending</code> challenge rather than returning an error.<a href="#section-9.3.1-3" class="pilcrow">¶</a></p>
 <p id="section-9.3.1-4">These error codes help ACME clients distinguish between different types of validation failures and take appropriate corrective actions.<a href="#section-9.3.1-4" class="pilcrow">¶</a></p>
+<p id="section-9.3.1-5">To mitigate potential denial-of-service risks from accounts with extensive key rollover history, CAs <span class="bcp14">MUST</span> rate-limit failed validation attempts per domain and account.<a href="#section-9.3.1-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2480,6 +2456,8 @@ _validation-persist.example.com. IN TXT ("first-255-bytes..."
             <p id="section-9.4-2.5.1">Considering the security implications of persistent records in their threat models<a href="#section-9.4-2.5.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
+<p id="section-9.4-3">Clients that delegate record publication to third parties (such as DNS providers) <span class="bcp14">MUST</span> perform the pre-publication account check specified in <a href="#pre-provisioning-records" class="auto internal xref">Section 4.5</a> before transmitting inputs.<a href="#section-9.4-3" class="pilcrow">¶</a></p>
+<p id="section-9.4-4">Clients that manage or provision <code>_validation-persist</code> records <span class="bcp14">SHOULD</span> inspect their own local provisioning state (rather than relying on a DNS lookup) before initiating a new order, and <span class="bcp14">SHOULD</span> warn the operator if a record's <code>persistUntil</code> value has already expired or is likely to expire before validation completes. A client that skips this check risks initiating a validation attempt that the CA will reject with an <code>unauthorized</code> error (see <a href="#ca-implementation-guidelines" class="auto internal xref">Section 9.3</a>) instead of reporting an actionable, locally diagnosed cause.<a href="#section-9.4-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="dns-provider-considerations">
@@ -2496,10 +2474,16 @@ _validation-persist.example.com. IN TXT ("first-255-bytes..."
             <p id="section-9.5-2.2.1">Providing audit logging for validation record changes<a href="#section-9.5-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-9.5-2.3">
-            <p id="section-9.5-2.3.1">Supporting reasonable TTL values for validation records<a href="#section-9.5-2.3.1" class="pilcrow">¶</a></p>
+            <p id="section-9.5-2.3.1">Considering dedicated interfaces or APIs for ACME validation record management<a href="#section-9.5-2.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-9.5-2.4">
-            <p id="section-9.5-2.4.1">Considering dedicated interfaces or APIs for ACME validation record management<a href="#section-9.5-2.4.1" class="pilcrow">¶</a></p>
+            <p id="section-9.5-2.4.1">Supporting workflows in which the provider computes and publishes <code>_validation-persist</code> records on a domain owner's behalf from the shareable values listed in <a href="#pre-provisioning-records" class="auto internal xref">Section 4.5</a>, none of which include private key material<a href="#section-9.5-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.5-2.5">
+            <p id="section-9.5-2.5.1">Never requesting or storing ACME account private keys, which no record-management operation described in this document requires<a href="#section-9.5-2.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.5-2.6">
+            <p id="section-9.5-2.6.1">Providing inventory and audit views of <code>_validation-persist</code> records to support the inventory practices described in <a href="#pre-provisioning-records" class="auto internal xref">Section 4.5</a><a href="#section-9.5-2.6.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 </section>
@@ -2526,18 +2510,18 @@ _validation-persist.example.com. IN TXT ("first-255-bytes..."
   "type": "dns-persist-01",
   "url": "https://ca.example/acme/authz/1234/0",
   "status": "pending",
-  "accounturi": "https://ca.example/acct/123",
-  "issuer-domain-names": ["authority.example", "ca.example.net"]
+  "issuerDomainNames": ["authority.example", "ca.example.net"]
 }
 </pre><a href="#section-10.1-2.1.2" class="pilcrow">¶</a>
 </div>
 </li>
           <li id="section-10.1-2.2">
-            <p id="section-10.1-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record (note the absence of a <code>policy</code> parameter for scope):<a href="#section-10.1-2.2.1" class="pilcrow">¶</a></p>
+            <p id="section-10.1-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example"), computes its hashed URI as shown in <a href="#hashed-uri-example" class="auto internal xref">Section 10.2</a>, and provisions a DNS TXT record (note the absence of a <code>policy</code> parameter for scope):<a href="#section-10.1-2.2.1" class="pilcrow">¶</a></p>
 <div class="lang-dns sourcecode" id="section-10.1-2.2.2">
 <pre>
 _validation-persist.example.com. IN TXT ("authority.example;"
-" accounturi=https://ca.example/acct/123")
+" accounturi=https://ca.example/account-hash/"
+"sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw")
 </pre><a href="#section-10.1-2.2.2" class="pilcrow">¶</a>
 </div>
 </li>
@@ -2547,99 +2531,204 @@ _validation-persist.example.com. IN TXT ("authority.example;"
         </ol>
 </section>
 </div>
-<div id="wildcard-validation-example">
+<div id="hashed-uri-example">
 <section id="section-10.2">
-        <h3 id="name-wildcard-validation-example">
-<a href="#section-10.2" class="section-number selfRef">10.2. </a><a href="#name-wildcard-validation-example" class="section-name selfRef">Wildcard Validation Example</a>
+        <h3 id="name-hashed-uri-example">
+<a href="#section-10.2" class="section-number selfRef">10.2. </a><a href="#name-hashed-uri-example" class="section-name selfRef">Hashed-URI Example</a>
         </h3>
-<p id="section-10.2-1">For validation of "*.example.com" (which also validates "example.com" and specific subdomains like "www.example.com") by a CA using "authority.example" as its Issuer Domain Name:<a href="#section-10.2-1" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-10.2-2">
-<li id="section-10.2-2.1">
-            <p id="section-10.2-2.1.1">The CA provides a challenge object similar to the basic example, containing an <code>issuer-domain-names</code> array.<a href="#section-10.2-2.1.1" class="pilcrow">¶</a></p>
+<p id="section-10.2-1">This example validates "example.com" using a hashed URI (<a href="#validation-record-format" class="auto internal xref">Section 4.1</a>) and serves as a test vector. The hash inputs are:<a href="#section-10.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-10.2-2.1">
+            <p id="section-10.2-2.1.1"><code>length_of_domain</code>: <code>0x0b</code> (the domain <code>example.com</code> is 11 octets)<a href="#section-10.2-2.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li id="section-10.2-2.2">
-            <p id="section-10.2-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record at the base domain's Validation Domain Name, including <code>policy=wildcard</code>:<a href="#section-10.2-2.2.1" class="pilcrow">¶</a></p>
-<span id="name-wildcard-policy-validation-"></span><div id="ex-wildcard-validation">
+          <li class="normal" id="section-10.2-2.2">
+            <p id="section-10.2-2.2.1"><code>domain_name</code>: <code>example.com</code><a href="#section-10.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.2-2.3">
+            <p id="section-10.2-2.3.1"><code>key</code>: the 43 ASCII octets of <code>NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs</code>, the unpadded base64url encoding of the account's current SHA-256 JWK Thumbprint <span>[<a href="#RFC7638" class="cite xref">RFC7638</a>]</span> (the example thumbprint from <span>[<a href="#RFC7638" class="cite xref">RFC7638</a>]</span>, Section 3.1)<a href="#section-10.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.2-2.4">
+            <p id="section-10.2-2.4.1"><code>account_URL</code>: <code>https://ca.example/acct/123</code><a href="#section-10.2-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-10.2-3">Computing <code>SHA-256(length_of_domain || domain_name || key || account_URL)</code> and applying unpadded base64url encoding to the 32-octet digest yields:<a href="#section-10.2-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-10.2-4">
+<pre>
+5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw
+</pre><a href="#section-10.2-4" class="pilcrow">¶</a>
+</div>
+<p id="section-10.2-5">With a CA <code>accountHashPrefix</code> of <code>https://ca.example/account-hash/</code> and the <code>sha-256</code> algorithm identifier, the hashed URI is <code>https://ca.example/account-hash/sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw</code>. Using issuer domain name "authority.example", the client provisions:<a href="#section-10.2-5" class="pilcrow">¶</a></p>
+<span id="name-hashed-uri-validation-recor"></span><div id="ex-hashed-uri">
 <figure id="figure-5">
-              <div class="lang-dns sourcecode" id="section-10.2-2.2.2.1">
+          <div class="lang-dns sourcecode" id="section-10.2-6.1">
 <pre>
 _validation-persist.example.com. IN TXT ("authority.example;"
-" accounturi=https://ca.example/acct/123;"
-" policy=wildcard")
+" accounturi=https://ca.example/account-hash/"
+"sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw")
 </pre>
 </div>
 <figcaption><a href="#figure-5" class="selfRef">Figure 5</a>:
+<a href="#name-hashed-uri-validation-recor" class="selfRef">Hashed-URI Validation Record</a>
+          </figcaption></figure>
+</div>
+<p id="section-10.2-7">To instead opt out of the domain-correlation mitigation (<a href="#validation-record-format" class="auto internal xref">Section 4.1</a>), the client sets <code>domain_name</code> to the single octet <code>*</code> (so <code>length_of_domain</code> is <code>0x01</code>), keeping the same <code>key</code> and <code>account_URL</code>. Computing <code>SHA-256(0x01 || "*" || key || account_URL)</code> yields:<a href="#section-10.2-7" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-10.2-8">
+<pre>
+NpDnSwUthQK8zCgFdefYxAdAVPnygMLbs9US6oO-5ug
+</pre><a href="#section-10.2-8" class="pilcrow">¶</a>
+</div>
+<p id="section-10.2-9">The resulting hashed URI, <code>https://ca.example/account-hash/sha-256/NpDnSwUthQK8zCgFdefYxAdAVPnygMLbs9US6oO-5ug</code>, does not depend on the domain and <span class="bcp14">MAY</span> be reused across domains.<a href="#section-10.2-9" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="pre-provisioned-validation-example">
+<section id="section-10.3">
+        <h3 id="name-pre-provisioned-validation-">
+<a href="#section-10.3" class="section-number selfRef">10.3. </a><a href="#name-pre-provisioned-validation-" class="section-name selfRef">Pre-Provisioned Validation Example</a>
+        </h3>
+<p id="section-10.3-1">This example illustrates the pre-provisioning flow described in <a href="#pre-provisioning-records" class="auto internal xref">Section 4.5</a>: the <code>_validation-persist</code> record for "example.com" is computed and published before any order exists, by a party other than the ACME client.<a href="#section-10.3-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-10.3-2">
+<li id="section-10.3-2.1">
+            <p id="section-10.3-2.1.1">Prerequisite: the domain owner's ACME client has an account with the CA; the account URL <code>https://ca.example/acct/123</code> was returned in the <code>Location</code> header of the newAccount response. No order, authorization, or challenge object exists yet.<a href="#section-10.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-10.3-2.2">
+            <p id="section-10.3-2.2.1">The CA's directory <code>meta</code> object advertises the values needed to pre-provision a record:<a href="#section-10.3-2.2.1" class="pilcrow">¶</a></p>
+<span id="name-directory-metadata-for-pre-"></span><div id="ex-preprovisioned-directory-meta">
+<figure id="figure-6">
+              <div class="lang-json sourcecode" id="section-10.3-2.2.2.1">
+<pre>
+{
+  "meta": {
+    "accountHashPrefix": "https://ca.example/account-hash/",
+    "issuerDomainNames": ["authority.example", "ca.example.net"]
+  }
+}
+</pre>
+</div>
+<figcaption><a href="#figure-6" class="selfRef">Figure 6</a>:
+<a href="#name-directory-metadata-for-pre-" class="selfRef">Directory Metadata for Pre-Provisioning</a>
+              </figcaption></figure>
+</div>
+<p id="section-10.3-2.2.3">
+Per <a href="#directory-issuer-domain-names" class="auto internal xref">Section 3.2</a>, a name taken from this array is guaranteed to satisfy the <code>issuer-domain-name</code> requirement of any <code>dns-persist-01</code> challenge this CA issues later.<a href="#section-10.3-2.2.3" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-10.3-2.3">
+            <p id="section-10.3-2.3.1">The account holder supplies the account URL <code>https://ca.example/acct/123</code> and the account key's public JWK Thumbprint (encoded as <code>NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs</code>, as in <a href="#hashed-uri-example" class="auto internal xref">Section 10.2</a>) to the DNS operator managing the zone, a party distinct from the ACME client. No private key material is shared. Using the same inputs and result as <a href="#hashed-uri-example" class="auto internal xref">Section 10.2</a>, that party computes the hashed URI and publishes the TXT record:<a href="#section-10.3-2.3.1" class="pilcrow">¶</a></p>
+<span id="name-pre-provisioned-validation-r"></span><div id="ex-preprovisioned">
+<figure id="figure-7">
+              <div class="lang-dns sourcecode" id="section-10.3-2.3.2.1">
+<pre>
+_validation-persist.example.com. IN TXT ("authority.example;"
+" accounturi=https://ca.example/account-hash/"
+"sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw")
+</pre>
+</div>
+<figcaption><a href="#figure-7" class="selfRef">Figure 7</a>:
+<a href="#name-pre-provisioned-validation-r" class="selfRef">Pre-Provisioned Validation Record</a>
+              </figcaption></figure>
+</div>
+</li>
+          <li id="section-10.3-2.4">
+            <p id="section-10.3-2.4.1">At any later time, the client submits a newOrder request. If the CA returns a pending <code>dns-persist-01</code> challenge, the client responds to it and the CA validates the already-present record through DNS queries; no DNS change is needed at order time. A CA implementing Just-in-Time validation (<a href="#just-in-time-validation" class="auto internal xref">Section 4.4</a>) may instead evaluate the record when the authorization is created and return it already valid, subject to the restrictions in that section; because the account in this example has not previously completed a <code>dns-persist-01</code> validation, a CA following that section's account restriction would take the pending-challenge path for this first order.<a href="#section-10.3-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+</section>
+</div>
+<div id="wildcard-validation-example">
+<section id="section-10.4">
+        <h3 id="name-wildcard-validation-example">
+<a href="#section-10.4" class="section-number selfRef">10.4. </a><a href="#name-wildcard-validation-example" class="section-name selfRef">Wildcard Validation Example</a>
+        </h3>
+<p id="section-10.4-1">For validation of "*.example.com" (which also validates "example.com" and specific subdomains like "www.example.com") by a CA using "authority.example" as its Issuer Domain Name:<a href="#section-10.4-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-10.4-2">
+<li id="section-10.4-2.1">
+            <p id="section-10.4-2.1.1">The CA provides a challenge object similar to the basic example, containing an <code>issuerDomainNames</code> array.<a href="#section-10.4-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-10.4-2.2">
+            <p id="section-10.4-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record at the base domain's Validation Domain Name, including <code>policy=wildcard</code>:<a href="#section-10.4-2.2.1" class="pilcrow">¶</a></p>
+<span id="name-wildcard-policy-validation-"></span><div id="ex-wildcard-validation">
+<figure id="figure-8">
+              <div class="lang-dns sourcecode" id="section-10.4-2.2.2.1">
+<pre>
+_validation-persist.example.com. IN TXT ("authority.example;"
+" accounturi=https://ca.example/account-hash/"
+"sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw;"
+" policy=wildcard")
+</pre>
+</div>
+<figcaption><a href="#figure-8" class="selfRef">Figure 8</a>:
 <a href="#name-wildcard-policy-validation-" class="selfRef">Wildcard Policy Validation Record</a>
               </figcaption></figure>
 </div>
 </li>
-          <li id="section-10.2-2.3">
-            <p id="section-10.2-2.3.1">CA validates the record through DNS queries. This validation authorizes certificates for "example.com", "*.example.com", and specific subdomains like "www.example.com".<a href="#section-10.2-2.3.1" class="pilcrow">¶</a></p>
+          <li id="section-10.4-2.3">
+            <p id="section-10.4-2.3.1">CA validates the record through DNS queries. This validation authorizes certificates for "example.com", "*.example.com", and specific subdomains like "www.example.com".<a href="#section-10.4-2.3.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
 </section>
 </div>
 <div id="validation-example-with-persistuntil">
-<section id="section-10.3">
+<section id="section-10.5">
         <h3 id="name-validation-example-with-per">
-<a href="#section-10.3" class="section-number selfRef">10.3. </a><a href="#name-validation-example-with-per" class="section-name selfRef">Validation Example with persistUntil</a>
+<a href="#section-10.5" class="section-number selfRef">10.5. </a><a href="#name-validation-example-with-per" class="section-name selfRef">Validation Example with persistUntil</a>
         </h3>
-<p id="section-10.3-1">For validation of "example.com" with an explicit expiration date:<a href="#section-10.3-1" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-10.3-2">
-<li id="section-10.3-2.1">
-            <p id="section-10.3-2.1.1">The CA provides a challenge object similar to the basic example, containing an <code>issuer-domain-names</code> array.<a href="#section-10.3-2.1.1" class="pilcrow">¶</a></p>
+<p id="section-10.5-1">For validation of "example.com" with an explicit expiration date:<a href="#section-10.5-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-10.5-2">
+<li id="section-10.5-2.1">
+            <p id="section-10.5-2.1.1">The CA provides a challenge object similar to the basic example, containing an <code>issuerDomainNames</code> array.<a href="#section-10.5-2.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li id="section-10.3-2.2">
-            <p id="section-10.3-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record including <code>persistUntil</code>:<a href="#section-10.3-2.2.1" class="pilcrow">¶</a></p>
+          <li id="section-10.5-2.2">
+            <p id="section-10.5-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record including <code>persistUntil</code>:<a href="#section-10.5-2.2.1" class="pilcrow">¶</a></p>
 <span id="name-validation-record-with-expi"></span><div id="ex-persist-until">
-<figure id="figure-6">
-              <div class="lang-dns sourcecode" id="section-10.3-2.2.2.1">
+<figure id="figure-9">
+              <div class="lang-dns sourcecode" id="section-10.5-2.2.2.1">
 <pre>
 _validation-persist.example.com. IN TXT ("authority.example;"
-" accounturi=https://ca.example/acct/123;"
+" accounturi=https://ca.example/account-hash/"
+"sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw;"
 " persistUntil=1721952000")
 </pre>
 </div>
-<figcaption><a href="#figure-6" class="selfRef">Figure 6</a>:
+<figcaption><a href="#figure-9" class="selfRef">Figure 9</a>:
 <a href="#name-validation-record-with-expi" class="selfRef">Validation Record with Expiration Time</a>
               </figcaption></figure>
 </div>
 </li>
-          <li id="section-10.3-2.3">
-            <p id="section-10.3-2.3.1">CA validates the record. This validation is sufficient only for "example.com" and will not be considered valid after the specified timestamp (2024-07-26T00:00:00Z).<a href="#section-10.3-2.3.1" class="pilcrow">¶</a></p>
+          <li id="section-10.5-2.3">
+            <p id="section-10.5-2.3.1">CA validates the record. This validation is sufficient only for "example.com" and will not be considered valid after the specified timestamp (2024-07-26T00:00:00Z).<a href="#section-10.5-2.3.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
 </section>
 </div>
 <div id="wildcard-validation-example-with-persistuntil">
-<section id="section-10.4">
+<section id="section-10.6">
         <h3 id="name-wildcard-validation-example-">
-<a href="#section-10.4" class="section-number selfRef">10.4. </a><a href="#name-wildcard-validation-example-" class="section-name selfRef">Wildcard Validation Example with persistUntil</a>
+<a href="#section-10.6" class="section-number selfRef">10.6. </a><a href="#name-wildcard-validation-example-" class="section-name selfRef">Wildcard Validation Example with persistUntil</a>
         </h3>
-<p id="section-10.4-1">For validation of "*.example.com" with an explicit expiration date:<a href="#section-10.4-1" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-10.4-2">
-<li id="section-10.4-2.1">
-            <p id="section-10.4-2.1.1">The CA provides a challenge object similar to the basic example, containing an <code>issuer-domain-names</code> array.<a href="#section-10.4-2.1.1" class="pilcrow">¶</a></p>
+<p id="section-10.6-1">For validation of "*.example.com" with an explicit expiration date:<a href="#section-10.6-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-10.6-2">
+<li id="section-10.6-2.1">
+            <p id="section-10.6-2.1.1">The CA provides a challenge object similar to the basic example, containing an <code>issuerDomainNames</code> array.<a href="#section-10.6-2.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li id="section-10.4-2.2">
-            <p id="section-10.4-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record including <code>policy=wildcard</code> and <code>persistUntil</code>:<a href="#section-10.4-2.2.1" class="pilcrow">¶</a></p>
+          <li id="section-10.6-2.2">
+            <p id="section-10.6-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record including <code>policy=wildcard</code> and <code>persistUntil</code>:<a href="#section-10.6-2.2.1" class="pilcrow">¶</a></p>
 <span id="name-wildcard-validation-record-"></span><div id="ex-wildcard-persist-until">
-<figure id="figure-7">
-              <div class="lang-dns sourcecode" id="section-10.4-2.2.2.1">
+<figure id="figure-10">
+              <div class="lang-dns sourcecode" id="section-10.6-2.2.2.1">
 <pre>
 _validation-persist.example.com. IN TXT ("authority.example;"
-" accounturi=https://ca.example/acct/123;"
+" accounturi=https://ca.example/account-hash/"
+"sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw;"
 " policy=wildcard;"
 " persistUntil=1721952000")
 </pre>
 </div>
-<figcaption><a href="#figure-7" class="selfRef">Figure 7</a>:
+<figcaption><a href="#figure-10" class="selfRef">Figure 10</a>:
 <a href="#name-wildcard-validation-record-" class="selfRef">Wildcard Validation Record with Expiration Time</a>
               </figcaption></figure>
 </div>
 </li>
-          <li id="section-10.4-2.3">
-            <p id="section-10.4-2.3.1">CA validates the record. This validation authorizes certificates for "example.com", "*.example.com", and specific subdomains, but will not be considered valid after the specified timestamp (2024-07-26T00:00:00Z).<a href="#section-10.4-2.3.1" class="pilcrow">¶</a></p>
+          <li id="section-10.6-2.3">
+            <p id="section-10.6-2.3.1">CA validates the record. This validation authorizes certificates for "example.com", "*.example.com", and specific subdomains, but will not be considered valid after the specified timestamp (2024-07-26T00:00:00Z).<a href="#section-10.6-2.3.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
 </section>
@@ -2657,6 +2746,10 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 <a href="#section-11.1" class="section-number selfRef">11.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
         </h3>
 <dl class="references">
+<dt id="FIPS180-4">[FIPS180-4]</dt>
+        <dd>
+<span class="refAuthor">National Institute of Standards and Technology (NIST)</span>, <span class="refTitle">"Secure Hash Standard (SHS)"</span>, <span class="seriesInfo">FIPS PUB 180-4</span>, <time datetime="2015-08" class="refDate">August 2015</time>, <span>&lt;<a href="https://doi.org/10.6028/NIST.FIPS.180-4">https://doi.org/10.6028/NIST.FIPS.180-4</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="RFC8555">[RFC8555]</dt>
         <dd>
 <span class="refAuthor">Barnes, R.</span>, <span class="refAuthor">Hoffman-Andrews, J.</span>, <span class="refAuthor">McCarney, D.</span>, and <span class="refAuthor">J. Kasten</span>, <span class="refTitle">"Automatic Certificate Management Environment (ACME)"</span>, <span class="seriesInfo">RFC 8555</span>, <span class="seriesInfo">DOI 10.17487/RFC8555</span>, <time datetime="2019-03" class="refDate">March 2019</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8555">https://www.rfc-editor.org/info/rfc8555</a>&gt;</span>. </dd>
@@ -2681,17 +2774,29 @@ _validation-persist.example.com. IN TXT ("authority.example;"
         <dd>
 <span class="refAuthor">Klensin, J.</span>, <span class="refTitle">"Internationalized Domain Names for Applications (IDNA): Definitions and Document Framework"</span>, <span class="seriesInfo">RFC 5890</span>, <span class="seriesInfo">DOI 10.17487/RFC5890</span>, <time datetime="2010-08" class="refDate">August 2010</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc5890">https://www.rfc-editor.org/info/rfc5890</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="RFC6920">[RFC6920]</dt>
+        <dd>
+<span class="refAuthor">Farrell, S.</span>, <span class="refAuthor">Kutscher, D.</span>, <span class="refAuthor">Dannewitz, C.</span>, <span class="refAuthor">Ohlman, B.</span>, <span class="refAuthor">Keranen, A.</span>, and <span class="refAuthor">P. Hallam-Baker</span>, <span class="refTitle">"Naming Things with Hashes"</span>, <span class="seriesInfo">RFC 6920</span>, <span class="seriesInfo">DOI 10.17487/RFC6920</span>, <time datetime="2013-04" class="refDate">April 2013</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc6920">https://www.rfc-editor.org/info/rfc6920</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC4648">[RFC4648]</dt>
+        <dd>
+<span class="refAuthor">Josefsson, S.</span>, <span class="refTitle">"The Base16, Base32, and Base64 Data Encodings"</span>, <span class="seriesInfo">RFC 4648</span>, <span class="seriesInfo">DOI 10.17487/RFC4648</span>, <time datetime="2006-10" class="refDate">October 2006</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc4648">https://www.rfc-editor.org/info/rfc4648</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC1035">[RFC1035]</dt>
+        <dd>
+<span class="refAuthor">Mockapetris, P.</span>, <span class="refTitle">"Domain names - implementation and specification"</span>, <span class="seriesInfo">STD 13</span>, <span class="seriesInfo">RFC 1035</span>, <span class="seriesInfo">DOI 10.17487/RFC1035</span>, <time datetime="1987-11" class="refDate">November 1987</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc1035">https://www.rfc-editor.org/info/rfc1035</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7638">[RFC7638]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span> and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Key (JWK) Thumbprint"</span>, <span class="seriesInfo">RFC 7638</span>, <span class="seriesInfo">DOI 10.17487/RFC7638</span>, <time datetime="2015-09" class="refDate">September 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc7638">https://www.rfc-editor.org/info/rfc7638</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="RFC3986">[RFC3986]</dt>
         <dd>
 <span class="refAuthor">Berners-Lee, T.</span>, <span class="refAuthor">Fielding, R.</span>, and <span class="refAuthor">L. Masinter</span>, <span class="refTitle">"Uniform Resource Identifier (URI): Generic Syntax"</span>, <span class="seriesInfo">STD 66</span>, <span class="seriesInfo">RFC 3986</span>, <span class="seriesInfo">DOI 10.17487/RFC3986</span>, <time datetime="2005-01" class="refDate">January 2005</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc3986">https://www.rfc-editor.org/info/rfc3986</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC8552">[RFC8552]</dt>
-        <dd>
-<span class="refAuthor">Crocker, D.</span>, <span class="refTitle">"Scoped Interpretation of DNS Resource Records through "Underscored" Naming of Attribute Leaves"</span>, <span class="seriesInfo">BCP 222</span>, <span class="seriesInfo">RFC 8552</span>, <span class="seriesInfo">DOI 10.17487/RFC8552</span>, <time datetime="2019-03" class="refDate">March 2019</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8552">https://www.rfc-editor.org/info/rfc8552</a>&gt;</span>. </dd>
-<dd class="break"></dd>
-<dt id="RFC1035">[RFC1035]</dt>
       <dd>
-<span class="refAuthor">Mockapetris, P.</span>, <span class="refTitle">"Domain names - implementation and specification"</span>, <span class="seriesInfo">STD 13</span>, <span class="seriesInfo">RFC 1035</span>, <span class="seriesInfo">DOI 10.17487/RFC1035</span>, <time datetime="1987-11" class="refDate">November 1987</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc1035">https://www.rfc-editor.org/info/rfc1035</a>&gt;</span>. </dd>
+<span class="refAuthor">Crocker, D.</span>, <span class="refTitle">"Scoped Interpretation of DNS Resource Records through "Underscored" Naming of Attribute Leaves"</span>, <span class="seriesInfo">BCP 222</span>, <span class="seriesInfo">RFC 8552</span>, <span class="seriesInfo">DOI 10.17487/RFC8552</span>, <time datetime="2019-03" class="refDate">March 2019</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8552">https://www.rfc-editor.org/info/rfc8552</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 </dl>
 </section>
@@ -2740,8 +2845,88 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 <p id="appendix-A-4">Any errors or omissions are the responsibility of the authors.<a href="#appendix-A-4" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="authors-addresses">
+<div id="changelog">
 <section id="appendix-B">
+      <h2 id="name-change-log">
+<a href="#name-change-log" class="section-name selfRef">Change Log</a>
+      </h2>
+<p id="appendix-B-1">RFC Editor: please remove this section before publication.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+<div id="since-draft-ietf-acme-dns-persist-01">
+<section id="appendix-B.1">
+        <h3 id="name-since-draft-ietf-acme-dns-p">
+<a href="#name-since-draft-ietf-acme-dns-p" class="section-name selfRef">Since draft-ietf-acme-dns-persist-01</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="appendix-B.1-1.1">
+            <p id="appendix-B.1-1.1.1">The <code>accounturi</code> is now a hashed URI that cryptographically binds the ACME account to the domain being validated. In -01 the <code>accounturi</code> was the ACME account URL, or another URI that uniquely and permanently identified a single account (<span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>, Section 5.4), with no cryptographic binding; that form is no longer accepted.<a href="#appendix-B.1-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.2">
+            <p id="appendix-B.1-1.2.1">Defined the hashed URI as <code>&lt;accountHashPrefix&gt;&lt;hash-alg&gt;/&lt;base64url hash value&gt;</code>, advertised via the new <code>accountHashPrefix</code> directory metadata field and carrying an in-URI hash-algorithm identifier for algorithm agility (the registered <code>sha-256</code> Hash Name String is mandatory).<a href="#appendix-B.1-1.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.3">
+            <p id="appendix-B.1-1.3.1">Specified the digest as <code>H(length_of_domain || domain_name || key || account_URL)</code>, with a leading length octet delimiting the domain name.<a href="#appendix-B.1-1.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.4">
+            <p id="appendix-B.1-1.4.1">Added a mandatory domain-omitted opt-out (<code>domain_name</code> set to <code>*</code>) for correlation opt-out and cross-domain record reuse.<a href="#appendix-B.1-1.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.5">
+            <p id="appendix-B.1-1.5.1">Specified CA key retention as a data-retention obligation with ranked precedence (deactivation overrides certificate-backed retention overrides general retention); account deactivation is an immediate override.<a href="#appendix-B.1-1.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.6">
+            <p id="appendix-B.1-1.6.1">Retired the temporal key rotation window mechanisms (keyRotationPeriod directory metadata and keyRolloverWindow); prior-key acceptance is governed by CA retention.<a href="#appendix-B.1-1.6.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.7">
+            <p id="appendix-B.1-1.7.1">Specified uniform witnessed-thumbprint retention as a <span class="bcp14">MUST</span> bounded only by account lifetime, with pruning permitted upon account deactivation.<a href="#appendix-B.1-1.7.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.8">
+            <p id="appendix-B.1-1.8.1">Replaced the -01 reuse-unaffected text with a requirement that CAs clamp authorization <code>expires</code> to <code>persistUntil</code>.<a href="#appendix-B.1-1.8.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.9">
+            <p id="appendix-B.1-1.9.1">Upgraded <code>accountHashPrefix</code> and account-URL stability to a <span class="bcp14">MUST</span> with mandatory dual acceptance during migration periods.<a href="#appendix-B.1-1.9.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.10">
+            <p id="appendix-B.1-1.10.1">Added a pre-publication account-resource proof (authenticated POST-as-GET with empty payload <code>""</code> verifying <code>status=valid</code>) before delegating record publication.<a href="#appendix-B.1-1.10.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.11">
+            <p id="appendix-B.1-1.11.1">Mitigated recomputation denial-of-service by evaluating current keys first, evaluating historical keys in reverse chronological order, and rate-limiting failed validations.<a href="#appendix-B.1-1.11.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.12">
+            <p id="appendix-B.1-1.12.1">Renamed the challenge object's plural field from <code>issuer-domain-names</code> to <code>issuerDomainNames</code> to align with ACME's camelCase convention (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>); the singular DNS <code>issuer-domain-name</code> parameter and <code>persistUntil</code> are unchanged (#56).<a href="#appendix-B.1-1.12.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.13">
+            <p id="appendix-B.1-1.13.1">Clarified that <code>key</code> in the digest is the 43-octet unpadded base64url encoding of the SHA-256 JWK Thumbprint <span>[<a href="#RFC7638" class="cite xref">RFC7638</a>]</span>, not the 32 raw digest octets, matching the encoding already used in ACME key authorizations (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 8.1).<a href="#appendix-B.1-1.13.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.14">
+            <p id="appendix-B.1-1.14.1">Required <code>sha-256</code> support in both clients and CAs for interoperability, moved <code>&lt;hash-alg&gt;</code> to the Hash Name String registry defined by <span>[<a href="#RFC6920" class="cite xref">RFC6920</a>]</span>, excluded truncated digests shorter than 256 bits, and removed the document-local slash-to-hyphen substitution rule.<a href="#appendix-B.1-1.14.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.15">
+            <p id="appendix-B.1-1.15.1">Clarified the relationship between the CAA <code>accounturi</code> and the <code>dns-persist-01</code> <code>accounturi</code> in the Introduction and <a href="#caa-interaction" class="auto internal xref">Section 7.7</a>, citing <span>[<a href="#RFC8657" class="cite xref">RFC8657</a>]</span>, Section 3.1.<a href="#appendix-B.1-1.15.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.16">
+            <p id="appendix-B.1-1.16.1">Added a privacy caveat noting that a cleartext <code>http-01</code> key authorization exposes the same account-key thumbprint used in the hashed URI, leaving account-URL entropy as the remaining protection.<a href="#appendix-B.1-1.16.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.17">
+            <p id="appendix-B.1-1.17.1">Added client-side guidance (<a href="#client-implementation-guidelines" class="auto internal xref">Section 9.4</a>) to check <code>persistUntil</code> against local provisioning state before initiating an order (#38).<a href="#appendix-B.1-1.17.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.18">
+            <p id="appendix-B.1-1.18.1">Removed DNS TTL as a validation data reuse limit; reuse remains subject to <code>persistUntil</code> and the CA's Validation Data Reuse Period. Renamed <a href="#validation-data-reuse" class="auto internal xref">Section 7.9</a> accordingly and removed the related TTL-specific implementation guidance (#42).<a href="#appendix-B.1-1.18.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.19">
+            <p id="appendix-B.1-1.19.1">Corrected the stale Account Key Rotation text: the account URL is stable, but the hashed <code>accounturi</code> changes with the account key, and continued acceptance of a prior key is governed by <a href="#verification-procedure" class="auto internal xref">Section 4.2</a>.<a href="#appendix-B.1-1.19.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.20">
+            <p id="appendix-B.1-1.20.1">Added the required directory <code>issuerDomainNames</code> metadata field and the D ⊆ C consistency rule with the challenge object's <code>issuerDomainNames</code>; the C ⊆ I rule against <code>caaIdentities</code> applies when the CA advertises <code>caaIdentities</code> (#60).<a href="#appendix-B.1-1.20.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-B.1-1.21">
+            <p id="appendix-B.1-1.21.1">Added a pre-provisioned validation example and clarified that computing and publishing a <code>_validation-persist</code> record requires no private-key operation and can be performed out of band by a party other than the ACME client, at any point after account creation.<a href="#appendix-B.1-1.21.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-C">
       <h2 id="name-authors-addresses">
 <a href="#name-authors-addresses" class="section-name selfRef">Authors' Addresses</a>
       </h2>
