@@ -18,7 +18,7 @@ The draft defines `dns-persist-01`, a new ACME challenge type that validates con
 * [RFC 8657](https://www.rfc-editor.org/rfc/rfc8657) — CAA `accounturi` and `validationmethods`, the basis for account binding in this draft.
 * [RFC 8659](https://www.rfc-editor.org/rfc/rfc8659) — CAA record format; the `issue-value` syntax is reused for the validation record.
 * [RFC 9444](https://www.rfc-editor.org/rfc/rfc9444) — ACME for Subdomains. Related to but distinct from the subdomain validation defined here.
-* [CA/Browser Forum](https://cabforum.org/) — Baseline Requirements, including the [ongoing ballot](https://github.com/cabforum/servercert/pull/626) to enshrine DNS Persist for IP address validation via reverse zones (see [issue #32](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/32)).
+* [CA/Browser Forum](https://cabforum.org/) — Baseline Requirements, including the [merged SC-91 ballot PR](https://github.com/cabforum/servercert/pull/626) for IP address validation via reverse zones (see [issue #32](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/32)).
 
 ## Building the Draft
 
