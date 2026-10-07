@@ -666,6 +666,8 @@ These error codes help ACME clients distinguish between different types of valid
 
 To mitigate potential denial-of-service risks from accounts with extensive key rollover history, CAs MUST rate-limit failed validation attempts per domain and account.
 
+Failed-validation rate limits do not bound the computation of an individual validation attempt. Matching a historical thumbprint can require examining the full retained-key history, even when validation succeeds.
+
 ## Client Implementation Guidelines {#client-implementation-guidelines}
 
 ACME clients implementing this validation method should consider:
