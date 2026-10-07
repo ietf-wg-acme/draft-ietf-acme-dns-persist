@@ -142,7 +142,7 @@ The following shows an example challenge object:
 ~~~json
 {
   "type": "dns-persist-01",
-  "url": "https://ca.example/acme/authz/1234/0",
+  "url": "https://ca.example/acme/chall/5678",
   "status": "pending",
   "issuerDomainNames": ["authority.example", "ca.example.net"]
 }
@@ -702,7 +702,7 @@ For validation of "example.com" by a CA using "authority.example" as its Issuer 
     ~~~json
     {
       "type": "dns-persist-01",
-      "url": "https://ca.example/acme/authz/1234/0",
+      "url": "https://ca.example/acme/chall/5678",
       "status": "pending",
       "issuerDomainNames": ["authority.example", "ca.example.net"]
     }
