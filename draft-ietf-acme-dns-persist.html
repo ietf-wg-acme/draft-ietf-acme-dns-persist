@@ -2429,6 +2429,7 @@ _validation-persist.example.com. IN TXT ("first-255-bytes..."
 <p id="section-9.3.1-3">Note that these error codes apply to validation attempts on specific challenges. In the case of Just-in-Time Validation (see <a href="#just-in-time-validation" class="auto internal xref">Section 4.4</a>), when a CA finds a pre-existing DNS TXT record that does not meet validation requirements, the CA proceeds with the standard authorization flow by issuing a new <code>pending</code> challenge rather than returning an error.<a href="#section-9.3.1-3" class="pilcrow">¶</a></p>
 <p id="section-9.3.1-4">These error codes help ACME clients distinguish between different types of validation failures and take appropriate corrective actions.<a href="#section-9.3.1-4" class="pilcrow">¶</a></p>
 <p id="section-9.3.1-5">To mitigate potential denial-of-service risks from accounts with extensive key rollover history, CAs <span class="bcp14">MUST</span> rate-limit failed validation attempts per domain and account.<a href="#section-9.3.1-5" class="pilcrow">¶</a></p>
+<p id="section-9.3.1-6">Failed-validation rate limits do not bound the computation of an individual validation attempt. Matching a historical thumbprint can require examining the full retained-key history, even when validation succeeds.<a href="#section-9.3.1-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>

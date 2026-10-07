@@ -1616,6 +1616,11 @@ Table of Contents
    extensive key rollover history, CAs MUST rate-limit failed validation
    attempts per domain and account.
 
+   Failed-validation rate limits do not bound the computation of an
+   individual validation attempt.  Matching a historical thumbprint can
+   require examining the full retained-key history, even when validation
+   succeeds.
+
 9.4.  Client Implementation Guidelines
 
    ACME clients implementing this validation method should consider:
