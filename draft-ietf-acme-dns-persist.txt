@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 24 March 2027                             Crosslayer Labs, Inc.
+Expires: 10 April 2027                             Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                       20 September 2026
+                                                          7 October 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -63,7 +63,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 24 March 2027.
+   This Internet-Draft will expire on 10 April 2027.
 
 Copyright Notice
 
@@ -322,7 +322,7 @@ Table of Contents
 
    {
      "type": "dns-persist-01",
-     "url": "https://ca.example/acme/authz/1234/0",
+     "url": "https://ca.example/acme/chall/5678",
      "status": "pending",
      "issuerDomainNames": ["authority.example", "ca.example.net"]
    }
@@ -1681,7 +1681,7 @@ Table of Contents
 
       {
         "type": "dns-persist-01",
-        "url": "https://ca.example/acme/authz/1234/0",
+        "url": "https://ca.example/acme/chall/5678",
         "status": "pending",
         "issuerDomainNames": ["authority.example", "ca.example.net"]
       }
