@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-10-08T03:34:40.071510+00:00",
+  "timestamp": "2026-10-25T02:18:46.322071+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -2249,6 +2249,22 @@
       "updatedAt": "2026-10-07T20:54:00Z",
       "closedAt": "2026-10-07T20:54:00Z",
       "comments": []
+    },
+    {
+      "number": 76,
+      "id": "I_kwDOO4VY2c8AAAABZG6skA",
+      "title": "Allow combining with `device-attest`",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/76",
+      "state": "OPEN",
+      "author": "Gunni",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "As an example, i'd like to be able to mandate `device-attest-01` be used for all certs issued using `dns-persist-0x`.\n\nAI Summary:\n\n> The use case is allowing internal network devices to obtain and renew publicly trusted certificates without DNS credentials or public inbound access, while requiring the certificate private key to be bound to an approved device.\n> The domain owner would authorize the ACME account through `dns-persist-01`, but make that authorization conditional on successful `device-attest-01` validation of the CSR public key.\n> Both checks must pass; they must not be offered as alternatives.\n> Is there a suitable way to express this requirement through DNS policy, including rejection when the CA does not support it? This also relates to #27: an additional security requirement must not be silently ignored.",
+      "createdAt": "2026-10-22T13:07:38Z",
+      "updatedAt": "2026-10-22T13:10:06Z",
+      "closedAt": null,
+      "comments": []
     }
   ],
   "pulls": [
@@ -2637,7 +2653,7 @@
       "labels": [],
       "body": "Keeps the MUST-ignore-unknown-parameters rule from the current draft and explains why.\n\nRFC 8555 already does this for unknown fields, challenge types, and identifiers \u2014 following the same pattern here means extensions can add parameters without breaking existing CAs. A critical-key mechanism (as suggested in #27) adds complexity without clear benefit: unknown parameters from future extensions are harmless if the CA ignores them, and the current spec has no parameters where ignoring them would change safety properties.\n\nChanges: clarifies that \"the server\" is the actor, replaces \"parameter key(s)\" with \"tag(s)\" per RFC 8659 terminology.\n\nCloses #27\n",
       "createdAt": "2025-08-25T17:44:45Z",
-      "updatedAt": "2026-03-18T21:15:13Z",
+      "updatedAt": "2026-10-24T14:21:18Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "992e5abafed6316b3a8430b737b029b0a58033cd",
@@ -3888,7 +3904,7 @@
       "labels": [],
       "body": "## IETF 125 \u2014 Shenzhen\r\n\r\n9 Marp slides (~15 min) for the ACME WG session on `draft-ietf-acme-dns-persist-01`.\r\n\r\n### Slides\r\n\r\n| # | Topic | Type |\r\n|---|-------|------|\r\n| 1 | Title | \u2014 |\r\n| 2 | Since IETF 124 (Montreal) | Status |\r\n| 3 | Subdomain validation gap (#33) | Discussion |\r\n| 4 | Proposed `adn` response field (#33) | Discussion |\r\n| 5 | TTL as validation ceiling (#42) | Discussion |\r\n| 6 | IP validation via reverse DNS (#32) | Discussion |\r\n| 7 | Quick items: error types (#39), client persistUntil (#38) | Temperature check |\r\n| 8 | Path forward | Status |\r\n| 9 | Questions | \u2014 |\r\n\r\n### Files\r\n\r\n- `presentations/ietf-125/slides.md` \u2014 Marp source\r\n- `presentations/ietf-125/speaker-notes.md` \u2014 per-slide notes\r\n- `presentations/ietf-125/slides.pdf` \u2014 generated PDF for datatracker submission\r\n- `presentations/ietf-125/README.md` \u2014 build instructions\r\n\r\n### Build\r\n\r\n```sh\r\nmarp presentations/ietf-125/slides.md -o presentations/ietf-125/slides.pdf --pdf --allow-local-files\r\n```",
       "createdAt": "2026-03-24T15:28:58Z",
-      "updatedAt": "2026-03-24T15:34:50Z",
+      "updatedAt": "2026-10-24T14:26:20Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "36321d85c24228b4a65081a76d42bfce9d99cb2b",
