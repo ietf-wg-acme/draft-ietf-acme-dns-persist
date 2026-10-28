@@ -204,7 +204,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
     where `H` is the identified hash algorithm and `||` denotes octet-string concatenation. The inputs are:
 
     1. `length_of_domain` is a single octet giving the length in octets of `domain_name`. A domain name is limited to 255 octets ({{!RFC1035}}, Section 2.3.4), so a single octet always suffices. This length prefix delimits `domain_name` from the fields that follow.
-    2. `domain_name` is, by default, the FQDN being validated: the Validation Domain Name with its leading `_validation-persist` label removed and no trailing dot, in the normalized lowercase A-label form produced by {{normalization-algorithm}}. This form is US-ASCII. This is the FQDN at which the `_validation-persist` record is provisioned, not the FQDN of the certificate ultimately requested; binding the record to its own domain is what makes the hashed URI domain-specific (see {{hashed-uri-security}}).
+    2. `domain_name` is, by default, the FQDN being validated: the Validation Domain Name with its leading `_validation-persist` label removed and no trailing dot, in the lowercase ASCII presentation form produced by {{normalization-algorithm}}, using validated A-labels for internationalized labels. This is the FQDN at which the `_validation-persist` record is provisioned, not the FQDN of the certificate ultimately requested; binding the record to its own domain is what makes the hashed URI domain-specific (see {{hashed-uri-security}}).
 
        As an exception, a client MAY set `domain_name` to the single US-ASCII octet `*` (0x2a; `length_of_domain` is then 0x01) to opt out of the domain-correlation mitigation. The resulting hashed URI does not depend on the domain and MAY therefore be reused across domains. A CA MUST accept a hashed URI computed with `domain_name` set to `*`. The privacy trade-off of this opt-out is described in {{hashed-uri-security}}.
     3. `key` is the 43 ASCII octets of the unpadded base64url encoding {{!RFC4648}} of the SHA-256 JWK Thumbprint {{!RFC7638}} of a public key associated with the ACME account. This is the encoding used for the thumbprint component of an ACME key authorization ({{!RFC8555}}, Section 8.1), so a client can reuse that component without decoding it. When provisioning a `_validation-persist` record, the client MUST use the account's current key. A CA MUST accept a hashed URI generated with the current key associated with the account. Additionally, a CA MUST accept a hashed URI generated with a prior key previously associated with the account that is known to the CA per the key retention obligation in {{verification-procedure}}, subject to the deactivation and retention rules stated there. This allows a record provisioned before a key rotation to continue to validate. The rationale for these requirements is given in {{hashed-uri-security}}.
@@ -618,28 +618,21 @@ Failure to correctly format long RDATA values may result in validation failures.
 
 ## Domain Name Normalization Algorithm {#normalization-algorithm}
 
-This section provides an algorithm for domain name normalization to promote interoperability. Both clients and servers SHOULD follow a consistent normalization process to ensure that domain names are handled uniformly.
+Clients and CAs MUST use the following procedure to produce the `domain_name` octets used in {{validation-record-format}} from the actual DNS name at which the record is provisioned, after removing the leading `_validation-persist` label:
 
-The recommended normalization process consists of the following four steps, applied in order:
+1. Represent each internationalized label as a valid IDNA A-label, as defined in {{!RFC5890}} and {{!RFC5891}}. If the selected name is supplied using U-labels, those labels MUST be valid NFC U-labels and MUST be converted directly to their A-label equivalents without Unicode case-folding. Existing labels beginning with `xn--`, matched ASCII case-insensitively, MUST be checked for IDNA validity after converting their ASCII letters to lowercase, rather than treated as arbitrary ASCII strings. Invalid IDNA labels MUST NOT be used to construct or validate a record.
+2. Convert ASCII letters `A` through `Z` to lowercase. Leave other ASCII octets unchanged.
+3. Remove the trailing root-label dot, if present. Encode the resulting presentation form as ASCII octets.
 
-1.  **Case-folding**: Apply Unicode-aware, locale-independent case-folding to the entire domain name string to convert it to lowercase.
-2.  **Unicode Normalization**: Normalize the string to Unicode Normalization Form C (NFC).
-3.  **Punycode Conversion**: Convert each label of the domain name to its A-label (Punycode) representation as specified in {{!RFC5890}}.
-4.  **Trailing Dot Removal**: Remove any trailing dot from the final string.
+This procedure does not define how an application maps arbitrary user input to a DNS name. Any such mapping occurs before the name is selected for provisioning or validation, not while deriving the hash input. In particular, the selected name `faß.example` has A-label form `xn--fa-hia.example`; it MUST NOT be changed to `fass.example` when computing `domain_name`.
 
-For example, a domain name like `EXAMPLE.com.` is normalized as follows:
+For example, `EXAMPLE.com.` produces `example.com`.
 
-1. After case-folding: `example.com.`
-2. After NFC normalization: `example.com.`
-3. After Punycode conversion: `example.com.`
-4. After removing trailing dot: `example.com`
+An application accepting the user input `üÑICODE-example.com.` might select the valid U-label name `üñicode-example.com.` before invoking this procedure. For that selected name:
 
-An internationalized domain name like `üÑICODE-example.com.` is normalized as follows:
-
-1. After case-folding: `üñicode-example.com.`
-2. After NFC normalization: `üñicode-example.com.`
-3. After Punycode conversion: `xn--icode-example-hkb8n.com.`
-4. After removing trailing dot: `xn--icode-example-hkb8n.com`
+1. The A-label presentation is `xn--icode-example-hkb8n.com.`.
+2. ASCII lowercasing leaves that presentation unchanged.
+3. Removing the trailing root-label dot produces `xn--icode-example-hkb8n.com`.
 
 ## CA Implementation Guidelines {#ca-implementation-guidelines}
 
