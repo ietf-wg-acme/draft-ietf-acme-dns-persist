@@ -179,7 +179,7 @@ The client indicates it is ready for validation by POSTing an empty JSON object 
 
 The RDATA of this TXT record MUST fulfill the following requirements:
 
-1.  The RDATA value MUST conform to the issue-value syntax defined in {{!RFC8659}}, Section 4.2. To ensure forward compatibility, the server MUST ignore any parameter within the issue-value that has an unrecognized tag.
+1.  The RDATA value MUST conform to the issue-value syntax defined in {{!RFC8659}}, Section 4.2. CAs MUST recognize the parameter names `accounturi`, `policy`, and `persistUntil` using ASCII case-insensitive comparison. This comparison applies only to parameter names; the value-comparison rules below are unchanged. Each of these recognized parameters MUST occur at most once within a single issue-value. If a recognized parameter occurs more than once, including with different casing, the CA MUST treat the record as malformed and reject it. To ensure forward compatibility, the server MUST ignore parameters whose names it does not recognize, including repeated occurrences of such parameters.
 
 2.  The `issuer-domain-name` portion of the issue-value MUST be one of the Issuer Domain Names provided by the CA in the `issuerDomainNames` array of the challenge object. If the `issuer-domain-name` does not match any of the provided values, the CA MUST reject the record.
 
@@ -653,7 +653,7 @@ Certificate Authorities implementing this validation method should consider:
 
 When implementing the "dns-persist-01" validation method, Certificate Authorities SHOULD return appropriate ACME error codes to provide clear feedback on validation failures. Specifically:
 
-- CAs SHOULD return a `malformed` error (as defined in {{!RFC8555}}) when the TXT record has invalid syntax, such as duplicate parameters, invalid timestamp format in the `persistUntil` parameter, missing mandatory `accounturi` parameter, an `accounturi` that is not a well-formed hashed URI (for example, one not placed under the CA's `accountHashPrefix`, one using an algorithm identifier the CA does not accept, or one whose hash value is not valid base64url of the expected length), or other syntactic violations of the record format specified in this document.
+- CAs SHOULD return a `malformed` error (as defined in {{!RFC8555}}) when the TXT record has invalid syntax, such as duplicate occurrences of a recognized parameter, invalid timestamp format in the `persistUntil` parameter, missing mandatory `accounturi` parameter, an `accounturi` that is not a well-formed hashed URI (for example, one not placed under the CA's `accountHashPrefix`, one using an algorithm identifier the CA does not accept, or one whose hash value is not valid base64url of the expected length), or other syntactic violations of the record format specified in this document.
 
 - CAs SHOULD return an `unauthorized` error (as defined in {{!RFC8555}}) when validation fails due to authorization issues, including:
    - The `accounturi` hashed URI in the DNS TXT record does not, when recomputed by the CA over the requesting account's retained keys (see {{verification-procedure}}), match any value the CA accepts for that account
