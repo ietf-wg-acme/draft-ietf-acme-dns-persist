@@ -260,7 +260,7 @@ When recomputing expected hashed URIs over retained keys, the CA MUST evaluate t
 
 ## Multiple Issuer Support {#multiple-issuer-support}
 
-A domain MAY authorize multiple Certificate Authorities (CAs) by provisioning a separate `_validation-persist` TXT record for each issuer. This allows domain owners to maintain relationships with multiple CAs simultaneously, enhancing flexibility and resilience.
+A domain MAY authorize multiple Certificate Authorities (CAs) by provisioning a separate `_validation-persist` TXT record for each issuer.
 
 ### Coexistence of Records
 
@@ -295,8 +295,6 @@ When authorizing multiple issuers, domain owners MUST consider the following:
 
 This example demonstrates how a domain owner can authorize two different CAs, "ca1.example" and "ca2.example", to issue certificates for `example.org`.
 
-**DNS Configuration:**
-
 ~~~dns
 _validation-persist.example.org. 3600 IN TXT ("ca1.example;"
 " accounturi=https://ca1.example/account-hash/"
@@ -329,7 +327,7 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
 
 When processing a new authorization request, a CA MAY perform an immediate DNS lookup for `_validation-persist` TXT records at the Validation Domain Name corresponding to the requested domain identifier.
 
-If one or more such records exist, the CA MUST evaluate them according to the requirements specified in {{multiple-issuer-support}}. If at least one record meets all validation requirements, the CA MAY transition the authorization to the "valid" status without returning a "pending" challenge to the client. This mechanism is an optimization and does not alter the ACME state machine defined in {{!RFC8555}}. The server internally transitions the authorization from "pending" through "processing" to "valid" instantaneously. From the client's perspective, it receives a "valid" authorization object directly in response to its creation request.
+If one or more such records exist, the CA MUST evaluate them according to the requirements specified in {{multiple-issuer-support}}. If at least one record meets all validation requirements, the CA MAY transition the authorization to the "valid" status without returning a "pending" challenge to the client. This mechanism is an optimization and does not alter the ACME state machine defined in {{!RFC8555}}. From the client's perspective, it receives a "valid" authorization object directly in response to its creation request.
 
 If no DNS TXT record meets the validation requirements, or if the records are absent, the CA MUST proceed with the standard authorization flow by returning a "pending" authorization with an associated `dns-persist-01` challenge object.
 
@@ -430,7 +428,7 @@ Clients SHOULD protect their ACME account keys with the same level of security a
 
 ### Account Key Rotation {#account-key-rotation}
 
-When an account key rotates following the procedures defined in {{!RFC8555}}, Section 7.3.5, the ACME account URL remains unchanged. The hashed URI in existing records changes because `key` is an input to the hash. Existing records remain valid under the retention rules in {{verification-procedure}}. Clients SHOULD republish `_validation-persist` records with the hashed URI recomputed under the account's new key promptly after a rotation. Republication ensures records reflect current credentials, which facilitates operational hygiene and auditing.
+When an account key rotates following the procedures defined in {{!RFC8555}}, Section 7.3.5, the ACME account URL remains unchanged. Recomputing the hashed URI with the new account key produces a different value because `key` is an input to the hash. Published records remain unchanged until republication. Existing records remain valid under the retention rules in {{verification-procedure}}. Clients SHOULD republish `_validation-persist` records with the hashed URI recomputed under the account's new key promptly after a rotation. Republication ensures records reflect current credentials, which facilitates operational hygiene and auditing.
 
 ### Account URI Privacy {#account-uri-privacy}
 
@@ -462,7 +460,7 @@ The hashed URI is the sole `accounturi` form ({{validation-record-format}}). It 
 
 ## Subdomain Validation Risks {#subdomain-validation-risks}
 
-Enabling subdomain validation via `policy=wildcard` creates significant security implications. Organizations using this feature SHOULD carefully control subdomain delegation and monitor for unauthorized subdomains. This policy value serves as the explicit mechanism for domain owners to opt-in to broader validation scopes.
+The `policy=wildcard` value serves as the explicit mechanism for domain owners to opt-in to broader validation scopes. Organizations using this feature SHOULD carefully control subdomain delegation and monitor for unauthorized subdomains.
 
 The ability to issue certificates for subdomains of validated FQDNs creates significant security risks, particularly in environments with subdomain delegation or where subdomains may be controlled by different entities.
 
@@ -537,7 +535,7 @@ The persistent nature of `dns-persist-01` authorizations means that a valid DNS 
 There are two primary revocation and invalidation actions:
 
 1. **Remove DNS record:** Removing the corresponding DNS TXT record from the Validation Domain Name is the standard method for an Applicant to invalidate a `dns-persist-01` authorization. After the record is removed and resolver caches have expired, new validation attempts for the domain will fail. This action is available to the domain owner and does not require CA involvement.
-2. **Deactivate ACME account:** For situations requiring immediate revocation of issuance capability (e.g., suspected account key compromise), the account bound by the record can be deactivated as specified in {{!RFC8555}}, Section 7.3.6. Per the deactivation rule in {{verification-procedure}}, a CA MUST NOT accept a hashed URI computed from any key of a deactivated account; deactivation therefore takes effect immediately and overrides key retention, including the certificate-backed retention of a key that a currently valid certificate depends on. This makes account deactivation a full emergency measure that invalidates the record's utility without waiting for DNS caches to expire.
+2. **Deactivate ACME account:** For situations requiring immediate revocation of issuance capability (e.g., suspected account key compromise), the account bound by the record can be deactivated as specified in {{!RFC8555}}, Section 7.3.6. Per the deactivation rule in {{verification-procedure}}, a CA MUST NOT accept a hashed URI computed from any key of a deactivated account; deactivation therefore takes effect immediately and overrides witnessed key retention. This makes account deactivation a full emergency measure that invalidates the record's utility without waiting for DNS caches to expire.
 
 The following table summarizes the applicability and timing of these actions:
 
@@ -868,9 +866,8 @@ RFC Editor: please remove this section before publication.
 - Defined the hashed URI as `<accountHashPrefix><hash-alg>/<base64url hash value>`, advertised via the new `accountHashPrefix` directory metadata field and carrying an in-URI hash-algorithm identifier for algorithm agility (the registered `sha-256` Hash Name String is mandatory).
 - Specified the digest as `H(length_of_domain || domain_name || key || account_URL)`, with a leading length octet delimiting the domain name.
 - Added a mandatory domain-omitted opt-out (`domain_name` set to `*`) for correlation opt-out and cross-domain record reuse.
-- Specified CA key retention as a data-retention obligation with ranked precedence (deactivation overrides certificate-backed retention overrides general retention); account deactivation is an immediate override.
 - Retired the temporal key rotation window mechanisms (keyRotationPeriod directory metadata and keyRolloverWindow); prior-key acceptance is governed by CA retention.
-- Specified uniform witnessed-thumbprint retention as a MUST bounded only by account lifetime, with pruning permitted upon account deactivation.
+- Specified uniform witnessed-thumbprint retention as a MUST bounded only by account lifetime, with account deactivation immediately overriding acceptance and permitting pruning.
 - Replaced the -01 reuse-unaffected text with a requirement that CAs clamp authorization `expires` to `persistUntil`.
 - Upgraded `accountHashPrefix` and account-URL stability to a MUST with mandatory dual acceptance during migration periods.
 - Added a pre-publication account-resource proof (authenticated POST-as-GET with empty payload `""` verifying `status=valid`) before delegating record publication.
