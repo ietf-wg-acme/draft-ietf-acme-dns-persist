@@ -19,18 +19,18 @@
 <meta content="draft-ietf-acme-dns-persist-latest" name="ietf.draft">
 <!-- Generator version information:
   xml2rfc 3.34.1
-    Python 3.14.7
-    ConfigArgParse 1.7.7
+    Python 3.14.8
+    ConfigArgParse 1.8.0
     google-i18n-address 3.1.1
     intervaltree 3.2.1
     Jinja2 3.1.6
     lxml 6.1.1
     natsort 8.4.0
-    platformdirs 4.11.10
+    platformdirs 4.13.4
     pycountry 24.6.1
     PyYAML 6.0.3
     requests 2.33.1
-    wcwidth 0.8.4
+    wcwidth 0.9.2
 -->
 <link href="draft-ietf-acme-dns-persist.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
@@ -1046,11 +1046,11 @@ svg {
 <thead><tr>
 <td class="left">Internet-Draft</td>
 <td class="center">ACME Persistent DNS Challenge</td>
-<td class="right">September 2026</td>
+<td class="right">October 2026</td>
 </tr></thead>
 <tfoot><tr>
 <td class="left">Heurich, et al.</td>
-<td class="center">Expires 24 March 2027</td>
+<td class="center">Expires 1 May 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1063,12 +1063,12 @@ svg {
 <dd class="internet-draft">draft-ietf-acme-dns-persist-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-09-20" class="published">20 September 2026</time>
+<time datetime="2026-10-28" class="published">28 October 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-03-24">24 March 2027</time></dd>
+<dd class="expires"><time datetime="2027-05-01">1 May 2027</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -1125,7 +1125,7 @@ svg {
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 24 March 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 1 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1515,7 +1515,7 @@ The server <span class="bcp14">MUST</span> ensure the array is not empty. Server
 <pre>
 {
   "type": "dns-persist-01",
-  "url": "https://ca.example/acme/authz/1234/0",
+  "url": "https://ca.example/acme/chall/5678",
   "status": "pending",
   "issuerDomainNames": ["authority.example", "ca.example.net"]
 }
@@ -2370,16 +2370,16 @@ _validation-persist.example.com. IN TXT ("first-255-bytes..."
 <p id="section-9.2-6">An internationalized domain name like <code>üÑICODE-example.com.</code> is normalized as follows:<a href="#section-9.2-6" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-9.2-7">
 <li id="section-9.2-7.1">
-            <p id="section-9.2-7.1.1">After case-folding: <code>ünicode-example.com.</code><a href="#section-9.2-7.1.1" class="pilcrow">¶</a></p>
+            <p id="section-9.2-7.1.1">After case-folding: <code>üñicode-example.com.</code><a href="#section-9.2-7.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-9.2-7.2">
-            <p id="section-9.2-7.2.1">After NFC normalization: <code>ünicode-example.com.</code><a href="#section-9.2-7.2.1" class="pilcrow">¶</a></p>
+            <p id="section-9.2-7.2.1">After NFC normalization: <code>üñicode-example.com.</code><a href="#section-9.2-7.2.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-9.2-7.3">
-            <p id="section-9.2-7.3.1">After Punycode conversion: <code>xn--nicode-example-9jb.com.</code><a href="#section-9.2-7.3.1" class="pilcrow">¶</a></p>
+            <p id="section-9.2-7.3.1">After Punycode conversion: <code>xn--icode-example-hkb8n.com.</code><a href="#section-9.2-7.3.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-9.2-7.4">
-            <p id="section-9.2-7.4.1">After removing trailing dot: <code>xn--nicode-example-9jb.com</code><a href="#section-9.2-7.4.1" class="pilcrow">¶</a></p>
+            <p id="section-9.2-7.4.1">After removing trailing dot: <code>xn--icode-example-hkb8n.com</code><a href="#section-9.2-7.4.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
 </section>
@@ -2429,6 +2429,7 @@ _validation-persist.example.com. IN TXT ("first-255-bytes..."
 <p id="section-9.3.1-3">Note that these error codes apply to validation attempts on specific challenges. In the case of Just-in-Time Validation (see <a href="#just-in-time-validation" class="auto internal xref">Section 4.4</a>), when a CA finds a pre-existing DNS TXT record that does not meet validation requirements, the CA proceeds with the standard authorization flow by issuing a new <code>pending</code> challenge rather than returning an error.<a href="#section-9.3.1-3" class="pilcrow">¶</a></p>
 <p id="section-9.3.1-4">These error codes help ACME clients distinguish between different types of validation failures and take appropriate corrective actions.<a href="#section-9.3.1-4" class="pilcrow">¶</a></p>
 <p id="section-9.3.1-5">To mitigate potential denial-of-service risks from accounts with extensive key rollover history, CAs <span class="bcp14">MUST</span> rate-limit failed validation attempts per domain and account.<a href="#section-9.3.1-5" class="pilcrow">¶</a></p>
+<p id="section-9.3.1-6">Failed-validation rate limits do not bound the computation of an individual validation attempt. Matching a historical thumbprint can require examining the full retained-key history, even when validation succeeds.<a href="#section-9.3.1-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2508,7 +2509,7 @@ _validation-persist.example.com. IN TXT ("first-255-bytes..."
 <pre>
 {
   "type": "dns-persist-01",
-  "url": "https://ca.example/acme/authz/1234/0",
+  "url": "https://ca.example/acme/chall/5678",
   "status": "pending",
   "issuerDomainNames": ["authority.example", "ca.example.net"]
 }
