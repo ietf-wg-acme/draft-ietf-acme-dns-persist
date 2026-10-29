@@ -60,7 +60,7 @@ informative:
 
 --- abstract
 
-This document specifies "dns-persist-01", a new validation method for the Automated Certificate Management Environment (ACME) protocol. This method allows a Certification Authority (CA) to verify control over a domain by confirming the presence of a persistent DNS TXT record containing CA and account identification information. This method is particularly suited for environments where traditional challenge methods are impractical, such as multi-tenant hosting platforms, enterprise DNS environments, and IoT deployments. The validation method is designed with a strong focus on security and robustness, incorporating widely adopted industry best practices for persistent domain control validation. This design aims to make it suitable for Certification Authorities operating under various policy environments, including those that align with the CA/Browser Forum Baseline Requirements.
+This document specifies "dns-persist-01", a new validation method for the Automated Certificate Management Environment (ACME) protocol. This method allows a Certification Authority (CA) to verify control over a domain by confirming the presence of a persistent DNS TXT record containing CA and account identification information. This method is particularly suited for environments where traditional challenge methods are impractical, such as multi-tenant hosting platforms, enterprise DNS environments, and IoT deployments. Whether a CA can use this method under a particular certificate policy or trust program depends on that policy's requirements.
 
 --- middle
 
@@ -80,14 +80,14 @@ This document defines a new ACME challenge type, "dns-persist-01". This method p
 
 The record format is based on the "issue-value" syntax from {{!RFC8659}}, incorporating an `issuer-domain-name` and a mandatory `accounturi` parameter whose value is defined in {{validation-record-format}}. The parameter name is reused from the CAA `accounturi` parameter defined in {{!RFC8657}}, Section 3; {{caa-interaction}} explains the relationship between them. The `accounturi` is a hashed URI that cryptographically binds the account to the domain being validated. This design provides strong binding between the domain, the CA, and the entity requesting validation.
 
-## Robustness and Alignment with Industry Best Practices {#robustness-and-alignment}
+## Persistent Validation Design {#robustness-and-alignment}
 
-This validation method is designed to provide a robust and persistent mechanism for domain control verification within the ACME protocol. Its technical design incorporates widely adopted security principles and best practices for domain validation, ensuring high assurance regardless of the specific CA policy environment. These principles include, but are not limited to:
+This method combines:
 
-1.  The use of a well-defined, unique DNS label (e.g., "_validation-persist") for persistent validation records, minimizing potential conflicts.
-2.  Explicit binding of the domain validation to an ACME account through a unique identifier, establishing clear accountability and enhancing security against unauthorized use.
+1.  A dedicated "_validation-persist" DNS label for persistent validation records.
+2.  Binding of each record to an ACME account through the hashed `accounturi` defined in {{validation-record-format}}.
 
-Certification Authorities operating under various trust program requirements will find this technical framework suitable for their domain validation needs, as its design inherently supports robust and auditable validation practices.
+These mechanisms do not by themselves establish compliance with a CA's certificate policy or applicable trust program requirements. Those requirements determine whether the method is permitted and which additional controls apply.
 
 # Conventions and Definitions {#conventions-and-definitions}
 
@@ -163,7 +163,7 @@ Let D be the set of values in the directory `issuerDomainNames` array, and let I
 
 For these subset comparisons, the CA MUST compare `caaIdentities` values, when advertised, after applying the same lowercase A-label and trailing-dot rules used for D and C.
 
-`caaIdentities` values of publicly trusted CAs are kept distinct by the CA/Browser Forum disclosure and audit regime. Identities of CAs outside that regime have no equivalent protection against another CA recognizing the same name, so a domain owner who adds such an identity to a CAA policy accepts that reuse caveat.
+CA disclosure identifies the Issuer Domain Names a CA recognizes; it does not establish that each name is recognized by only one CA. For example, {{!RFC8657}}, Section 5.4, discusses a parent CA and a subsidiary that recognize a shared name and requires account URIs to be unambiguous within the relevant recognition scope. The `issuer-domain-name` check therefore does not replace the account-binding check in {{verification-procedure}}.
 
 A client MUST treat a missing or nonconforming directory `issuerDomainNames` array as unavailable for pre-provisioning. A missing or nonconforming `caaIdentities` array does not affect pre-provisioning; it only makes the I comparisons unavailable. A client MAY still process an interactive `dns-persist-01` challenge. When D is available, the client MUST consider a challenge malformed if any value in D is absent from C. When I is available, the client MUST consider a challenge malformed if any value in C is absent from I.
 
@@ -282,8 +282,8 @@ When authorizing multiple issuers, domain owners MUST consider the following:
 **Auditing**
 :   Regularly audit DNS records to ensure that only intended CAs remain authorized. Remove records for CAs that are no longer in use.
 
-**Independent Security**
-:   Each authorized CA operates independently. The compromise of one CA's systems does not directly affect the security of other authorized CAs.
+**Issuer and Account Checks**
+:   Each record is checked against the validating CA's Issuer Domain Names and the requesting account, as specified in {{verification-procedure}}. These checks do not establish that the authorized CAs have independent infrastructure.
 
 **Weakest Link**
 :   The domain's overall security posture is influenced by the security practices of all authorized CAs. Domain owners should consider the practices of each CA they authorize.
@@ -327,9 +327,9 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
 
 When processing a new authorization request, a CA MAY perform an immediate DNS lookup for `_validation-persist` TXT records at the Validation Domain Name corresponding to the requested domain identifier.
 
-If one or more such records exist, the CA MUST evaluate them according to the requirements specified in {{multiple-issuer-support}}. If at least one record meets all validation requirements, the CA MAY transition the authorization to the "valid" status without returning a "pending" challenge to the client. This mechanism is an optimization and does not alter the ACME state machine defined in {{!RFC8555}}. From the client's perspective, it receives a "valid" authorization object directly in response to its creation request.
+If one or more such records exist, the CA MUST evaluate them according to the requirements specified in {{multiple-issuer-support}}. If at least one record meets all validation requirements, the CA MAY transition the authorization to the "valid" status without returning a "pending" challenge to the client. This mechanism is an optimization and does not alter the ACME state machine defined in {{!RFC8555}}. The `newOrder` response is an order object containing authorization URLs; the client retrieves the referenced authorization objects using POST-as-GET requests ({{!RFC8555}}, Sections 7.4 and 7.5). If the CA offers the optional `newAuthz` resource, its response contains the authorization object directly ({{!RFC8555}}, Section 7.4.1).
 
-If no DNS TXT record meets the validation requirements, or if the records are absent, the CA MUST proceed with the standard authorization flow by returning a "pending" authorization with an associated `dns-persist-01` challenge object.
+If no DNS TXT record meets the validation requirements, or if the records are absent, the CA MUST proceed with the standard authorization flow with a "pending" authorization and an associated `dns-persist-01` challenge object.
 
 CAs implementing Just-in-Time validation SHOULD rate-limit JIT DNS lookups per domain identifier, independent of the requesting account, to prevent amplification attacks where multiple accounts trigger excessive queries against a target domain. CAs SHOULD restrict JIT validation to accounts that have previously completed a successful `dns-persist-01` validation. CAs implementing Just-in-Time validation SHOULD provide account activity notifications or logging, as this path eliminates the challenge-response interaction that might otherwise provide a detection window for account compromise.
 
@@ -414,7 +414,7 @@ Clients SHOULD protect validation records through appropriate DNS security measu
 
 The `accounturi` parameter provides strong binding between domain validation and the ACME account identified by the hashed URI. However, this binding depends on the security of the account itself.
 
-The security of this method is fundamentally bound to the security of the ACME account's private key. Because the `accounturi` is a hashed URI computed in part over the account key (see {{hashed-uri-security}}), if this key is compromised, an attacker can immediately use any pre-existing `dns-persist-01` authorizations associated with that account to issue certificates, without needing any further access to the domain's DNS infrastructure. This elevates the importance of secure key management for ACME clients far above that required for transient challenge methods, as the window of opportunity for an attacker is tied to the lifetime of the persistent authorization, not a momentary challenge.
+The security of this method depends on protecting the ACME account's current private key, which authenticates requests to the CA. An attacker who compromises that key can authenticate as the account and use qualifying persistent records without further DNS access, including dormant records computed with retained prior key thumbprints (see {{verification-procedure}}). The attacker does not need the corresponding old private keys. Still-valid authorizations can also support issuance within their existing scope and expiration. Issuance remains subject to the CA's authorization and policy checks; account-key compromise does not guarantee immediate issuance. The persistence of the records makes secure account-key management important throughout their effective lifetime.
 
 CAs SHOULD implement robust account security measures, including:
 
@@ -454,7 +454,7 @@ The hashed URI is the sole `accounturi` form ({{validation-record-format}}). It 
 
 **Uniqueness of the binding.** What {{!RFC8657}}, Section 5.4 requires of an `accounturi` is reverse-direction uniqueness: a single `accounturi` value must not identify two different accounts. This holds because `account_URL` is one of the hash inputs and the hash is collision resistant, so each hashed URI uniquely identifies one account. The forward direction is intentionally one-to-many — one account yields a different value per domain — which is the privacy property above.
 
-**Acceptance of prior keys.** A CA accepts digests generated with an account's prior keys so that records provisioned before a rotation survive without republication ({{!RFC8555}}, Section 7.3.5), subject to the deactivation and retention rules in {{verification-procedure}}. This acceptance aligns with {{!RFC8555}}, Section 7.3.5, which establishes that changing an account key should not have collateral impact on existing authorizations. Such a record was committed to the account's URL when it was provisioned, so even if the key in the record is one that was later rotated out, the domain owner's intent to authorize that account is preserved. Retaining historical public key thumbprints creates no capability for an attacker: under {{!RFC8555}}, Section 7.3.5, a rotated-out key cannot authenticate subsequent requests, and registering a fresh account with an old key yields a different account URL that produces a different hashed URI. Furthermore, no CA acceptance policy can automatically distinguish an honest key rotation from a hostile one, so time-bounded acceptance provides no defense against account takeover; the effective controls against account takeover remain account deactivation, DNS record removal, and the `persistUntil` parameter. Account deactivation overrides this acceptance: once an account is deactivated, no digest computed from any of its keys validates, which is the emergency stop for a suspected key compromise.
+**Acceptance of prior keys.** A CA accepts digests generated with an account's prior keys so that records provisioned before a rotation survive without republication ({{!RFC8555}}, Section 7.3.5), subject to the deactivation and retention rules in {{verification-procedure}}. This acceptance aligns with {{!RFC8555}}, Section 7.3.5, which establishes that changing an account key should not have collateral impact on existing authorizations. Such a record was committed to the account's URL when it was provisioned, so even if the key in the record is one that was later rotated out, the domain owner's intent to authorize that account is preserved. Retaining historical public key thumbprints does not allow a rotated-out key alone to authenticate subsequent requests under {{!RFC8555}}, Section 7.3.5. Registering a fresh account with that key yields a different account URL and therefore a different hashed URI. However, a requester authenticating with the original account's current key can use a qualifying record computed with any retained prior thumbprint, including a dormant record that was never previously validated, without possessing the corresponding old private key. This continuity also applies after compromise of the current account key. A key rollover alone does not establish whether control of the account remains with the intended holder; lifetime retention preserves record usability rather than providing takeover containment. Account deactivation overrides prior-key acceptance, while DNS record removal and `persistUntil` have the timing and reuse effects described in {{revocation-and-invalidation}} and {{validation-data-reuse}}.
 
 **Limits of the privacy protection.** This construction is a best-effort obfuscation, not a cryptographically strong privacy mechanism. It resists bulk correlation and casual enumeration of account URLs, but a determined adversary with a-priori knowledge of candidate account URLs and their account keys can recover the true account URL. Domain owners who require stronger unlinkability SHOULD use separate ACME accounts for domains that must not be correlated.
 
@@ -535,7 +535,7 @@ The persistent nature of `dns-persist-01` authorizations means that a valid DNS 
 There are two primary revocation and invalidation actions:
 
 1. **Remove DNS record:** Removing the corresponding DNS TXT record from the Validation Domain Name is the standard method for an Applicant to invalidate a `dns-persist-01` authorization. After the record is removed and resolver caches have expired, new validation attempts for the domain will fail. This action is available to the domain owner and does not require CA involvement.
-2. **Deactivate ACME account:** For situations requiring immediate revocation of issuance capability (e.g., suspected account key compromise), the account bound by the record can be deactivated as specified in {{!RFC8555}}, Section 7.3.6. Per the deactivation rule in {{verification-procedure}}, a CA MUST NOT accept a hashed URI computed from any key of a deactivated account; deactivation therefore takes effect immediately and overrides witnessed key retention. This makes account deactivation a full emergency measure that invalidates the record's utility without waiting for DNS caches to expire.
+2. **Deactivate ACME account:** If account-key compromise is suspected, the account bound by the record can be deactivated as specified in {{!RFC8555}}, Section 7.3.6. Per the deactivation rule in {{verification-procedure}}, a CA MUST NOT accept a hashed URI computed from any key of a deactivated account; new validations fail without waiting for DNS caches to expire, and deactivation overrides witnessed key retention. RFC 8555 prohibits further requests authorized by the deactivated account's key, but cancellation of already-pending operations, such as certificate orders, is a SHOULD rather than an unconditional requirement. Deactivation therefore does not guarantee that every pending issuance operation is cancelled. RFC 8555 also recommends against revoking already-issued certificates solely because the account was deactivated.
 
 The following table summarizes the applicability and timing of these actions:
 
@@ -772,7 +772,9 @@ This example illustrates the pre-provisioning flow described in {{pre-provisioni
 
     Per {{directory-issuer-domain-names}}, a name taken from this array is guaranteed to satisfy the `issuer-domain-name` requirement of any `dns-persist-01` challenge this CA issues later.
 
-3.  The account holder supplies the account URL `https://ca.example/acct/123` and the account key's public JWK Thumbprint (encoded as `NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs`, as in {{hashed-uri-example}}) to the DNS operator managing the zone, a party distinct from the ACME client. No private key material is shared. Using the same inputs and result as {{hashed-uri-example}}, that party computes the hashed URI and publishes the TXT record:
+3.  Before handing off the record inputs, the account holder satisfies the account check in {{pre-provisioning-records}} using an authenticated POST-as-GET request to the exact account URL used in the digest, `https://ca.example/acct/123`. The request has a zero-length payload: the JWS `payload` field is present and set to the empty string `""`, rather than carrying the JSON object `{}`. The client follows no redirects and verifies that the returned account object's `status` is `valid`. A successful proof for an unchanged (account URL, account key) pair can satisfy this later pre-publication check, as permitted in {{pre-provisioning-records}}. If the check is not satisfied, the handoff does not proceed.
+
+    The domain owner then transmits the account URL `https://ca.example/acct/123`, the account key's public JWK Thumbprint (encoded as `NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs`, as in {{hashed-uri-example}}), the domain input `example.com`, the `accountHashPrefix` `https://ca.example/account-hash/`, the algorithm identifier `sha-256`, and the selected Issuer Domain Name `authority.example` through an authenticated channel to the DNS operator managing the zone, a party distinct from the ACME client. The client retains the account private key; no private key material is shared. Using the same inputs and result as {{hashed-uri-example}}, that party computes the hashed URI and publishes the TXT record:
 
     ~~~ dns
     _validation-persist.example.com. IN TXT ("authority.example;"
@@ -781,12 +783,12 @@ This example illustrates the pre-provisioning flow described in {{pre-provisioni
     ~~~
     {: #ex-preprovisioned title="Pre-Provisioned Validation Record"}
 
-4.  At any later time, the client submits a newOrder request. If the CA returns a pending `dns-persist-01` challenge, the client responds to it and the CA validates the already-present record through DNS queries; no DNS change is needed at order time. A CA implementing Just-in-Time validation ({{just-in-time-validation}}) may instead evaluate the record when the authorization is created and return it already valid, subject to the restrictions in that section; because the account in this example has not previously completed a `dns-persist-01` validation, a CA following that section's account restriction would take the pending-challenge path for this first order.
+4.  At any later time, the client submits a newOrder request and receives an order object containing authorization URLs. The client retrieves the referenced authorization objects using POST-as-GET requests ({{!RFC8555}}, Section 7.5). If an authorization is pending with a `dns-persist-01` challenge, the client responds by POSTing `{}` to the challenge URL, and the CA validates the already-present record using fresh DNS data; no DNS change is needed at order time. A CA implementing Just-in-Time validation ({{just-in-time-validation}}) may instead complete the authorization's validation without a challenge-response exchange, subject to the restrictions in that section. Because the account in this example has not previously completed a `dns-persist-01` validation, a CA following that section's recommendation to restrict JIT to accounts with a previous successful validation would take the pending-challenge path for this first order.
 
 
 ## Wildcard Validation Example {#wildcard-validation-example}
 
-For validation of "*.example.com" (which also validates "example.com" and specific subdomains like "www.example.com") by a CA using "authority.example" as its Issuer Domain Name:
+For validation of "*.example.com" by a CA using "authority.example" as its Issuer Domain Name:
 
 1.  The CA provides a challenge object similar to the basic example, containing an `issuerDomainNames` array.
 
@@ -800,7 +802,7 @@ For validation of "*.example.com" (which also validates "example.com" and specif
     ~~~
     {: #ex-wildcard-validation title="Wildcard Policy Validation Record"}
 
-3.  CA validates the record through DNS queries. This validation authorizes certificates for "example.com", "*.example.com", and specific subdomains like "www.example.com".
+3.  CA validates the record through DNS queries for the requested wildcard identifier. The resulting authorization has identifier value `example.com` and `wildcard` set to `true` ({{!RFC8555}}, Sections 7.1.3 and 7.1.4). The CA may also use this record to validate "example.com" and specific subdomains like "www.example.com", subject to {{wildcard-certificate-validation}} and {{subdomain-certificate-validation}}. Any required authorizations for those identifiers are handled separately; the record's applicability does not automatically complete them.
 
 ## Validation Example with persistUntil
 
@@ -837,7 +839,7 @@ For validation of "*.example.com" with an explicit expiration date:
     ~~~
     {: #ex-wildcard-persist-until title="Wildcard Validation Record with Expiration Time"}
 
-3.  CA validates the record. This validation authorizes certificates for "example.com", "*.example.com", and specific subdomains, but will not be considered valid after the specified timestamp (2024-07-26T00:00:00Z).
+3.  CA validates the record for the requested wildcard identifier, with authorization scope as described in {{wildcard-validation-example}}. The record may also support validation for "example.com" and specific subdomains, but does not automatically complete authorizations for those identifiers. The validation will not be considered valid after the specified timestamp (2024-07-26T00:00:00Z).
 
 --- back
 
@@ -846,7 +848,7 @@ For validation of "*.example.com" with an explicit expiration date:
 
 The authors acknowledge prior community work that directly informed this specification:
 
-- The CA/Browser Forum ballot proposals to enable persistent / static DNS Domain Control Validation signals in the Baseline Requirements {{cabf-br}}, in particular Ballot SC-082 ("Clarify CA Assisted DNS Validation under 3.2.2.4.7", authored by Michael Slaughter) and the active proposal SC-088 ("DNS TXT Record with Persistent Value DCV Method", also authored by Michael Slaughter). These efforts provided the policy framing and initial industry discussion motivating standardization of a reusable ACME DNS validation record.
+- The CA/Browser Forum ballot work on persistent / static DNS Domain Control Validation signals in the Baseline Requirements {{cabf-br}}, in particular Ballot SC-082 ("Clarify CA Assisted DNS Validation under 3.2.2.4.7", authored by Michael Slaughter) and Ballot SC-088 ("DNS TXT Record with Persistent Value DCV Method", also authored by Michael Slaughter). SC-088 was adopted on October 9, 2025, with an effective date of November 10, 2025. These efforts provided the policy framing and initial industry discussion motivating standardization of a reusable ACME DNS validation record.
 - The formal and empirical security analysis of static / persistent DCV methods performed by Henry Birge-Lee ("Proof of static DCV security" presentation, the "Security of SC-082 Redux" paper {{birgelee-sc082-security}}, and related research), which helped clarify the threat model and informed the security considerations in this document.
 - The Delegated DNS Domain Validation (DDDV) Threat Modeling Tiger Team discussions and document ("Validation SC - Delegated DNS Domain Validation (DDDV) Threat Model"), whose participants contributed to broad threat enumeration; notable contributors include Michael Slaughter (Amazon Trust Services), Corey Bonnell (DigiCert), Clint Wilson (Apple), and Martijn Katerbarg (Sectigo).
 
