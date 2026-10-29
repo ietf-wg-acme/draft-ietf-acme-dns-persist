@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-10-25T02:18:46.322071+00:00",
+  "timestamp": "2026-10-29T03:29:22.093676+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -6243,6 +6243,206 @@
           "comments": []
         }
       ]
+    },
+    {
+      "number": 77,
+      "id": "PR_kwDOO4VY2c8AAAABLWCBog",
+      "title": "fix: correct internationalized domain name example",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/77",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "The normalization example drops the tilde when case-folding `\u00d1`, and its Punycode label represents a different name.\n\nCorrect the four displayed results while preserving the original input, the separate trailing-dot-removal step, and the normalization algorithm. No protocol requirements change.\n\nValidation:\n- Case-folding, NFC, and Punycode round-trip checks.\n- `make lint` and `make`; generated text and HTML inspected.\n- Markdownlint diagnostics compared against the upstream baseline: identical, with no new diagnostics.\n- `git diff --check`.\n",
+      "createdAt": "2026-10-28T19:15:15Z",
+      "updatedAt": "2026-10-28T22:00:48Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "7f962817f1c3e49349306b1a36530e3548815b7a",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "fix-idn-example",
+      "headRefOid": "c39d184b184f9cf2fdcd146c905bf19682e584d0",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@birgelee @slghtr-says could you review this example correction? It fixes the intermediate values and Punycode output without changing the normalization algorithm.\n",
+          "createdAt": "2026-10-28T22:00:48Z",
+          "updatedAt": "2026-10-28T22:00:48Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABUxcaNA",
+          "commit": {
+            "abbreviatedOid": "c39d184"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "<!-- ccr-overview-v2 -->\n\n### \ud83d\udfe2 Approval recommended\n\nNo active review issues are reported for the correction to the internationalized domain name normalization example.\n\n**No open issues** \ud83c\udf89\n\n<details>\n<summary><strong>What changed in this PR</strong></summary>\n\nCorrects the internationalized domain name normalization example without changing the algorithm or protocol requirements.\n\n**Changes:**\n- Preserves the tilde when case-folding `\u00d1` to `\u00f1` and applying NFC normalization.\n- Updates the Punycode results while keeping trailing-dot removal as a separate step.\n\n| File | Description |\r\n| ---- | ----------- |\r\n| draft-ietf-acme-dns-persist.md | Corrects all four displayed normalization results for `\u00fc\u00d1ICODE-example.com.`. |\n</details>\n\n<sub>Review effort: Balanced</sub>",
+          "createdAt": "2026-10-28T20:07:16Z",
+          "updatedAt": "2026-10-28T20:07:16Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 78,
+      "id": "PR_kwDOO4VY2c8AAAABLWaFow",
+      "title": "fix: correct rollover, retention, and authorization descriptions",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/78",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "The rollover text currently implies that existing DNS records change\nautomatically. The retention summaries still refer to certificate-backed\nkey retention, which was removed from the draft. The just-in-time\nvalidation section also gives authorizations a `processing` state that\nRFC 8555 does not define.\n\nThis corrects those descriptions and trims repetitive wording. Protocol\nrequirements and example DNS records are unchanged.\n\nThis does not resolve parent-record discovery (#33) or change acceptance\nof records after key rollover (#69).\n\nVerification: `make lint`, `make`, and `git diff --check` passed. The\ngenerated text and HTML were inspected. Markdownlint reports the existing\nbaseline errors; the changed lines introduce no new ones.\n",
+      "createdAt": "2026-10-28T19:44:26Z",
+      "updatedAt": "2026-10-28T22:00:52Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "7f962817f1c3e49349306b1a36530e3548815b7a",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "fix-draft-wording",
+      "headRefOid": "947551ce6826daf6c7e1a346b9b4c427abc0346c",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@birgelee @slghtr-says could you review these wording corrections? They bring the descriptions into line with the existing requirements; no protocol behavior changes.\n",
+          "createdAt": "2026-10-28T22:00:52Z",
+          "updatedAt": "2026-10-28T22:00:52Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABUxc77A",
+          "commit": {
+            "abbreviatedOid": "947551c"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "<!-- ccr-overview-v2 -->\n\n### \ud83d\udfe2 Approval recommended\n\nNo active review issues block approval of the explanatory-text updates.\n\n**No open issues** \ud83c\udf89\n\n<details>\n<summary><strong>What changed in this PR</strong></summary>\n\nThis PR corrects explanatory text in the ACME persistent DNS validation draft without changing protocol requirements or DNS examples. Parent-record discovery (#33) and post-rollover record acceptance (#69) remain out of scope.\n\n**Changes:**\n- Clarifies that key rollover changes recomputed hashes, not already-published DNS records.\n- Removes obsolete certificate-backed retention descriptions and consolidates the changelog.\n- Removes the undefined authorization `processing` state from the just-in-time validation description and trims repetitive wording.\n\n| File | Description |\r\n| ---- | ----------- |\r\n| `draft-ietf-acme-dns-persist.md` | Corrects rollover, retention, and authorization descriptions; streamlines explanatory text. |\n</details>\n\n<sub>Review effort: Balanced</sub>",
+          "createdAt": "2026-10-28T20:07:58Z",
+          "updatedAt": "2026-10-28T20:07:58Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 79,
+      "id": "PR_kwDOO4VY2c8AAAABLYPxbg",
+      "title": "fix: preserve DNS identity when computing account hashes",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/79",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Full Unicode case-folding can turn the valid domain `fa\u00df.example` into\n`fass.example`. A client starting with the Unicode name can therefore hash\na different name from a CA starting with `xn--fa-hia.example`.\n\nDefine a mandatory, identity-preserving representation for the domain used\nin the hash: validated IDNA A-labels, lowercase ASCII, and no trailing\nroot-label dot. Keep application-specific input mapping outside this step.\nThe hash construction and account binding are unchanged.\n\nThis changes input handling, not just wording. Mixed-case or non-NFC\nUnicode user input must first be mapped to a valid selected name; invalid\nA-labels cannot be treated as opaque ASCII. Deployment compatibility has\nnot been established.\n\nStacked on #77, with `fix-idn-example` as the base. This diff contains only\nthe additional normalization change. Retarget to main after #77 merges.\n\nThe [proposed CABF profile](https://github.com/slghtr-says/servercert/pull/9)\ncurrently names draft -02. Selecting a revision containing any agreed\ncorrection is a separate decision for that proposal.\n\nVerification: 10 focused local test cases cover equivalent names, sharp-s,\ninvalid inputs, trailing dots, and the existing hash vectors. `make lint`,\n`make`, `make check` (idnits), and `git diff --check` passed. Generated text\nand HTML were inspected. Idnits informational comments and Markdownlint\nsource-style diagnostics remain; these checks are not live CA testing.\n",
+      "createdAt": "2026-10-28T22:19:00Z",
+      "updatedAt": "2026-10-28T22:19:00Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "fix-idn-example",
+      "baseRefOid": "c39d184b184f9cf2fdcd146c905bf19682e584d0",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "fix-domain-normalization",
+      "headRefOid": "142010e4eee3adeab6052688698c15db6e398ea2",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 80,
+      "id": "PR_kwDOO4VY2c8AAAABLYP2Og",
+      "title": "fix: make DNS parameter names case-insensitive",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/80",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "The draft specifies comparison rules for parameter values but not names.\nA CA can consequently ignore an expired `persistuntil` as unknown rather\nthan apply the intended restriction.\n\nRequire ASCII case-insensitive recognition of `accounturi`, `policy`, and\n`persistUntil`. Keep the existing spellings and value rules: hashed URI\nvalues are not case-folded. Reject repeated recognized parameters within\none record, including differently cased occurrences, and continue to\nignore unknown parameters. Align the duplicate-parameter error guidance.\n\nThis changes acceptance, not just wording. For example,\n`PoLiCy=WILDCARD` is now recognized rather than ignored. Separate TXT\nrecords remain independent alternatives.\n\nThe name-matching direction agrees with the\n[proposed CABF reconciliation](https://github.com/slghtr-says/servercert/pull/9).\nThat proposal and its transition dates remain separate CABF decisions;\nthis PR does not amend the Baseline Requirements.\n\nVerification: 11 focused local test cases cover case variants, duplicate\nrejection, unchanged values, unknown parameters, and record-local state.\n`make lint`, `make`, `make check` (idnits), and `git diff --check` passed.\nGenerated text and HTML were inspected. Idnits informational comments and\nMarkdownlint source-style diagnostics remain. These are focused checks,\nnot a complete parser or deployed-CA conformance test.\n",
+      "createdAt": "2026-10-28T22:19:06Z",
+      "updatedAt": "2026-10-28T22:19:06Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "7f962817f1c3e49349306b1a36530e3548815b7a",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "fix-parameter-recognition",
+      "headRefOid": "19638ad1088dfcc7ecc65012d578e6ba307868bc",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 81,
+      "id": "PR_kwDOO4VY2c8AAAABLa8iug",
+      "title": "fix: require hash URIs to fit TXT parameter syntax",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/81",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "A prefix such as `https://ca.example/account;v1/` can produce a valid URI,\nbut its literal semicolon splits the TXT `accounturi` parameter. URI\nvalidity alone is therefore insufficient for the advertised prefix.\n\nRequire the complete constructed URI, for each accepted algorithm, to\nalso satisfy RFC 8659's parameter-value grammar. Preserve the advertised\nprefix exactly, including percent-encoded octets; clients must not repair\nit by rewriting or normalizing it. This adds no scheme restriction or\nmandatory trailing slash and leaves hash inputs and migration rules alone.\n\nVerification: ten focused parameter-value/construction reference cases,\nincluding raw and encoded semicolons, escape-case preservation, and TXT\ncharacter-string boundaries. The split diff matches the approved\nconstraint. `make lint`, `make`, `make check` (idnits), and\n`git diff --check` passed on this head; rendered output was inspected.\nInformational idnits comments and existing Markdownlint style diagnostics\nremain. These are not complete URI-parser or deployed-CA tests.\n",
+      "createdAt": "2026-10-29T03:09:06Z",
+      "updatedAt": "2026-10-29T03:09:06Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "7f962817f1c3e49349306b1a36530e3548815b7a",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "fix-prefix-representability",
+      "headRefOid": "5a07e31adb83f75909ba94cb8d22cdcc675b5da9",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 82,
+      "id": "PR_kwDOO4VY2c8AAAABLa8lHA",
+      "title": "fix: clarify validation flows and security limits",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/82",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Several explanations overstate what a persistent record or completed\nvalidation guarantees. They also blur ACME response objects and omit\nexisting prerequisites from the delegated-publication example.\n\nCorrect that narration without changing validation acceptance or key\nretention. Distinguish orders from authorizations, record applicability\nfrom completed authorizations, and current-key compromise from possession\nof a retired key. Explain the limits of deactivation for pending issuance.\nShow the existing account proof, cached-proof exception, and authenticated\nhandoff in the example.\n\nRemove unsupported claims of universal policy suitability and independent\nCA infrastructure, clarify shared issuer-name recognition, and correct\nSC088's adoption and effective dates. No new policy obligation is added.\n\nStacked on #78 with `fix-draft-wording` as the base; retarget to main after #78\nmerges. This does not include the separate prefix constraint, an\nissuer-name retirement policy, or changes to the multiple-issuer advice,\nefficiency obligation, or prior-success JIT recommendation.\n\nThe compromise explanation addresses the remaining prose concern from #69\nwithout reopening its accepted retention design or repeating the\ncomputation-cost guidance already delivered in #75.\n\nVerification: the split diff matches the fourteen approved replacements.\nFocused source contracts preserve the existing account-proof requirements\nand fenced examples. `make lint`, `make`, `make check` (idnits), and\n`git diff --check` passed on this head; rendered output was inspected.\nInformational idnits comments and existing Markdownlint style diagnostics\nremain. No live CA behavior or universal security guarantee is claimed.\n",
+      "createdAt": "2026-10-29T03:09:10Z",
+      "updatedAt": "2026-10-29T03:09:10Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "fix-draft-wording",
+      "baseRefOid": "947551ce6826daf6c7e1a346b9b4c427abc0346c",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "fix-validation-explanations",
+      "headRefOid": "c6eb9b11be60ab28c8db4508ed9b1726823b9e0a",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
     }
   ]
 }
