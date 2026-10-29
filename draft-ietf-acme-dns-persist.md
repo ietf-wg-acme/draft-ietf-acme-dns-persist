@@ -277,7 +277,9 @@ When a CA performs validation for a domain with multiple `_validation-persist` T
 
 ### Security and Management Considerations
 
-When authorizing multiple issuers, domain owners MUST consider the following:
+The following are operational considerations for domain owners authorizing
+multiple issuers; the explicit requirement for authorization removal appears
+below:
 
 **Auditing**
 :   Regularly audit DNS records to ensure that only intended CAs remain authorized. Remove records for CAs that are no longer in use.
@@ -331,7 +333,7 @@ If one or more such records exist, the CA MUST evaluate them according to the re
 
 If no DNS TXT record meets the validation requirements, or if the records are absent, the CA MUST proceed with the standard authorization flow with a "pending" authorization and an associated `dns-persist-01` challenge object.
 
-CAs implementing Just-in-Time validation SHOULD rate-limit JIT DNS lookups per domain identifier, independent of the requesting account, to prevent amplification attacks where multiple accounts trigger excessive queries against a target domain. CAs SHOULD restrict JIT validation to accounts that have previously completed a successful `dns-persist-01` validation. CAs implementing Just-in-Time validation SHOULD provide account activity notifications or logging, as this path eliminates the challenge-response interaction that might otherwise provide a detection window for account compromise.
+CAs implementing Just-in-Time validation SHOULD rate-limit JIT DNS lookups per domain identifier, independent of the requesting account, to prevent amplification attacks where multiple accounts trigger excessive queries against a target domain. CAs implementing Just-in-Time validation SHOULD provide account activity notifications or logging, as this path eliminates the challenge-response interaction that might otherwise provide a detection window for account compromise.
 
 This mechanism enables efficient reuse of persistent validation records while maintaining the security properties of the validation method.
 
@@ -555,7 +557,7 @@ Certificate Authorities (CAs) implementing this method MUST:
 
 - Respect the `persistUntil` constraint as specified in {{validation-record-format}}, setting authorization expiration to no later than the specified timestamp and rejecting new validation attempts after the timestamp elapses.
 
-- Ensure their internal systems are capable of efficiently handling the validation failure when DNS records are removed or become invalid.
+- Handle failed challenges as specified in {{verification-procedure}} and {{ca-implementation-guidelines}}; apply the fallback in {{just-in-time-validation}} when a Just-in-Time lookup finds no qualifying record.
 
 While this method provides a persistent signal of control, the fundamental ACME authorization object (as defined in {{!RFC8555}}) remains subject to its own lifecycle, including expiration. A persistent DNS record allows for repeated authorizations, but each authorization object issued by the CA will have a defined validity period, after which it expires unless renewed.
 
@@ -783,7 +785,7 @@ This example illustrates the pre-provisioning flow described in {{pre-provisioni
     ~~~
     {: #ex-preprovisioned title="Pre-Provisioned Validation Record"}
 
-4.  At any later time, the client submits a newOrder request and receives an order object containing authorization URLs. The client retrieves the referenced authorization objects using POST-as-GET requests ({{!RFC8555}}, Section 7.5). If an authorization is pending with a `dns-persist-01` challenge, the client responds by POSTing `{}` to the challenge URL, and the CA validates the already-present record using fresh DNS data; no DNS change is needed at order time. A CA implementing Just-in-Time validation ({{just-in-time-validation}}) may instead complete the authorization's validation without a challenge-response exchange, subject to the restrictions in that section. Because the account in this example has not previously completed a `dns-persist-01` validation, a CA following that section's recommendation to restrict JIT to accounts with a previous successful validation would take the pending-challenge path for this first order.
+4.  At any later time, the client submits a newOrder request and receives an order object containing authorization URLs. The client retrieves the referenced authorization objects using POST-as-GET requests ({{!RFC8555}}, Section 7.5). If an authorization is pending with a `dns-persist-01` challenge, the client responds by POSTing `{}` to the challenge URL, and the CA validates the already-present record using fresh DNS data; no DNS change is needed at order time. A CA implementing Just-in-Time validation ({{just-in-time-validation}}) may instead complete the authorization's validation without a challenge-response exchange, subject to the restrictions in that section.
 
 
 ## Wildcard Validation Example {#wildcard-validation-example}
