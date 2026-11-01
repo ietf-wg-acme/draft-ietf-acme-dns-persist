@@ -636,10 +636,10 @@ For example, a domain name like `EXAMPLE.com.` is normalized as follows:
 
 An internationalized domain name like `üÑICODE-example.com.` is normalized as follows:
 
-1. After case-folding: `ünicode-example.com.`
-2. After NFC normalization: `ünicode-example.com.`
-3. After Punycode conversion: `xn--nicode-example-9jb.com.`
-4. After removing trailing dot: `xn--nicode-example-9jb.com`
+1. After case-folding: `üñicode-example.com.`
+2. After NFC normalization: `üñicode-example.com.`
+3. After Punycode conversion: `xn--icode-example-hkb8n.com.`
+4. After removing trailing dot: `xn--icode-example-hkb8n.com`
 
 ## CA Implementation Guidelines {#ca-implementation-guidelines}
 
