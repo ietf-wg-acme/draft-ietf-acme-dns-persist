@@ -397,6 +397,62 @@ For a persistent TXT record provisioned at `_validation-persist.example.com` wit
 - Permitted: `example.com`, `www.example.com`, `app.example.com`, `server.dept.example.com`, `*.example.com`, `*.dept.example.com`
 - Not permitted without additional validation: `otherexample.com`, `example.net`
 
+# IP Address Validation via the Reverse Namespace {#ip-address-validation}
+
+The `dns-persist-01` validation method MAY also be used to validate control of an IPv4 or IPv6 address represented as an ACME `ip` identifier ({{!RFC8738}}, Section 3) by provisioning a persistent DNS TXT record in the reverse DNS namespace.
+
+## Reverse-Zone Mapping and Validation Domain Name {#ip-reverse-zone-mapping}
+
+When an ACME authorization object has `identifier.type` set to `ip`, the client and CA construct the canonical Reverse Zone Domain Name (`R`) for the IP address in lowercase US-ASCII with no trailing dot as follows:
+
+- **IPv4 ({{!RFC1035}}, Section 3.5):** Represent the 32-bit IPv4 address as four decimal octet labels (0–255, with leading zeros omitted except for a single `0` octet) in reverse order, followed by the suffix `.in-addr.arpa`. For example, `192.0.2.1` maps to `1.2.0.192.in-addr.arpa`.
+- **IPv6 ({{!RFC3596}}, Section 2.5):** Expand the 128-bit IPv6 address to all 32 hexadecimal digits (expanding any `::` zero compression) and represent them as 32 single-character lowercase hexadecimal (`0`–`9`, `a`–`f`) labels separated by dots in reverse order (low-order nibble first), followed by the suffix `.ip6.arpa`. The resulting Reverse Zone Domain Name is always 72 octets in length. For example, `2001:db8::1` maps to `1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa`.
+
+For an `ip` identifier, the Validation Domain Name is formed by prepending the label `_ip-validation-persist` to the Reverse Zone Domain Name (`_ip-validation-persist.<R>`). This distinct underscore label separates IP-address validation from `dns`-identifier validation.
+
+A CA MUST query `_ip-validation-persist.<R>` only when validating an authorization with `identifier.type` set to `ip`, and MUST query `_validation-persist` only when validating an authorization with `identifier.type` set to `dns`. When validating an `ip` identifier with `dns-persist-01`, the CA MUST NOT perform a `PTR` lookup or validate the target domain name of a `PTR` record in place of `_ip-validation-persist.<R>`.
+
+## Record Format, Digest Input, and Scope for IP Validation {#ip-record-and-scope}
+
+All requirements in {{validation-record-format}}, {{verification-procedure}}, {{multiple-issuer-support}}, {{just-in-time-validation}}, {{pre-provisioning-records}}, {{validation-data-reuse}}, {{revocation-and-invalidation}}, and {{implementation-considerations}} apply to `ip` authorizations by substituting `_ip-validation-persist.<R>` for `_validation-persist.<FQDN>` and the canonical Reverse Zone Domain Name `R` for the validated FQDN, subject to the following rules:
+
+1. **Digest `domain_name` input:** By default, both the client (or delegated DNS publisher) and the CA MUST set `domain_name` in `H(length_of_domain || domain_name || key || account_URL)` ({{validation-record-format}}) to the canonical lowercase US-ASCII Reverse Zone Domain Name `R` (the Validation Domain Name with its leading `_ip-validation-persist.` removed and no trailing dot). As specified in {{validation-record-format}}, a client MAY instead set `domain_name` to the single US-ASCII octet `*` (`0x2a`; `length_of_domain` `0x01`) to opt out of per-address domain binding, and a CA MUST accept both forms. Because a CNAME record at `<R>` (such as a classless `in-addr.arpa` `PTR` alias) redirects only the owner name `<R>` and not child labels beneath it, delegating `_ip-validation-persist.<R>` via CNAME requires an explicit alias at `_ip-validation-persist.<R>` itself; where `_ip-validation-persist.<R>` is aliased via CNAME to a target in a delegated zone, both the publisher and the CA MUST still compute `domain_name` using the canonical `in-addr.arpa` or `ip6.arpa` Reverse Zone Domain Name `R` (or `*`), not the CNAME target.
+2. **Exact-address scope:** Validation of `_ip-validation-persist.<R>` authorizes certificate issuance only for the single IPv4 or IPv6 address in the `ip` authorization's `identifier.value`. It grants no authority over any IP prefix, CIDR range, or reverse-zone ancestor. Clients and DNS publishers SHOULD omit the `policy` parameter on `_ip-validation-persist` records; if `policy=wildcard` (or any other `policy` value) is present on an `_ip-validation-persist` record, the CA MUST ignore it and treat the validation as applying only to the single IP address.
+3. **Challenge response for `ip` authorizations:** To respond to a `dns-persist-01` challenge for an `ip` authorization, the client POSTs an empty JSON object (`{}`) to the challenge URL ({{!RFC8555}}, Section 7.5.1). Ancestor selection does not apply to `ip` identifiers; if a client includes an `ancestorDomain` field in a challenge response for an `ip` authorization, the CA MUST reject the challenge with a `malformed` error ({{!RFC8555}}, Section 6.7).
+4. **Identifier-typed caching:** Any CA caching of computed hashed URIs or validation outcomes ({{verification-procedure}}) MUST remain scoped to the authorization's identifier type (`ip` versus `dns`) so that a digest or record evaluated for one identifier type is never treated as satisfying an authorization for the other identifier type.
+
+## IPv4 and IPv6 Validation Examples {#ip-validation-examples}
+
+Using the same CA `accountHashPrefix` (`https://ca.example/account-hash/`), Issuer Domain Name (`authority.example`), account URL (`https://ca.example/acct/123`), and account key thumbprint (`NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs`) as {{hashed-uri-example}}:
+
+- **IPv4 example (`192.0.2.1`):**
+  - `length_of_domain`: `0x16` (22 octets)
+  - `domain_name`: `1.2.0.192.in-addr.arpa`
+  - Unpadded base64url SHA-256 digest: `CnwSwHOHJbE-X_FSkydPTw6dGMovluSdRsY3_tmA-0E`
+
+~~~ dns
+_ip-validation-persist.1.2.0.192.in-addr.arpa. IN TXT (
+  "authority.example;"
+  " accounturi=https://ca.example/account-hash/"
+  "sha-256/CnwSwHOHJbE-X_FSkydPTw6dGMovluSdRsY3_tmA-0E")
+~~~
+{: #ex-ipv4-validation title="IPv4 Validation TXT Record"}
+
+- **IPv6 example (`2001:db8::1`):**
+  - `length_of_domain`: `0x48` (72 octets)
+  - `domain_name`: `1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa`
+  - Unpadded base64url SHA-256 digest: `9RLd7iwi0v30KV01dsPwGvSBucGEYgsJhDNCxk8Nb9g`
+
+~~~ dns
+_ip-validation-persist.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa. IN TXT (
+  "authority.example;"
+  " accounturi=https://ca.example/account-hash/"
+  "sha-256/9RLd7iwi0v30KV01dsPwGvSBucGEYgsJhDNCxk8Nb9g")
+~~~
+{: #ex-ipv6-validation title="IPv6 Validation TXT Record"}
+
+If the client instead opts out of per-address binding by setting `domain_name` to `*` (`length_of_domain` `0x01`), both records use the same hashed URI as the domain-omitted example in {{hashed-uri-example}} (`https://ca.example/account-hash/sha-256/NpDnSwUthQK8zCgFdefYxAdAVPnygMLbs9US6oO-5ug`).
+
 # Security Considerations {#security-considerations}
 
 The requirement for CAs to ignore unknown parameter tags means that future extensions must be carefully designed to ensure that being ignored does not create security vulnerabilities. Extensions that require strict enforcement should use alternative mechanisms, such as separate record types or explicit version negotiation.
@@ -478,6 +534,10 @@ Organizations considering the use of subdomain validation SHOULD:
 - Implement monitoring for subdomain creation and changes
 - Consider limiting subdomain validation to specific, controlled scenarios
 - Provide clear governance policies for subdomain certificate authority
+
+## IP Address Validation Risks {#ip-validation-risks}
+
+When `dns-persist-01` is used for an `ip` identifier ({{ip-address-validation}}), authorization derives from control of the `_ip-validation-persist.<R>` node in the `in-addr.arpa` or `ip6.arpa` reverse DNS tree. In many deployments, reverse-zone delegation is held by the upstream network provider, hosting operator, or address-space registrant rather than the operator of the individual host, which is why {{!RFC8738}}, Section 7 excluded `dns-01` for IP identifiers. Unlike `dns-01`, `_ip-validation-persist` requires an explicit per-address opt-in label (`_ip-validation-persist`), binds both the CA (`issuer-domain-name`) and the ACME account (`accounturi`), forbids `PTR` target indirection, and ignores `policy=wildcard` so reverse-zone control never implies prefix-wide authority. Address holders and CAs SHOULD account for reverse-zone delegation boundaries in their threat models, and CAs MUST enable `dns-persist-01` for `ip` identifiers only where permitted by their applicable certificate policy and trust-program requirements.
 
 ## Cross-CA Validation Reuse {#cross-ca-validation-reuse}
 
@@ -565,19 +625,28 @@ While this method provides a persistent signal of control, the fundamental ACME 
 
 ## ACME Validation Methods Registry {#acme-validation-methods-registry}
 
-IANA is requested to register the following entry in the "ACME Validation Methods" registry:
+IANA is requested to register the following entries in the "ACME Validation Methods" registry:
 
 - **Label**: dns-persist-01
 - **Identifier Type**: dns
 - **ACME**: Y
 - **Reference**: This document
 
+- **Label**: dns-persist-01
+- **Identifier Type**: ip
+- **ACME**: Y
+- **Reference**: This document
+
 ## Underscored and Globally Scoped DNS Node Names Registry {#dns-node-names-registry}
 
-IANA is requested to register the following entry in the "Underscored and Globally Scoped DNS Node Names" registry defined in {{!RFC8552}}:
+IANA is requested to register the following entries in the "Underscored and Globally Scoped DNS Node Names" registry defined in {{!RFC8552}}:
 
 - **RR Type**: TXT
 - **_NODE NAME**: _validation-persist
+- **Reference**: This document
+
+- **RR Type**: TXT
+- **_NODE NAME**: _ip-validation-persist
 - **Reference**: This document
 
 ## ACME Directory Metadata Fields {#acme-directory-metadata-field}
