@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 5 May 2027                                Crosslayer Labs, Inc.
+Expires: 6 May 2027                                Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                         1 November 2026
+                                                         2 November 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -63,7 +63,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 5 May 2027.
+   This Internet-Draft will expire on 6 May 2027.
 
 Copyright Notice
 
@@ -406,9 +406,16 @@ Table of Contents
    The RDATA of this TXT record MUST fulfill the following requirements:
 
    1.  The RDATA value MUST conform to the issue-value syntax defined in
-       [RFC8659], Section 4.2.  To ensure forward compatibility, the
-       server MUST ignore any parameter within the issue-value that has
-       an unrecognized tag.
+       [RFC8659], Section 4.2.  CAs MUST recognize the parameter names
+       accounturi, policy, and persistUntil using ASCII case-insensitive
+       comparison.  This comparison applies only to parameter names; the
+       value-comparison rules below are unchanged.  Each of these
+       recognized parameters MUST occur at most once within a single
+       issue-value.  If a recognized parameter occurs more than once,
+       including with different casing, the CA MUST treat the record as
+       malformed and reject it.  To ensure forward compatibility, the
+       server MUST ignore parameters whose names it does not recognize,
+       including repeated occurrences of such parameters.
 
    2.  The issuer-domain-name portion of the issue-value MUST be one of
        the Issuer Domain Names provided by the CA in the
@@ -475,13 +482,13 @@ Table of Contents
 
        2.  domain_name is, by default, the FQDN being validated: the
            Validation Domain Name with its leading _validation-persist
-           label removed and no trailing dot, in the normalized
-           lowercase A-label form produced by Section 9.2.  This form is
-           US-ASCII.  This is the FQDN at which the _validation-persist
-           record is provisioned, not the FQDN of the certificate
-           ultimately requested; binding the record to its own domain is
-           what makes the hashed URI domain-specific (see
-           Section 7.2.3).
+           label removed and no trailing dot, in the lowercase ASCII
+           presentation form produced by Section 9.2, using validated
+           A-labels for internationalized labels.  This is the FQDN at
+           which the _validation-persist record is provisioned, not the
+           FQDN of the certificate ultimately requested; binding the
+           record to its own domain is what makes the hashed URI domain-
+           specific (see Section 7.2.3).
 
            As an exception, a client MAY set domain_name to the single
            US-ASCII octet * (0x2a; length_of_domain is then 0x01) to opt
@@ -656,8 +663,7 @@ Table of Contents
 
    A domain MAY authorize multiple Certificate Authorities (CAs) by
    provisioning a separate _validation-persist TXT record for each
-   issuer.  This allows domain owners to maintain relationships with
-   multiple CAs simultaneously, enhancing flexibility and resilience.
+   issuer.
 
 4.3.1.  Coexistence of Records
 
@@ -716,8 +722,6 @@ Table of Contents
    different CAs, "ca1.example" and "ca2.example", to issue certificates
    for example.org.
 
-   *DNS Configuration:*
-
    _validation-persist.example.org. 3600 IN TXT ("ca1.example;"
    " accounturi=https://ca1.example/account-hash/"
    "sha-256/wjZNvLpIgf7zrr9KQo7zCLaG2Ea67KS4o4cAwSepsls;"
@@ -769,11 +773,9 @@ Table of Contents
    one record meets all validation requirements, the CA MAY transition
    the authorization to the "valid" status without returning a "pending"
    challenge to the client.  This mechanism is an optimization and does
-   not alter the ACME state machine defined in [RFC8555].  The server
-   internally transitions the authorization from "pending" through
-   "processing" to "valid" instantaneously.  From the client's
-   perspective, it receives a "valid" authorization object directly in
-   response to its creation request.
+   not alter the ACME state machine defined in [RFC8555].  From the
+   client's perspective, it receives a "valid" authorization object
+   directly in response to its creation request.
 
    If no DNS TXT record meets the validation requirements, or if the
    records are absent, the CA MUST proceed with the standard
@@ -1037,12 +1039,14 @@ Table of Contents
 
    When an account key rotates following the procedures defined in
    [RFC8555], Section 7.3.5, the ACME account URL remains unchanged.
-   The hashed URI in existing records changes because key is an input to
-   the hash.  Existing records remain valid under the retention rules in
-   Section 4.2.  Clients SHOULD republish _validation-persist records
-   with the hashed URI recomputed under the account's new key promptly
-   after a rotation.  Republication ensures records reflect current
-   credentials, which facilitates operational hygiene and auditing.
+   Recomputing the hashed URI with the new account key produces a
+   different value because key is an input to the hash.  Published
+   records remain unchanged until republication.  Existing records
+   remain valid under the retention rules in Section 4.2.  Clients
+   SHOULD republish _validation-persist records with the hashed URI
+   recomputed under the account's new key promptly after a rotation.
+   Republication ensures records reflect current credentials, which
+   facilitates operational hygiene and auditing.
 
 7.2.2.  Account URI Privacy
 
@@ -1184,11 +1188,10 @@ Table of Contents
 
 7.3.  Subdomain Validation Risks
 
-   Enabling subdomain validation via policy=wildcard creates significant
-   security implications.  Organizations using this feature SHOULD
-   carefully control subdomain delegation and monitor for unauthorized
-   subdomains.  This policy value serves as the explicit mechanism for
-   domain owners to opt-in to broader validation scopes.
+   The policy=wildcard value serves as the explicit mechanism for domain
+   owners to opt-in to broader validation scopes.  Organizations using
+   this feature SHOULD carefully control subdomain delegation and
+   monitor for unauthorized subdomains.
 
    The ability to issue certificates for subdomains of validated FQDNs
    creates significant security risks, particularly in environments with
@@ -1378,11 +1381,10 @@ Table of Contents
        as specified in [RFC8555], Section 7.3.6.  Per the deactivation
        rule in Section 4.2, a CA MUST NOT accept a hashed URI computed
        from any key of a deactivated account; deactivation therefore
-       takes effect immediately and overrides key retention, including
-       the certificate-backed retention of a key that a currently valid
-       certificate depends on.  This makes account deactivation a full
-       emergency measure that invalidates the record's utility without
-       waiting for DNS caches to expire.
+       takes effect immediately and overrides witnessed key retention.
+       This makes account deactivation a full emergency measure that
+       invalidates the record's utility without waiting for DNS caches
+       to expire.
 
    The following table summarizes the applicability and timing of these
    actions:
@@ -1513,48 +1515,46 @@ Table of Contents
 
 9.2.  Domain Name Normalization Algorithm
 
-   This section provides an algorithm for domain name normalization to
-   promote interoperability.  Both clients and servers SHOULD follow a
-   consistent normalization process to ensure that domain names are
-   handled uniformly.
+   Clients and CAs MUST use the following procedure to produce the
+   domain_name octets used in Section 4.1 from the actual DNS name at
+   which the record is provisioned, after removing the leading
+   _validation-persist label:
 
-   The recommended normalization process consists of the following four
-   steps, applied in order:
+   1.  Represent each internationalized label as a valid IDNA A-label,
+       as defined in [RFC5890] and [RFC5891].  If the selected name is
+       supplied using U-labels, those labels MUST be valid NFC U-labels
+       and MUST be converted directly to their A-label equivalents
+       without Unicode case-folding.  Existing labels beginning with
+       xn--, matched ASCII case-insensitively, MUST be checked for IDNA
+       validity after converting their ASCII letters to lowercase,
+       rather than treated as arbitrary ASCII strings.  Invalid IDNA
+       labels MUST NOT be used to construct or validate a record.
 
-   1.  *Case-folding*: Apply Unicode-aware, locale-independent case-
-       folding to the entire domain name string to convert it to
-       lowercase.
+   2.  Convert ASCII letters A through Z to lowercase.  Leave other
+       ASCII octets unchanged.
 
-   2.  *Unicode Normalization*: Normalize the string to Unicode
-       Normalization Form C (NFC).
+   3.  Remove the trailing root-label dot, if present.  Encode the
+       resulting presentation form as ASCII octets.
 
-   3.  *Punycode Conversion*: Convert each label of the domain name to
-       its A-label (Punycode) representation as specified in [RFC5890].
+   This procedure does not define how an application maps arbitrary user
+   input to a DNS name.  Any such mapping occurs before the name is
+   selected for provisioning or validation, not while deriving the hash
+   input.  In particular, the selected name faß.example has A-label form
+   xn--fa-hia.example; it MUST NOT be changed to fass.example when
+   computing domain_name.
 
-   4.  *Trailing Dot Removal*: Remove any trailing dot from the final
-       string.
+   For example, EXAMPLE.com. produces example.com.
 
-   For example, a domain name like EXAMPLE.com. is normalized as
-   follows:
+   An application accepting the user input üÑICODE-example.com. might
+   select the valid U-label name üñicode-example.com. before invoking
+   this procedure.  For that selected name:
 
-   1.  After case-folding: example.com.
+   1.  The A-label presentation is xn--icode-example-hkb8n.com..
 
-   2.  After NFC normalization: example.com.
+   2.  ASCII lowercasing leaves that presentation unchanged.
 
-   3.  After Punycode conversion: example.com.
-
-   4.  After removing trailing dot: example.com
-
-   An internationalized domain name like üÑICODE-example.com. is
-   normalized as follows:
-
-   1.  After case-folding: üñicode-example.com.
-
-   2.  After NFC normalization: üñicode-example.com.
-
-   3.  After Punycode conversion: xn--icode-example-hkb8n.com.
-
-   4.  After removing trailing dot: xn--icode-example-hkb8n.com
+   3.  Removing the trailing root-label dot produces xn--icode-example-
+       hkb8n.com.
 
 9.3.  CA Implementation Guidelines
 
@@ -1577,14 +1577,15 @@ Table of Contents
    clear feedback on validation failures.  Specifically:
 
    *  CAs SHOULD return a malformed error (as defined in [RFC8555]) when
-      the TXT record has invalid syntax, such as duplicate parameters,
-      invalid timestamp format in the persistUntil parameter, missing
-      mandatory accounturi parameter, an accounturi that is not a well-
-      formed hashed URI (for example, one not placed under the CA's
-      accountHashPrefix, one using an algorithm identifier the CA does
-      not accept, or one whose hash value is not valid base64url of the
-      expected length), or other syntactic violations of the record
-      format specified in this document.
+      the TXT record has invalid syntax, such as duplicate occurrences
+      of a recognized parameter, invalid timestamp format in the
+      persistUntil parameter, missing mandatory accounturi parameter, an
+      accounturi that is not a well-formed hashed URI (for example, one
+      not placed under the CA's accountHashPrefix, one using an
+      algorithm identifier the CA does not accept, or one whose hash
+      value is not valid base64url of the expected length), or other
+      syntactic violations of the record format specified in this
+      document.
 
    *  CAs SHOULD return an unauthorized error (as defined in [RFC8555])
       when validation fails due to authorization issues, including:
@@ -1938,6 +1939,11 @@ Table of Contents
               BCP 222, RFC 8552, DOI 10.17487/RFC8552, March 2019,
               <https://www.rfc-editor.org/info/rfc8552>.
 
+   [RFC5891]  Klensin, J., "Internationalized Domain Names in
+              Applications (IDNA): Protocol", RFC 5891,
+              DOI 10.17487/RFC5891, August 2010,
+              <https://www.rfc-editor.org/info/rfc5891>.
+
 11.2.  Informative References
 
    [birgelee-sc082-security]
@@ -2013,18 +2019,13 @@ Since draft-ietf-acme-dns-persist-01
    *  Added a mandatory domain-omitted opt-out (domain_name set to *)
       for correlation opt-out and cross-domain record reuse.
 
-   *  Specified CA key retention as a data-retention obligation with
-      ranked precedence (deactivation overrides certificate-backed
-      retention overrides general retention); account deactivation is an
-      immediate override.
-
    *  Retired the temporal key rotation window mechanisms
       (keyRotationPeriod directory metadata and keyRolloverWindow);
       prior-key acceptance is governed by CA retention.
 
    *  Specified uniform witnessed-thumbprint retention as a MUST bounded
-      only by account lifetime, with pruning permitted upon account
-      deactivation.
+      only by account lifetime, with account deactivation immediately
+      overriding acceptance and permitting pruning.
 
    *  Replaced the -01 reuse-unaffected text with a requirement that CAs
       clamp authorization expires to persistUntil.
