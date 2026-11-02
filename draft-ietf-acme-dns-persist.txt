@@ -694,8 +694,9 @@ Table of Contents
 
 4.3.3.  Security and Management Considerations
 
-   When authorizing multiple issuers, domain owners MUST consider the
-   following:
+   The following are operational considerations for domain owners
+   authorizing multiple issuers; the explicit requirement for
+   authorization removal appears below:
 
    *Auditing*  Regularly audit DNS records to ensure that only intended
       CAs remain authorized.  Remove records for CAs that are no longer
@@ -785,12 +786,11 @@ Table of Contents
    CAs implementing Just-in-Time validation SHOULD rate-limit JIT DNS
    lookups per domain identifier, independent of the requesting account,
    to prevent amplification attacks where multiple accounts trigger
-   excessive queries against a target domain.  CAs SHOULD restrict JIT
-   validation to accounts that have previously completed a successful
-   dns-persist-01 validation.  CAs implementing Just-in-Time validation
-   SHOULD provide account activity notifications or logging, as this
-   path eliminates the challenge-response interaction that might
-   otherwise provide a detection window for account compromise.
+   excessive queries against a target domain.  CAs implementing Just-in-
+   Time validation SHOULD provide account activity notifications or
+   logging, as this path eliminates the challenge-response interaction
+   that might otherwise provide a detection window for account
+   compromise.
 
    This mechanism enables efficient reuse of persistent validation
    records while maintaining the security properties of the validation
@@ -1428,9 +1428,9 @@ Table of Contents
       timestamp and rejecting new validation attempts after the
       timestamp elapses.
 
-   *  Ensure their internal systems are capable of efficiently handling
-      the validation failure when DNS records are removed or become
-      invalid.
+   *  Handle failed challenges as specified in Section 4.2 and
+      Section 9.3; apply the fallback in Section 4.4 when a Just-in-Time
+      lookup finds no qualifying record.
 
    While this method provides a persistent signal of control, the
    fundamental ACME authorization object (as defined in [RFC8555])
@@ -1825,11 +1825,7 @@ Table of Contents
        needed at order time.  A CA implementing Just-in-Time validation
        (Section 4.4) may instead complete the authorization's validation
        without a challenge-response exchange, subject to the
-       restrictions in that section.  Because the account in this
-       example has not previously completed a dns-persist-01 validation,
-       a CA following that section's recommendation to restrict JIT to
-       accounts with a previous successful validation would take the
-       pending-challenge path for this first order.
+       restrictions in that section.
 
 10.4.  Wildcard Validation Example
 
