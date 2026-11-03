@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 6 May 2027                                Crosslayer Labs, Inc.
+Expires: 7 May 2027                                Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                         2 November 2026
+                                                         3 November 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -59,7 +59,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 6 May 2027.
+   This Internet-Draft will expire on 7 May 2027.
 
 Copyright Notice
 
@@ -927,7 +927,11 @@ Table of Contents
        attestation authorization in the authorizations array of every
        order for that identifier or account and MUST NOT permit the
        client to waive the requirement through newOrder parameters or
-       profile selection.  When an order or CA policy requires both dns-
+       profile selection.  An identifier-scoped policy MUST cover every
+       identifier that the domain owner's _validation-persist record can
+       authorize, including wildcard and subordinate names under
+       policy=wildcard; account-level enforcement is therefore
+       RECOMMENDED.  When an order or CA policy requires both dns-
        persist-01 domain validation and a certificate-key attestation
        authorization, the CA MUST NOT transition the order to ready,
        finalize the order, or issue the certificate unless all required
@@ -964,7 +968,12 @@ Table of Contents
        key attestation for a domain SHOULD provision _validation-persist
        (and reinforcing CAA accounturi / issue) records only for CAs and
        accounts whose account-level policy enforces, and does not allow
-       the client to waive, the conjunctive requirement above.
+       the client to waive, the conjunctive requirement above.  If a
+       domain owner provisions a _validation-persist record for a CA or
+       account whose policy does not enforce this non-waivable
+       conjunction, that CA and account can issue certificates for the
+       domain using the persistent DNS authorization alone, without
+       certificate-key attestation.
 
 5.  Wildcard and Subdomain Certificate Validation
 
