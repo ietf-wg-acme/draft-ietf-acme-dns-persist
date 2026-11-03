@@ -169,11 +169,16 @@ A client MUST treat a missing or nonconforming directory `issuerDomainNames` arr
 
 # Challenge Response and Verification {#challenge-response-and-verification}
 
-To respond to the challenge, the ACME client provisions a DNS TXT record at the Validation Domain Name of the domain being validated. The Validation Domain Name is formed by prepending the label "_validation-persist" to the domain name being validated.
+To respond to the challenge, the ACME client ensures that a DNS TXT record is provisioned at the Validation Domain Name of the domain being validated. Let `A` be the domain name in the `identifier.value` field of the ACME authorization object ({{!RFC8555}}, Section 7.1.4; for wildcard authorizations, `A` has the `*.` prefix removed per {{!RFC8555}}, Section 7.1.3), and let `R` be the FQDN at which the `_validation-persist` record is provisioned (the "domain being validated"). By default, `R` is `A`. When validating a subdomain or deeper wildcard authorization using a persistent record at a parent domain ({{subdomain-certificate-validation}}), `R` is the ancestor domain selected by the client. The Validation Domain Name is formed by prepending the label "_validation-persist" to `R`.
 
-For example, if the domain being validated is "example.com", the Validation Domain Name would be "_validation-persist.example.com".
+For example, if `R` is "example.com", the Validation Domain Name is "_validation-persist.example.com".
 
-The client indicates it is ready for validation by POSTing an empty JSON object (`{}`) to the challenge URL, following the procedure defined in {{!RFC8555}}, Section 7.5.1.
+The client indicates it is ready for validation by POSTing a JSON response object to the challenge URL ({{!RFC8555}}, Section 7.5.1):
+
+- To validate at the authorization's own identifier (`R = A`), the client POSTs an empty JSON object (`{}`).
+- To validate against a persistent record provisioned at a proper ancestor of `A`, the client includes the optional `ancestorDomain` field (string) in the response payload (e.g., `{"ancestorDomain": "example.com"}`), setting `R` to that ancestor domain subject to the requirements in {{subdomain-certificate-validation}}.
+
+The `ancestorDomain` field is defined only for the client's challenge response payload; the server does not add `ancestorDomain` to the challenge object resource ({{challenge-object}}). The first valid challenge-response POST accepted for a challenge fixes `R` for that validation attempt; while that attempt is outstanding (`pending` after acceptance or `processing`), a repeated POST carrying the identical `ancestorDomain` value (or identical `{}`) is idempotent. A CA MUST reject with an HTTP `malformed` error ({{!RFC8555}}, Section 6.7) any POST to an accepted `pending`, `processing`, or already-finalized challenge that attempts to change, add, or remove `ancestorDomain`, and MUST NOT overwrite the domain `R` associated with an in-flight or completed validation attempt.
 
 ## Validation Record Format {#validation-record-format}
 
@@ -243,9 +248,9 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 
 ## Verification Procedure {#verification-procedure}
 
-The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Validation Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its `issuer-domain-name` value MUST match one of the values provided in the `issuerDomainNames` array from the challenge object, and its `accounturi` parameter MUST be a hashed URI that identifies the requesting account, as defined in {{validation-record-format}}. When comparing issuer domain names, the server MUST adhere to the normalization rules specified in {{challenge-object}}. The server also interprets any `policy` parameter values according to this specification. If no record meeting all requirements is found, the server MUST treat the challenge as failed.
+The ACME server determines the domain being validated (`R`) from the challenge response as specified in {{challenge-response-and-verification}} and {{subdomain-certificate-validation}}, then verifies the challenge by performing a DNS lookup for TXT records at the Validation Domain Name (`_validation-persist.<R>`). It iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its `issuer-domain-name` value MUST match one of the values provided in the `issuerDomainNames` array from the challenge object, and its `accounturi` parameter MUST be a hashed URI that identifies the requesting account, as defined in {{validation-record-format}}. When comparing issuer domain names, the server MUST adhere to the normalization rules specified in {{challenge-object}}. The server also enforces any `policy` parameter requirements according to {{wildcard-certificate-validation}} and {{subdomain-certificate-validation}}: in particular, the record MUST contain `policy=wildcard` whenever the authorization object has `wildcard` set to `true` ({{!RFC8555}}, Section 7.1.4), whenever `subdomainAuthAllowed` is set to `true` ({{!RFC9444}}, Section 4.1), or whenever `ancestorDomain` was supplied in the challenge response (`R` is a proper ancestor of `A`). If no record meeting all requirements is found, the server MUST treat the challenge as failed.
 
-To verify a hashed-URI `accounturi` value, the CA already knows the requesting account's URL and the FQDN being validated. The CA computes the expected hashed URI as defined in {{validation-record-format}} over each ACME public key it retains for that account (see below); for each such key it computes the value twice, once using the FQDN being validated as `domain_name` and once using the domain-omitted opt-out form (`domain_name` set to `*`). The CA treats the record as satisfying the requirement if its `accounturi` value equals any of these computed hashed URIs under Simple String Comparison ({{!RFC3986}}, Section 6.2.1). Retaining an account's prior key thumbprints allows records provisioned before a key rotation to continue validating.
+To verify a hashed-URI `accounturi` value, the CA uses the requesting account's URL and the domain being validated (`R`). The CA computes the expected hashed URI as defined in {{validation-record-format}} over each ACME public key it retains for that account (see below); for each such key it computes the value twice, once using `R` as `domain_name` and once using the domain-omitted opt-out form (`domain_name` set to `*`). The CA treats the record as satisfying the requirement if its `accounturi` value equals any of these computed hashed URIs under Simple String Comparison ({{!RFC3986}}, Section 6.2.1). Retaining an account's prior key thumbprints allows records provisioned before a key rotation to continue validating.
 
 To recompute these hashed URIs, a CA has a data-retention obligation: it MUST retain an association between each ACME account and the SHA-256 JWK Thumbprints of all public keys that account has used since the CA began accepting `dns-persist-01` records. The following rules govern this retained data and the acceptance of the keys behind it, listed in order of precedence with earlier rules overriding later ones:
 
@@ -327,11 +332,11 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
 
 ## Just-in-Time Validation {#just-in-time-validation}
 
-When processing a new authorization request, a CA MAY perform an immediate DNS lookup for `_validation-persist` TXT records at the Validation Domain Name corresponding to the requested domain identifier.
+When processing a new authorization request, a CA MAY perform an immediate DNS lookup for `_validation-persist` TXT records at the Validation Domain Name corresponding to the authorization object's own domain identifier (`A`), without walking ancestor domains.
 
-If one or more such records exist, the CA MUST evaluate them according to the requirements specified in {{multiple-issuer-support}}. If at least one record meets all validation requirements, the CA MAY transition the authorization to the "valid" status without returning a "pending" challenge to the client. This mechanism is an optimization and does not alter the ACME state machine defined in {{!RFC8555}}. The `newOrder` response is an order object containing authorization URLs; the client retrieves the referenced authorization objects using POST-as-GET requests ({{!RFC8555}}, Sections 7.4 and 7.5). If the CA offers the optional `newAuthz` resource, its response contains the authorization object directly ({{!RFC8555}}, Section 7.4.1).
+If one or more such records exist at `_validation-persist.<A>`, the CA MUST evaluate them according to the requirements specified in {{verification-procedure}} and {{multiple-issuer-support}}, including requiring `policy=wildcard` if the authorization object has `wildcard` or `subdomainAuthAllowed` ({{!RFC9444}}, Section 4.1) set to `true`. If at least one record meets all validation requirements for that authorization's scope, the CA MAY transition the authorization to the "valid" status without returning a "pending" challenge to the client. This mechanism is an optimization and does not alter the ACME state machine defined in {{!RFC8555}}. The `newOrder` response is an order object containing authorization URLs; the client retrieves the referenced authorization objects using POST-as-GET requests ({{!RFC8555}}, Sections 7.4 and 7.5). If the CA offers the optional `newAuthz` resource, its response contains the authorization object directly ({{!RFC8555}}, Section 7.4.1).
 
-If no DNS TXT record meets the validation requirements, or if the records are absent, the CA MUST proceed with the standard authorization flow with a "pending" authorization and an associated `dns-persist-01` challenge object.
+If no DNS TXT record at `_validation-persist.<A>` meets the validation requirements, or if the records are absent (including when the domain owner has provisioned the record only at a parent domain), the CA MUST proceed with the standard authorization flow with a "pending" authorization and an associated `dns-persist-01` challenge object, allowing the client to supply `ancestorDomain` in its challenge response ({{subdomain-certificate-validation}}).
 
 CAs implementing Just-in-Time validation SHOULD rate-limit JIT DNS lookups per domain identifier, independent of the requesting account, to prevent amplification attacks where multiple accounts trigger excessive queries against a target domain. CAs implementing Just-in-Time validation SHOULD provide account activity notifications or logging, as this path eliminates the challenge-response interaction that might otherwise provide a detection window for account compromise.
 
@@ -374,27 +379,55 @@ If the `policy` parameter is absent, or if its value is anything other than `wil
 
 # Subdomain Certificate Validation {#subdomain-certificate-validation}
 
-When the `policy=wildcard` parameter is present (as described in {{wildcard-certificate-validation}}), CAs MAY issue certificates for subdomains of the validated FQDN. This section describes the implementation details for subdomain validation.
+When the `policy=wildcard` parameter is present (as described in {{wildcard-certificate-validation}}), CAs MAY validate an authorization for a subdomain or deeper wildcard identifier using a persistent TXT record provisioned at an ancestor domain. This section specifies the `ancestorDomain` challenge-response selector, its boundary and verification rules, and its interaction with {{!RFC9444}}.
 
-## Determining Permitted Subdomains
+## Selecting a Parent Validation Record with `ancestorDomain` {#selecting-ancestor-domain}
 
-To determine which subdomains are permitted, the FQDN for which the persistent TXT record exists (referred to as the "validated FQDN") MUST be a proper suffix of the FQDN for which a certificate is requested (referred to as the "requested FQDN"). For wildcard certificate requests, the proper suffix check applies to the base domain name after removing the wildcard prefix (`*.`), consistent with {{!RFC8555}}, Section 7.1.3. The base-level wildcard (e.g., `*.example.com` where the validated FQDN is `example.com`) is authorized directly by {{wildcard-certificate-validation}} and is not subject to this proper suffix requirement.
+To avoid blind multi-label DNS queries across the hierarchy, an ACME client that wishes to fulfill a `dns-persist-01` challenge for an authorization with `identifier.value` `A` using a persistent record at an ancestor domain `R` includes the `ancestorDomain` field in its challenge response payload ({{challenge-response-and-verification}}):
 
-For example, if `dept.example.com` is the validated FQDN, a certificate for `server.dept.example.com` is permitted because `dept.example.com` is its suffix. A certificate for `*.server.dept.example.com` is also permitted: after removing the wildcard prefix, `server.dept.example.com` has `dept.example.com` as a proper suffix.
+~~~json
+{
+  "ancestorDomain": "example.com"
+}
+~~~
+{: #fig-ancestor-domain-response title="Challenge Response Selecting an Ancestor Record"}
 
-## Implementation Requirements
+For wildcard certificate requests, {{!RFC8555}}, Section 7.1.3 removes the `*.` prefix when constructing the authorization's `identifier.value` `A` and sets `wildcard` to `true` on the authorization object:
 
-- The persistent DNS TXT record MUST include `policy=wildcard` for subdomain validation to be permitted.
-- CAs MUST verify that the validated FQDN is a proper suffix of the requested FQDN. For wildcard requests, this check applies to the base domain after removing the `*.` prefix. The base-level wildcard is exempt per {{wildcard-certificate-validation}}.
-- If the `policy` parameter is absent or has any value other than `wildcard`, subdomain validation MUST NOT be permitted.
+- For a base-level wildcard request `*.example.com` validated via `_validation-persist.example.com`, `A` is already `example.com`. The client MUST omit `ancestorDomain` and send `{}` ({{wildcard-certificate-validation}}).
+- For a deeper wildcard request `*.dept.example.com` (or a non-wildcard subdomain request `server.dept.example.com`) validated via `_validation-persist.example.com`, `A` is `dept.example.com` (or `server.dept.example.com`), and the client sends `"ancestorDomain": "example.com"`.
+
+## Implementation Requirements {#subdomain-implementation-requirements}
+
+CAs and clients MUST enforce the following requirements when `ancestorDomain` is used in a `dns-persist-01` challenge response:
+
+1. **Mandatory recognition:** Every CA implementing `dns-persist-01` MUST recognize the `ancestorDomain` field in a `dns-persist-01` challenge response and MUST NOT silently ignore it to query `_validation-persist.<A>`.
+2. **Canonical syntax and DNS length limits:** The `ancestorDomain` value MUST be a lowercase A-label domain name ({{!RFC5890}}) with no trailing dot and no `*.` wildcard prefix. Both `ancestorDomain` and the complete constructed Validation Domain Name (`_validation-persist.<ancestorDomain>`) MUST conform to the 63-octet label limit and the 253-octet presentation / 255-octet wire-format total length limit of {{!RFC1035}}, Section 2.3.4. If `ancestorDomain` is not a JSON string or violates these syntax or length rules, the CA MUST reject the challenge with a `malformed` error ({{!RFC8555}}, Section 6.7).
+3. **Strict whole-label proper ancestor:** `ancestorDomain` (`R`) MUST be an Ancestor Domain of the authorization's `identifier.value` (`A`, normalized per {{normalization-algorithm}}) as defined in {{!RFC9444}}, Section 2: `R` MUST be a whole-label proper suffix of `A` containing strictly fewer labels than `A`. A domain is not an ancestor of itself; if `R` equals `A` or is not a whole-label suffix of `A`, the CA MUST reject the challenge with a `malformed` error.
+4. **Public-suffix and CA policy boundary:** The CA MUST NOT accept an `ancestorDomain` that is a registry-controlled or public suffix, unless expressly permitted within the CA's applicable policy and trust-program requirements (for example, an ICANN Specification 13 single-organization TLD or a private PKI namespace). If `ancestorDomain` is a disallowed public suffix, or if the CA's policy does not permit subdomain validation at the requested `ancestorDomain`, the CA MUST reject the challenge with an `unauthorized` error ({{!RFC8555}}, Section 6.7).
+5. **Record scope and digest binding:** When validating at `_validation-persist.<ancestorDomain>`, a retrieved TXT record qualifies only if it includes `policy=wildcard`; if no qualifying record at `_validation-persist.<ancestorDomain>` includes `policy=wildcard`, the CA MUST fail the validation attempt with an `unauthorized` error. Both the client (or delegated DNS publisher) and the CA MUST compute the expected `accounturi` digest ({{validation-record-format}}) using the normalized `ancestorDomain` (`R`) as `domain_name` (or the `*` opt-out), not the child identifier `A`.
+6. **Preservation of authorization scope:** Validating a challenge with `ancestorDomain` satisfies only that authorization object for `A`; it MUST NOT alter the authorization object's `identifier` field or set `subdomainAuthAllowed` ({{!RFC9444}}, Section 4.1).
+
+Rejections under items 2–4 are HTTP errors on the challenge-response request ({{!RFC8555}}, Section 7.5.1) that leave the challenge in the `pending` state, whereas a failure under item 5 is a validation failure that transitions the challenge to `invalid` ({{!RFC8555}}, Section 7.1.6).
+
+Note: Because `ancestorDomain` is a request-only challenge-response field, the resulting challenge object does not echo `ancestorDomain`. A client interacting with a non-conforming legacy implementation that ignored `ancestorDomain` while an independent valid record also existed at `_validation-persist.<A>` would not observe the ignored field from the challenge object alone.
 
 See {{subdomain-validation-risks}} for important security implications of enabling subdomain validation.
+
+## Interaction with RFC 9444 {#rfc9444-interaction}
+
+{{!RFC9444}} defines an optional ACME extension in which a client requests an authorization object whose `identifier.value` is itself an ancestor domain and whose `subdomainAuthAllowed` field is set to `true` ({{!RFC9444}}, Sections 4.1–4.3), allowing a single validated ancestor authorization to be reused across subsequent orders for subordinate subdomains without additional challenge flows.
+
+When a CA implements {{!RFC9444}} alongside `dns-persist-01`, the two mechanisms operate at different protocol layers and interact as follows:
+
+- If an authorization object has `subdomainAuthAllowed` set to `true` for identifier `A`, a CA validating that authorization via `dns-persist-01` (including via Just-in-Time validation, {{just-in-time-validation}}) MUST require `policy=wildcard` on the `_validation-persist` record even when the client omits `ancestorDomain` from the challenge response (`R = A`).
+- Under {{!RFC9444}}, Section 4.3, `ancestorDomain` in a `newOrder` identifier object (distinct from the challenge-response `ancestorDomain` field defined in {{selecting-ancestor-domain}}) specifies an upper control boundary, allowing the server to create the authorization object for any intermediate ancestor `A_mid` up to and including that boundary. If the domain owner pre-provisioned the `_validation-persist` record only at a higher ancestor `R`, a lookup at `_validation-persist.<A_mid>` will find no record; the client MAY then supply `{"ancestorDomain": "<R>"}` in the `dns-persist-01` challenge response for the `A_mid` authorization (since `R` is a proper ancestor of `A_mid`), while the resulting authorization object's scope remains `A_mid` and its subordinate names.
 
 ## Example: Subdomain Validation
 
 For a persistent TXT record provisioned at `_validation-persist.example.com` with `policy=wildcard`:
 
-- Permitted: `example.com`, `www.example.com`, `app.example.com`, `server.dept.example.com`, `*.example.com`, `*.dept.example.com`
+- Permitted: `example.com` and `*.example.com` (with challenge response `{}`), as well as `www.example.com`, `app.example.com`, `server.dept.example.com`, and `*.dept.example.com` (with challenge response `{"ancestorDomain": "example.com"}`, or under an {{!RFC9444}} ancestor authorization for `example.com` with `subdomainAuthAllowed` set to `true`)
 - Not permitted without additional validation: `otherexample.com`, `example.net`
 
 # Security Considerations {#security-considerations}
@@ -646,12 +679,13 @@ Certificate Authorities implementing this validation method should consider:
 
 When implementing the "dns-persist-01" validation method, Certificate Authorities SHOULD return appropriate ACME error codes to provide clear feedback on validation failures. Specifically:
 
-- CAs SHOULD return a `malformed` error (as defined in {{!RFC8555}}) when the TXT record has invalid syntax, such as duplicate occurrences of a recognized parameter, invalid timestamp format in the `persistUntil` parameter, missing mandatory `accounturi` parameter, an `accounturi` that is not a well-formed hashed URI (for example, one not placed under the CA's `accountHashPrefix`, one using an algorithm identifier the CA does not accept, or one whose hash value is not valid base64url of the expected length), or other syntactic violations of the record format specified in this document.
+- CAs SHOULD return a `malformed` error (as defined in {{!RFC8555}}) when the challenge response or TXT record has invalid syntax, such as an `ancestorDomain` value that is not a valid lowercase A-label proper ancestor within the DNS length limits ({{subdomain-implementation-requirements}}), a POST attempting to modify `ancestorDomain` on an accepted `pending`, `processing`, or finalized challenge ({{challenge-response-and-verification}}), duplicate occurrences of a recognized parameter, invalid timestamp format in the `persistUntil` parameter, missing mandatory `accounturi` parameter, an `accounturi` that is not a well-formed hashed URI (for example, one not placed under the CA's `accountHashPrefix`, one using an algorithm identifier the CA does not accept, or one whose hash value is not valid base64url of the expected length), or other syntactic violations of the formats specified in this document. For syntax errors detected in retrieved DNS TXT records (rather than the client's HTTP request payload) where this specification does not mandate a specific error type, a CA MAY return `unauthorized` instead of `malformed` to maintain a uniform authorization-failure disclosure policy.
 
-- CAs SHOULD return an `unauthorized` error (as defined in {{!RFC8555}}) when validation fails due to authorization issues, including:
+- CAs SHOULD return an `unauthorized` error (as defined in {{!RFC8555}}) when validation fails due to authorization or policy issues, including:
    - The `accounturi` hashed URI in the DNS TXT record does not, when recomputed by the CA over the requesting account's retained keys (see {{verification-procedure}}), match any value the CA accepts for that account
    - The `persistUntil` timestamp has expired, indicating that the validation record is no longer considered valid for new validation attempts
    - The `issuer-domain-name` in the DNS TXT record does not match any of the values provided in the `issuerDomainNames` array of the challenge object
+   - The record lacks `policy=wildcard` when required for a wildcard authorization, an {{!RFC9444}} `subdomainAuthAllowed` authorization, or a challenge response specifying `ancestorDomain`, or the requested `ancestorDomain` is a public suffix or otherwise disallowed by the CA's policy ({{subdomain-implementation-requirements}})
 
 Note that these error codes apply to validation attempts on specific challenges. In the case of Just-in-Time Validation (see {{just-in-time-validation}}), when a CA finds a pre-existing DNS TXT record that does not meet validation requirements, the CA proceeds with the standard authorization flow by issuing a new `pending` challenge rather than returning an error.
 
