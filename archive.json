@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-11-01T03:15:35.571172+00:00",
+  "timestamp": "2026-11-03T04:35:06.746152+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -2263,6 +2263,22 @@
       "body": "As an example, i'd like to be able to mandate `device-attest-01` be used for all certs issued using `dns-persist-0x`.\n\nAI Summary:\n\n> The use case is allowing internal network devices to obtain and renew publicly trusted certificates without DNS credentials or public inbound access, while requiring the certificate private key to be bound to an approved device.\n> The domain owner would authorize the ACME account through `dns-persist-01`, but make that authorization conditional on successful `device-attest-01` validation of the CSR public key.\n> Both checks must pass; they must not be offered as alternatives.\n> Is there a suitable way to express this requirement through DNS policy, including rejection when the CA does not support it? This also relates to #27: an additional security requirement must not be silently ignored.",
       "createdAt": "2026-10-22T13:07:38Z",
       "updatedAt": "2026-10-22T13:10:06Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 88,
+      "id": "I_kwDOO4VY2c8AAAABb_dWLA",
+      "title": "Incorrect unicode case-folding example in section 9.2",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/88",
+      "state": "OPEN",
+      "author": "wgreenberg",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "[Section 9.2](https://www.ietf.org/archive/id/draft-ietf-acme-dns-persist-02.html#name-domain-name-normalization-a) defines the domain normalization process, and gives two examples of correct normalization. The second example is `\u00fc\u00d1ICODE-example.com.`, and the RFC claims that the first step (unicode-aware case-folding) produces `\u00fcnicode-example.com.`, but I think that's incorrect.\n\nSpecifically, `\u00d1` (`U+00D1` LATIN CAPITAL LETTER N WITH TILDE) should be case-folded to `\u00f1` (`U+00F1` LATIN SMALL LETTER N WITH TILDE) according to the [unicode case-folding bible](https://www.unicode.org/Public/UNIDATA/CaseFolding.txt).\n\nIf the case-folding step instead produces `\u00fc\u00f1icode-example.com.` (as I think it should), the final result should be `xn--icode-example-hkb8n.com` instead of `xn--nicode-example-9jb.com`.",
+      "createdAt": "2026-11-03T00:10:02Z",
+      "updatedAt": "2026-11-03T00:10:02Z",
       "closedAt": null,
       "comments": []
     }
@@ -6249,24 +6265,26 @@
       "id": "PR_kwDOO4VY2c8AAAABLWCBog",
       "title": "fix: correct internationalized domain name example",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/77",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "sheurich",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "The normalization example drops the tilde when case-folding `\u00d1`, and its Punycode label represents a different name.\n\nCorrect the four displayed results while preserving the original input, the separate trailing-dot-removal step, and the normalization algorithm. No protocol requirements change.\n\nValidation:\n- Case-folding, NFC, and Punycode round-trip checks.\n- `make lint` and `make`; generated text and HTML inspected.\n- Markdownlint diagnostics compared against the upstream baseline: identical, with no new diagnostics.\n- `git diff --check`.\n",
       "createdAt": "2026-10-28T19:15:15Z",
-      "updatedAt": "2026-10-30T20:29:35Z",
+      "updatedAt": "2026-11-01T14:15:13Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "7f962817f1c3e49349306b1a36530e3548815b7a",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "fix-idn-example",
       "headRefOid": "c39d184b184f9cf2fdcd146c905bf19682e584d0",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2026-11-01T14:15:10Z",
+      "mergedAt": "2026-11-01T14:15:10Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "ac0f3cd8e75e87ff4a11972e94ee7788106c84c7"
+      },
       "comments": [
         {
           "author": "sheurich",
@@ -6317,24 +6335,26 @@
       "id": "PR_kwDOO4VY2c8AAAABLWaFow",
       "title": "fix: correct rollover, retention, and authorization descriptions",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/78",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "sheurich",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "The rollover text currently implies that existing DNS records change\nautomatically. The retention summaries still refer to certificate-backed\nkey retention, which was removed from the draft. The just-in-time\nvalidation section also gives authorizations a `processing` state that\nRFC 8555 does not define.\n\nThis corrects those descriptions and trims repetitive wording. Protocol\nrequirements and example DNS records are unchanged.\n\nThis does not resolve parent-record discovery (#33) or change acceptance\nof records after key rollover (#69).\n\nVerification: `make lint`, `make`, and `git diff --check` passed. The\ngenerated text and HTML were inspected. Markdownlint reports the existing\nbaseline errors; the changed lines introduce no new ones.\n",
       "createdAt": "2026-10-28T19:44:26Z",
-      "updatedAt": "2026-10-30T20:27:22Z",
+      "updatedAt": "2026-11-01T14:15:16Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "7f962817f1c3e49349306b1a36530e3548815b7a",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "fix-draft-wording",
       "headRefOid": "947551ce6826daf6c7e1a346b9b4c427abc0346c",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2026-11-01T14:15:13Z",
+      "mergedAt": "2026-11-01T14:15:13Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "de3c7d451a7d1344a6a0c195eca093d693f8654d"
+      },
       "comments": [
         {
           "author": "sheurich",
@@ -6392,24 +6412,26 @@
       "id": "PR_kwDOO4VY2c8AAAABLYPxbg",
       "title": "fix: preserve DNS identity when computing account hashes",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/79",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "sheurich",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Full Unicode case-folding can turn the valid domain `fa\u00df.example` into\n`fass.example`. A client starting with the Unicode name can therefore hash\na different name from a CA starting with `xn--fa-hia.example`.\n\nDefine a mandatory, identity-preserving representation for the domain used\nin the hash: validated IDNA A-labels, lowercase ASCII, and no trailing\nroot-label dot. Keep application-specific input mapping outside this step.\nThe hash construction and account binding are unchanged.\n\nThis changes input handling, not just wording. Mixed-case or non-NFC\nUnicode user input must first be mapped to a valid selected name; invalid\nA-labels cannot be treated as opaque ASCII. Deployment compatibility has\nnot been established.\n\nStacked on #77, with `fix-idn-example` as the base. This diff contains only\nthe additional normalization change. Retarget to main after #77 merges.\n\nThe [proposed CABF profile](https://github.com/slghtr-says/servercert/pull/9)\ncurrently names draft -02. Selecting a revision containing any agreed\ncorrection is a separate decision for that proposal.\n\nVerification: 10 focused local test cases cover equivalent names, sharp-s,\ninvalid inputs, trailing dots, and the existing hash vectors. `make lint`,\n`make`, `make check` (idnits), and `git diff --check` passed. Generated text\nand HTML were inspected. Idnits informational comments and Markdownlint\nsource-style diagnostics remain; these checks are not live CA testing.\n",
       "createdAt": "2026-10-28T22:19:00Z",
-      "updatedAt": "2026-10-29T11:53:49Z",
+      "updatedAt": "2026-11-02T23:42:25Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
-      "baseRefName": "fix-idn-example",
-      "baseRefOid": "c39d184b184f9cf2fdcd146c905bf19682e584d0",
+      "baseRefName": "main",
+      "baseRefOid": "ac0f3cd8e75e87ff4a11972e94ee7788106c84c7",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "fix-domain-normalization",
       "headRefOid": "142010e4eee3adeab6052688698c15db6e398ea2",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2026-11-02T23:42:23Z",
+      "mergedAt": "2026-11-02T23:42:23Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "e705b0965f81546a6f3d300ce27eb3218032c1db"
+      },
       "comments": [
         {
           "author": "sheurich",
@@ -6419,31 +6441,47 @@
           "updatedAt": "2026-10-29T11:53:41Z"
         }
       ],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABVXOqGA",
+          "commit": {
+            "abbreviatedOid": "142010e"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "<!-- ccr-overview-v2 -->\n\n### \ud83d\udd35 Needs a closer look\n\nDeployment compatibility for mandatory hash-input normalization and long-lived authorization-record acceptance is unestablished, requiring ACME working-group and CA implementer review of interoperability and transition risks.\n\n**No open issues** \ud83c\udf89\n\n<details>\n<summary><strong>What changed in this PR</strong></summary>\n\nThis PR makes domain-name normalization mandatory for account-hash inputs, preserving DNS identity without changing the hash construction or account binding.\n\n**Changes:**\n- Requires validated IDNA A-labels, lowercase ASCII, and removal of the trailing root-label dot.\n- Separates application-specific input mapping from hash-input normalization, preventing transformations such as `fa\u00df.example` into `fass.example`.\n- Updates examples to illustrate the required procedure.\n\n| File | Description |\r\n| ---- | ----------- |\r\n| draft-ietf-acme-dns-persist.md | Defines identity-preserving domain-name normalization and updates hash-input wording and examples. |\n</details>\n\n<sub>Review effort: Balanced</sub>",
+          "createdAt": "2026-11-01T14:30:06Z",
+          "updatedAt": "2026-11-01T14:30:06Z",
+          "comments": []
+        }
+      ]
     },
     {
       "number": 80,
       "id": "PR_kwDOO4VY2c8AAAABLYP2Og",
       "title": "fix: make DNS parameter names case-insensitive",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/80",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "sheurich",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "The draft specifies comparison rules for parameter values but not names.\nA CA can consequently ignore an expired `persistuntil` as unknown rather\nthan apply the intended restriction.\n\nRequire ASCII case-insensitive recognition of `accounturi`, `policy`, and\n`persistUntil`. Keep the existing spellings and value rules: hashed URI\nvalues are not case-folded. Reject repeated recognized parameters within\none record, including differently cased occurrences, and continue to\nignore unknown parameters. Align the duplicate-parameter error guidance.\n\nThis changes acceptance, not just wording. For example,\n`PoLiCy=WILDCARD` is now recognized rather than ignored. Separate TXT\nrecords remain independent alternatives.\n\nThe name-matching direction agrees with the\n[proposed CABF reconciliation](https://github.com/slghtr-says/servercert/pull/9).\nThat proposal and its transition dates remain separate CABF decisions;\nthis PR does not amend the Baseline Requirements.\n\nVerification: 11 focused local test cases cover case variants, duplicate\nrejection, unchanged values, unknown parameters, and record-local state.\n`make lint`, `make`, `make check` (idnits), and `git diff --check` passed.\nGenerated text and HTML were inspected. Idnits informational comments and\nMarkdownlint source-style diagnostics remain. These are focused checks,\nnot a complete parser or deployed-CA conformance test.\n",
       "createdAt": "2026-10-28T22:19:06Z",
-      "updatedAt": "2026-10-29T11:53:50Z",
+      "updatedAt": "2026-11-02T23:42:29Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "7f962817f1c3e49349306b1a36530e3548815b7a",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "fix-parameter-recognition",
       "headRefOid": "19638ad1088dfcc7ecc65012d578e6ba307868bc",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2026-11-02T23:42:27Z",
+      "mergedAt": "2026-11-02T23:42:27Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "80fada829d604978d08d53ea98783148dfa10dc7"
+      },
       "comments": [
         {
           "author": "sheurich",
@@ -6453,31 +6491,47 @@
           "updatedAt": "2026-10-29T11:53:42Z"
         }
       ],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABVXOd2g",
+          "commit": {
+            "abbreviatedOid": "19638ad"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "<!-- ccr-overview-v2 -->\n\n### \ud83d\udd35 Needs a closer look\n\nThe authorization-scope change for existing mixed-case policies and rejection of previously accepted duplicate parameters require working-group review of deployed-parser compatibility and domain-owner intent.\n\n**No open issues** \ud83c\udf89\n\n<details>\n<summary><strong>What changed in this PR</strong></summary>\n\nThis PR clarifies DNS parameter-name matching in the ACME persistent-validation draft, preventing case variants from bypassing recognized restrictions while preserving existing value-comparison rules.\n\n**Changes:**\n- Requires ASCII case-insensitive recognition of `accounturi`, `policy`, and `persistUntil`.\n- Rejects duplicate recognized parameters within a single record, including case variants, while continuing to ignore unknown parameters.\n- Aligns malformed-record error guidance with the duplicate-recognition rule.\n\n| File | Description |\r\n| ---- | ----------- |\r\n| `draft-ietf-acme-dns-persist.md` | Defines parameter-name matching and record-local duplicate rejection, and updates error guidance. |\n</details>\n\n<sub>Review effort: Balanced</sub>",
+          "createdAt": "2026-11-01T14:29:31Z",
+          "updatedAt": "2026-11-01T14:29:31Z",
+          "comments": []
+        }
+      ]
     },
     {
       "number": 81,
       "id": "PR_kwDOO4VY2c8AAAABLa8iug",
       "title": "fix: require hash URIs to fit TXT parameter syntax",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/81",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "sheurich",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "A prefix such as `https://ca.example/account;v1/` can produce a valid URI,\nbut its literal semicolon splits the TXT `accounturi` parameter. URI\nvalidity alone is therefore insufficient for the advertised prefix.\n\nRequire the complete constructed URI, for each accepted algorithm, to\nalso satisfy RFC 8659's parameter-value grammar. Preserve the advertised\nprefix exactly, including percent-encoded octets; clients must not repair\nit by rewriting or normalizing it. This adds no scheme restriction or\nmandatory trailing slash and leaves hash inputs and migration rules alone.\n\nVerification: ten focused parameter-value/construction reference cases,\nincluding raw and encoded semicolons, escape-case preservation, and TXT\ncharacter-string boundaries. The split diff matches the approved\nconstraint. `make lint`, `make`, `make check` (idnits), and\n`git diff --check` passed on this head; rendered output was inspected.\nInformational idnits comments and existing Markdownlint style diagnostics\nremain. These are not complete URI-parser or deployed-CA tests.\n",
       "createdAt": "2026-10-29T03:09:06Z",
-      "updatedAt": "2026-10-29T11:53:52Z",
+      "updatedAt": "2026-11-02T23:42:34Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "7f962817f1c3e49349306b1a36530e3548815b7a",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "fix-prefix-representability",
       "headRefOid": "5a07e31adb83f75909ba94cb8d22cdcc675b5da9",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2026-11-02T23:42:31Z",
+      "mergedAt": "2026-11-02T23:42:31Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "fad2d67536aa1047da056a74bdc97e50ca68734a"
+      },
       "comments": [
         {
           "author": "sheurich",
@@ -6487,31 +6541,47 @@
           "updatedAt": "2026-10-29T11:53:44Z"
         }
       ],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABVXOcfA",
+          "commit": {
+            "abbreviatedOid": "5a07e31"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "<!-- ccr-overview-v2 -->\n\n### \ud83d\udfe2 Approval recommended\n\nNo active review issues remain for the hashed account URI construction and prefix-preservation changes.\n\n**No open issues** \ud83c\udf89\n\n<details>\n<summary><strong>What changed in this PR</strong></summary>\n\nThis PR tightens hashed account URI construction for `dns-persist-01` so valid URIs also fit the DNS TXT record\u2019s parameter syntax.\n\n**Changes:**\n- Requires constructed URIs to satisfy both RFC 3986 and RFC 8659\u2019s `value` grammar for every accepted hash algorithm.\n- Requires clients and CAs to preserve the advertised prefix exactly, including percent-encoded octets.\n- Leaves URI scheme choices, hash inputs, and migration rules unchanged.\n\n| File | Description |\r\n| ---- | ----------- |\r\n| draft-ietf-acme-dns-persist.md | Strengthens URI construction requirements to prevent TXT parameter parsing conflicts. |\n</details>\n\n<sub>Review effort: Balanced</sub>",
+          "createdAt": "2026-11-01T14:29:25Z",
+          "updatedAt": "2026-11-01T14:29:25Z",
+          "comments": []
+        }
+      ]
     },
     {
       "number": 82,
       "id": "PR_kwDOO4VY2c8AAAABLa8lHA",
       "title": "fix: clarify validation flows and security limits",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/82",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "sheurich",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Several explanations overstate what a persistent record or completed\nvalidation guarantees. They also blur ACME response objects and omit\nexisting prerequisites from the delegated-publication example.\n\nCorrect that narration without changing validation acceptance or key\nretention. Distinguish orders from authorizations, record applicability\nfrom completed authorizations, and current-key compromise from possession\nof a retired key. Explain the limits of deactivation for pending issuance.\nShow the existing account proof, cached-proof exception, and authenticated\nhandoff in the example.\n\nRemove unsupported claims of universal policy suitability and independent\nCA infrastructure, clarify shared issuer-name recognition, and correct\nSC088's adoption and effective dates. No new policy obligation is added.\n\nStacked on #78 with `fix-draft-wording` as the base; retarget to main after #78\nmerges. This does not include the separate prefix constraint, an\nissuer-name retirement policy, or changes to the multiple-issuer advice,\nefficiency obligation, or prior-success JIT recommendation.\n\nThe compromise explanation addresses the remaining prose concern from #69\nwithout reopening its accepted retention design or repeating the\ncomputation-cost guidance already delivered in #75.\n\nVerification: the split diff matches the fourteen approved replacements.\nFocused source contracts preserve the existing account-proof requirements\nand fenced examples. `make lint`, `make`, `make check` (idnits), and\n`git diff --check` passed on this head; rendered output was inspected.\nInformational idnits comments and existing Markdownlint style diagnostics\nremain. No live CA behavior or universal security guarantee is claimed.\n",
       "createdAt": "2026-10-29T03:09:10Z",
-      "updatedAt": "2026-10-29T11:53:53Z",
+      "updatedAt": "2026-11-02T23:42:38Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
-      "baseRefName": "fix-draft-wording",
-      "baseRefOid": "947551ce6826daf6c7e1a346b9b4c427abc0346c",
+      "baseRefName": "main",
+      "baseRefOid": "de3c7d451a7d1344a6a0c195eca093d693f8654d",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "fix-validation-explanations",
       "headRefOid": "c6eb9b11be60ab28c8db4508ed9b1726823b9e0a",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2026-11-02T23:42:35Z",
+      "mergedAt": "2026-11-02T23:42:35Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "ad3f379ee0f902b9ad55580df8d3d4c1a5cee922"
+      },
       "comments": [
         {
           "author": "sheurich",
@@ -6521,31 +6591,47 @@
           "updatedAt": "2026-10-29T11:53:45Z"
         }
       ],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABVXP93Q",
+          "commit": {
+            "abbreviatedOid": "c6eb9b1"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "<!-- ccr-overview-v2 -->\n\n### \ud83d\udfe2 Approval recommended\n\nNo active review issues are reported for the DNS persistence draft clarifications.\n\n**No open issues** \ud83c\udf89\n\n<details>\n<summary><strong>What changed in this PR</strong></summary>\n\nClarifies the DNS persistence draft\u2019s validation flows and security guarantees without changing validation acceptance or key-retention requirements.\n\n**Changes:**\n- Distinguishes orders, authorization objects, and record applicability; adds existing account-proof and authenticated-handoff prerequisites to the delegated-publication example.\n- Explains current-key compromise, retained-key usability, and the limits of account deactivation for pending issuance.\n- Removes unsupported policy and infrastructure assurances, clarifies shared issuer names, and corrects SC-088 adoption and effective dates.\n\n| File | Description |\r\n| ---- | ----------- |\r\n| draft-ietf-acme-dns-persist.md | Refines validation examples, security explanations, policy qualifications, and ballot history. |\n</details>\n\n<sub>Review effort: Balanced</sub>",
+          "createdAt": "2026-11-01T14:33:25Z",
+          "updatedAt": "2026-11-01T14:33:26Z",
+          "comments": []
+        }
+      ]
     },
     {
       "number": 83,
       "id": "PR_kwDOO4VY2c8AAAABLgabsw",
       "title": "fix: clarify normative guidance and JIT eligibility",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/83",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "sheurich",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Distinguish operational advice from concrete requirements, and leave JIT\nlookup selection to CA policy rather than a specification-wide prior-use\ndefault.\n\nMake the multiple-issuer introduction advisory while retaining the\nrequirement to delete the corresponding TXT record when withdrawing a CA's\nauthorization. Replace undefined \u201cefficient\u201d failure handling with the\nexisting challenge-failure and unsuccessful-JIT fallback rules. Their\nrecommended error codes remain SHOULDs, not mandatory choices.\n\nRemove the prior-success JIT SHOULD and the example sentence that depends\non it. This relaxes a recommended default, not an absolute first-use ban.\nJIT remains optional, and a CA can still use account history as a local\neligibility heuristic. Full validation, per-domain lookup rate limiting,\nactivity notification/logging, and pending-challenge fallback retain their\nexisting requirements. Account authentication and key retention are unchanged.\n\nStacked on #82 with `fix-validation-explanations` as the base. This diff\ncontains only these four replacements; retarget after the parent PR is\nintegrated. Issuer-name continuity and optional discovery/IP/attestation\nfeatures remain outside this change.\n\nVerification: ten focused source contracts cover exact scope and preserved\ncontrols. `make lint`, `make`, `make check` (idnits), and\n`git diff --check` passed on this head. Text/HTML and internal links were\nchecked. Idnits informational comments remain; Markdownlint has the same\n411 diagnostics and per-rule counts as the base. These are source and\nbuild checks, not live CA testing or a security proof.\n",
       "createdAt": "2026-10-29T11:28:07Z",
-      "updatedAt": "2026-10-29T11:53:55Z",
+      "updatedAt": "2026-11-02T23:42:44Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
-      "baseRefName": "fix-validation-explanations",
-      "baseRefOid": "c6eb9b11be60ab28c8db4508ed9b1726823b9e0a",
+      "baseRefName": "main",
+      "baseRefOid": "ad3f379ee0f902b9ad55580df8d3d4c1a5cee922",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "fix-normative-guidance",
       "headRefOid": "6568615e691bb0269f0fc06016d2d0932cea268e",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2026-11-02T23:42:42Z",
+      "mergedAt": "2026-11-02T23:42:42Z",
+      "mergedBy": "sheurich",
+      "mergeCommit": {
+        "oid": "fd52243ff7f69b38411336c754ba436b9cb64cfd"
+      },
       "comments": [
         {
           "author": "sheurich",
@@ -6555,7 +6641,253 @@
           "updatedAt": "2026-10-29T11:53:47Z"
         }
       ],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABVXOhYw",
+          "commit": {
+            "abbreviatedOid": "6568615"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "<!-- ccr-overview-v2 -->\n\n### \ud83d\udd35 Needs a closer look\n\nRemoving the prior-success JIT recommendation warrants ACME working-group review of first-use abuse risks and the loss of the challenge-response detection window, which source/build checks cannot assess.\n\n**No open issues** \ud83c\udf89\n\n<details>\n<summary><strong>What changed in this PR</strong></summary>\n\nThis PR clarifies operational guidance in the ACME persistent DNS validation draft and leaves Just-in-Time (JIT) eligibility to CA policy, building on the validation-flow clarifications in #82.\n\n**Changes:**\n- Makes multiple-issuer advice non-normative while retaining the authorization-removal requirement.\n- Replaces undefined failure-handling efficiency requirements with references to existing challenge-failure and JIT fallback rules.\n- Removes the prior-success JIT recommendation and its dependent example text, preserving existing validation and security controls.\n\n| File | Description |\r\n| ---- | ----------- |\r\n| `draft-ietf-acme-dns-persist.md` | Clarifies normative guidance, failure handling, and JIT eligibility across four targeted replacements. |\n</details>\n\n<sub>Review effort: Balanced</sub>",
+          "createdAt": "2026-11-01T14:29:42Z",
+          "updatedAt": "2026-11-01T14:29:42Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 84,
+      "id": "PR_kwDOO4VY2c8AAAABMbrKLQ",
+      "title": "feat: add ancestorDomain challenge response and RFC 9444 coexistence",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/84",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Section 5 allows a wildcard `_validation-persist` record at a parent domain to authorize subdomains, but does not say how the CA learns which ancestor domain holds the record when validating a subdomain authorization. Walking the DNS tree up to the public suffix adds unguided queries and ambiguous failure modes, and the draft also leaves interaction with RFC 9444 (`subdomainAuthAllowed`) unspecified.\n\nAllow the client to include an optional `ancestorDomain` field in the `POST` payload when responding to a `dns-persist-01` challenge for a `dns` identifier (#33). Keep `{}` as the default for exact and base-wildcard validation, and leave the server's challenge object unchanged. When `ancestorDomain` is present, the CA validates `_validation-persist.<ancestorDomain>`, requires `policy=wildcard`, and computes the default `accounturi` hash over the normalized ancestor domain (or `*`) rather than the child identifier. Both `ancestorDomain` and the constructed `_validation-persist.<ancestorDomain>` name must fit RFC 1035 length limits, and `ancestorDomain` must be a strict whole-label proper suffix of the normalized authorization identifier and not a public suffix (unless allowed by CA policy). The first accepted challenge response fixes the target domain for that validation attempt; CAs reject conflicting in-flight `POST`s with `malformed` rather than overwriting the target or silently falling back to the leaf domain.\n\nClarify how per-challenge `ancestorDomain` selection coexists with RFC 9444 ancestor authorizations (`subdomainAuthAllowed: true`), which operate at `newOrder` time and also require `policy=wildcard` when validated with `dns-persist-01`. Selecting `ancestorDomain` in a challenge response satisfies only that challenge's authorization object and does not change its `identifier.value` or set `subdomainAuthAllowed`.\n\nVerification: 6 focused local test suites cover the reference evaluator (exact leaf, equal-domain rejection, deeper wildcards, partial-label prefixes, public suffixes, the 233/253-octet validation-name boundary, and invalid syntax/types), challenge-object JSON examples, and HTML anchors. `make lint`, `make`, and `git diff --check` passed on `main`, and generated text and HTML were inspected. These are source and build checks, not live CA interoperability tests.\n",
+      "createdAt": "2026-11-02T23:48:47Z",
+      "updatedAt": "2026-11-03T00:47:26Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "fd52243ff7f69b38411336c754ba436b9cb64cfd",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "feat-ancestor-domain",
+      "headRefOid": "dedaeed8fdad5aa77e921b36d58cc09f2f893402",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABVm95jQ",
+          "commit": {
+            "abbreviatedOid": "b3884ef"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "<!-- ccr-overview-v2 -->\n\n### \ud83d\udfe1 Changes recommended\n\nConflicting requirements for repeated unrecognized parameters and retired hash algorithm errors leave record acceptance and error handling ambiguous.\n\n<details open>\n<summary><strong>1 open issue</strong></summary>\n\n- <picture><source media=\"(prefers-color-scheme: dark)\" srcset=\"https://github.githubassets.com/static/images/icons/copilot-code-review/low-v2-dark.svg\"><source media=\"(prefers-color-scheme: light)\" srcset=\"https://github.githubassets.com/static/images/icons/copilot-code-review/low-v2-light.svg\"><img src=\"https://github.githubassets.com/static/images/icons/copilot-code-review/low-v2-light.png\" alt=\"Low severity\" width=\"62\" height=\"18\" align=\"texttop\"></picture> [Preserve duplicate-parameter qualifier and mandated error types](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/84#discussion_r4449204839) \u00b7 New\n</details>\n\n<details>\n<summary><strong>What changed in this PR</strong></summary>\n\nAddresses #33 by letting ACME clients select an ancestor\u2019s persistent DNS validation record without requiring DNS tree walks, while defining coexistence with RFC 9444.\n\n**Changes:**\n- Adds request-only `ancestorDomain` selection with syntax, policy, digest-binding, and retry requirements.\n- Clarifies authorization scope and `policy=wildcard` requirements across interactive and Just-in-Time validation.\n- Expands error-handling guidance for ancestor selection and DNS record failures.\n\n| File | Description |\r\n| ---- | ----------- |\r\n| `draft-ietf-acme-dns-persist.md` | Defines ancestor selection, RFC 9444 interaction, validation requirements, examples, and error handling. |\n</details>\n\n<sub>Review effort: Balanced</sub>",
+          "createdAt": "2026-11-02T23:54:36Z",
+          "updatedAt": "2026-11-02T23:54:37Z",
+          "comments": [
+            {
+              "originalPosition": 115,
+              "body": "The unqualified \u201cduplicate parameters\u201d conflicts with the requirement to ignore repeated unrecognized parameters, and the new `unauthorized` exception conflicts with the mandatory `malformed` error for retired hash algorithms. Restore the recognized-parameter qualifier and exclude explicitly mandated error types from the exception so implementations agree on record acceptance and error handling. This is separate from #39's error-type design discussion; see `.github/copilot-instructions.md` \u00a7\u00a72\u20133.",
+              "createdAt": "2026-11-02T23:54:36Z",
+              "updatedAt": "2026-11-02T23:54:37Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 85,
+      "id": "PR_kwDOO4VY2c8AAAABMbrMgw",
+      "title": "feat: add IP address validation via _ip-validation-persist",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/85",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "`dns-persist-01` is currently defined only for `dns` identifiers, leaving operators of IPv4 and IPv6 addresses (RFC 8738) without a persistent DNS validation path (#32).\n\nDefine an additive reverse-DNS profile for `ip` authorizations using `_ip-validation-persist.<R>`, where `R` is the lowercase US-ASCII `in-addr.arpa` name (RFC 1035 Section 3.5) or full 32-nibble hexadecimal `ip6.arpa` name (RFC 3596 Section 2.5) with no trailing dot. CAs query `_ip-validation-persist` only for `ip` identifiers, query `_validation-persist` only for `dns` identifiers, and never follow `PTR` records. By default, `domain_name` in the `accounturi` hash is `R` (or `*`), even when `_ip-validation-persist.<R>` itself is aliased via CNAME into a delegated zone. Validation authorizes only the single IP address: CAs ignore `policy=wildcard` on IP records, reject `ancestorDomain` on `ip` challenges with `malformed`, and keep validation caches separated by identifier type.\n\nAdd worked IPv4 (`192.0.2.1`) and IPv6 (`2001:db8::1`) examples, register `dns-persist-01` for `ip` in the ACME Validation Methods registry and `_ip-validation-persist` in the RFC 8552 Underscored and Globally Scoped DNS Node Names registry, and document reverse-zone delegation trust boundaries in Security Considerations relative to RFC 8738 Section 7.\n\nVerification: 3 focused local test suites recompute the IPv4 and IPv6 SHA-256 test vectors and `*` opt-out digest, check negative controls against hashing the raw IP literal or full `_ip-validation-persist.<R>` owner name, and verify IANA and HTML anchors. `make lint`, `make`, and `git diff --check` passed on `main`, and generated text and HTML were inspected. These are source and vector checks, not live CA or reverse-DNS deployment tests.\n",
+      "createdAt": "2026-11-02T23:48:50Z",
+      "updatedAt": "2026-11-03T00:47:28Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "fd52243ff7f69b38411336c754ba436b9cb64cfd",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "feat-ip-validation",
+      "headRefOid": "9878816305ea0e8203f002f5069f0fbf77ab184c",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABVm9ZNw",
+          "commit": {
+            "abbreviatedOid": "9878816"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "<!-- ccr-overview-v2 -->\n\n### \ud83d\udfe1 Changes recommended\n\nThe IP profile lacks an enforceable restriction on wildcard-synthesized TXT responses, undermining its claimed per-address and identifier-type opt-in guarantees.\n\n<details open>\n<summary><strong>3 open issues</strong></summary>\n\n- <picture><source media=\"(prefers-color-scheme: dark)\" srcset=\"https://github.githubassets.com/static/images/icons/copilot-code-review/high-v2-dark.svg\"><source media=\"(prefers-color-scheme: light)\" srcset=\"https://github.githubassets.com/static/images/icons/copilot-code-review/high-v2-light.svg\"><img src=\"https://github.githubassets.com/static/images/icons/copilot-code-review/high-v2-light.png\" alt=\"High severity\" width=\"62\" height=\"18\" align=\"texttop\"></picture> [Address wildcard TXT synthesis across IP validation identifiers](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/85#discussion_r4449199013) \u00b7 New\n- <picture><source media=\"(prefers-color-scheme: dark)\" srcset=\"https://github.githubassets.com/static/images/icons/copilot-code-review/low-v2-dark.svg\"><source media=\"(prefers-color-scheme: light)\" srcset=\"https://github.githubassets.com/static/images/icons/copilot-code-review/low-v2-light.svg\"><img src=\"https://github.githubassets.com/static/images/icons/copilot-code-review/low-v2-light.png\" alt=\"Low severity\" width=\"62\" height=\"18\" align=\"texttop\"></picture> [Exclude DNS-only CAA accounturi guidance from IP support](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/85#discussion_r4449199056) \u00b7 New\n- <picture><source media=\"(prefers-color-scheme: dark)\" srcset=\"https://github.githubassets.com/static/images/icons/copilot-code-review/low-v2-dark.svg\"><source media=\"(prefers-color-scheme: light)\" srcset=\"https://github.githubassets.com/static/images/icons/copilot-code-review/low-v2-light.svg\"><img src=\"https://github.githubassets.com/static/images/icons/copilot-code-review/low-v2-light.png\" alt=\"Low severity\" width=\"62\" height=\"18\" align=\"texttop\"></picture> [Bound persistent validation to the IP allocation period](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/85#discussion_r4449199101) \u00b7 New\n</details>\n\n<details>\n<summary><strong>What changed in this PR</strong></summary>\n\nExtends `dns-persist-01` to validate IPv4 and IPv6 identifiers through persistent reverse-DNS TXT records, addressing #32 alongside the existing DNS-name validation mechanism.\n\n**Changes:**\n- Defines canonical reverse-zone mapping, digest inputs, exact-address scope, and identifier-specific caching.\n- Adds IPv4/IPv6 examples and security guidance for reverse-zone delegation.\n- Requests IANA registrations for IP validation and `_ip-validation-persist`.\n\n| File | Description |\r\n| ---- | ----------- |\r\n| `draft-ietf-acme-dns-persist.md` | Adds the IP validation profile, examples, security considerations, and registry entries. |\n</details>\n\n<sub>Review effort: Balanced</sub>",
+          "createdAt": "2026-11-02T23:53:38Z",
+          "updatedAt": "2026-11-02T23:53:40Z",
+          "comments": [
+            {
+              "originalPosition": 69,
+              "body": "With no intervening nodes, a TXT record at `*.2.0.192.in-addr.arpa` using the accepted `domain_name=*` digest can answer `_ip-validation-persist.<R>` queries for multiple addresses and `_validation-persist.<R>` queries for their reverse DNS names. Thus neither ignoring `policy=wildcard` nor separating cache keys guarantees explicit per-address or identifier-type opt-in. For the IP profile in #32, define an enforceable restriction or qualify the claimed guarantees and document this wildcard-synthesis interaction (review guide \u00a75).",
+              "createdAt": "2026-11-02T23:53:39Z",
+              "updatedAt": "2026-11-02T23:53:40Z"
+            },
+            {
+              "originalPosition": 21,
+              "body": "The blanket inheritance imports the pre-provisioning recommendation to publish CAA `accounturi`, but CAA at `R` does not restrict issuance for the corresponding IP address under this profile. Exclude that DNS-only recommendation and clarify that the IP support in #32 introduces no reverse-zone CAA checks (review guide \u00a73 and \u00a77).",
+              "createdAt": "2026-11-02T23:53:39Z",
+              "updatedAt": "2026-11-02T23:53:40Z"
+            },
+            {
+              "originalPosition": 69,
+              "body": "If an IP address is reassigned while its persistent TXT record or validation CNAME remains, the former holder can obtain fresh authorizations without controlling the reassigned host. For the IP support in #32, document reassignment cleanup and how `persistUntil` and authorization reuse can be bounded to the allocation period; DNS cleanup alone does not invalidate existing authorizations or certificates (review guide \u00a73 and \u00a75).",
+              "createdAt": "2026-11-02T23:53:39Z",
+              "updatedAt": "2026-11-02T23:53:40Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABVnA6lw",
+          "commit": {
+            "abbreviatedOid": "9878816"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "CHANGES_REQUESTED",
+          "body": "",
+          "createdAt": "2026-11-03T00:00:42Z",
+          "updatedAt": "2026-11-03T00:15:34Z",
+          "comments": [
+            {
+              "originalPosition": 10,
+              "body": "It might be worth using a term other than canonical Reverse Domain Name as \"canonical name\" is already a well defined term in DNS (https://www.rfc-editor.org/info/rfc1034/#section-3.6.2) requiring CNAME look-ups.",
+              "createdAt": "2026-11-03T00:00:42Z",
+              "updatedAt": "2026-11-03T00:15:34Z"
+            },
+            {
+              "originalPosition": 23,
+              "body": "See comment above about the existing use of canonical name in DNS.",
+              "createdAt": "2026-11-03T00:09:18Z",
+              "updatedAt": "2026-11-03T00:15:34Z"
+            },
+            {
+              "originalPosition": 13,
+              "body": "The referenced RFCs both define the rDNS domains as uppercase, maybe this should be noted.",
+              "createdAt": "2026-11-03T00:14:51Z",
+              "updatedAt": "2026-11-03T00:15:35Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 86,
+      "id": "PR_kwDOO4VY2c8AAAABMbrOcA",
+      "title": "feat: register persistExpired error type for expired persistUntil records",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/86",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "When a record's `persistUntil` timestamp passes, returning only generic `unauthorized` prevents ACME clients from distinguishing routine timestamp expiration from an account-hash, issuer-domain, or policy mismatch (#39). However, returning an expiration error before verifying that the record belongs to the CA and the requesting account would leak expiration state for other accounts' or CAs' records at the same name.\n\nRegister the `persistExpired` error type (`urn:ietf:params:acme:error:persistExpired`) in the ACME Error Types registry (RFC 8555 Section 9.7.4). Recommend (`SHOULD`) returning `persistExpired` when challenge validation fails and at least one retrieved record at the queried name is otherwise qualifying for the CA and the live requesting account (including any required `policy=wildcard`) but fails solely because its well-formed `persistUntil` timestamp has passed. Prohibit (`MUST NOT`) returning `persistExpired` if any record satisfies validation or if no otherwise qualifying record for the CA and requesting account failed solely due to an expired `persistUntil` timestamp, regardless of evaluation order.\n\nA CA may still return `unauthorized` under a uniform error-disclosure policy, so client guidance is updated to handle both error types. Just-in-Time validation fallback to a `pending` challenge is unchanged. Note that the `### Error Handling` section overlaps with #84 if both are merged.\n\nVerification: 4 focused local test suites cover the reference eligibility evaluator across record permutations, cross-account and cross-CA privacy gates, JIT fallback preservation, and the IANA registration. `make lint`, `make`, and `git diff --check` passed on `main`, and generated text and HTML were inspected. These are source and build checks, not live CA testing.\n",
+      "createdAt": "2026-11-02T23:48:54Z",
+      "updatedAt": "2026-11-03T00:47:29Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "fd52243ff7f69b38411336c754ba436b9cb64cfd",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "feat-persist-expired-error",
+      "headRefOid": "8806981721715c70a568617cfb6859506901135e",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABVm8m-g",
+          "commit": {
+            "abbreviatedOid": "8806981"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "<!-- ccr-overview-v2 -->\n\n### \ud83d\udfe1 Changes recommended\n\nThe blanket permission to return `unauthorized` conflicts with the required `malformed` response for retired hash algorithms, leaving implementations with inconsistent error-handling requirements.\n\n<details open>\n<summary><strong>1 open issue</strong></summary>\n\n- <picture><source media=\"(prefers-color-scheme: dark)\" srcset=\"https://github.githubassets.com/static/images/icons/copilot-code-review/medium-v2-dark.svg\"><source media=\"(prefers-color-scheme: light)\" srcset=\"https://github.githubassets.com/static/images/icons/copilot-code-review/medium-v2-light.svg\"><img src=\"https://github.githubassets.com/static/images/icons/copilot-code-review/medium-v2-light.png\" alt=\"Medium severity\" width=\"62\" height=\"18\" align=\"texttop\"></picture> [Unauthorized fallback conflicts with required malformed error for retired hashes](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/86#discussion_r4449188551) \u00b7 New\n</details>\n\n<details>\n<summary><strong>What changed in this PR</strong></summary>\n\nThis PR addresses #39 by adding a dedicated expiration error to the persistent DNS validation draft, helping clients diagnose expired records without exposing other accounts\u2019 or CAs\u2019 expiration state.\n\n**Changes:**\n- Registers `persistExpired` in the ACME Error Types registry.\n- Defines eligibility restrictions and generic-error fallbacks while preserving Just-in-Time validation behavior.\n- Updates client guidance to handle both `persistExpired` and `unauthorized`.\n\n| File | Description |\r\n| ---- | ----------- |\r\n| `draft-ietf-acme-dns-persist.md` | Adds error registration, privacy-preserving reporting rules, and client expiration-handling guidance. |\n</details>\n\n<sub>Review effort: Balanced</sub>",
+          "createdAt": "2026-11-02T23:52:01Z",
+          "updatedAt": "2026-11-02T23:52:02Z",
+          "comments": [
+            {
+              "originalPosition": 20,
+              "body": "The new blanket permission to return `unauthorized` also covers retired hash algorithms, but `validation-record-format` (line 196) explicitly says the CA MUST reject those records with `malformed`. A CA applying the uniform-disclosure policy would therefore violate that requirement. Exclude cases with a mandated error type from this exception, or update the earlier requirement to permit the same fallback, so implementations have one consistent rule (.github/copilot-instructions.md \u00a72).",
+              "createdAt": "2026-11-02T23:52:01Z",
+              "updatedAt": "2026-11-02T23:52:02Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 87,
+      "id": "PR_kwDOO4VY2c8AAAABMbrQlA",
+      "title": "feat: specify order-level conjunction with certificate-key attestation",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/87",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Deployments such as internal network devices or enterprise workloads often need both domain validation via `dns-persist-01` and cryptographic proof that the certificate private key resides on an approved hardware module (#76). Challenges within a single ACME authorization object are alternatives (RFC 8555 Section 7.1.4), CAA `validationmethods` lists are disjunctive (RFC 8657 Section 4), and unrecognized `_validation-persist` parameters are ignored (Section 4.1 item 1), so conjunctive enforcement cannot be achieved by listing two challenges on one authorization or adding an unnegotiated DNS parameter.\n\nSpecify order-level conjunction in terms of RFC 8555 Sections 7.1.3 and 7.4, citing `draft-ietf-acme-device-attest` informatively so publication does not take a normative `MISREF` dependency. A CA enforcing conjunctive attestation for an identifier or account must include the attestation authorization on every order for that identifier or account, must not allow the client to waive it via `newOrder` parameters or profile selection, and must require all authorizations on the order to be `valid` before transitioning the order to `ready`, finalizing, or issuing.\n\nBecause `_validation-persist` binds the ACME account key rather than the CSR key, require the CA to verify at order finalization that the CSR public key matches the attested public key even when the `dns` authorization was satisfied via Just-in-Time validation or prior authorization reuse, and require fresh attestation when renewing with a new certificate key.\n\nVerification: 4 focused local test suites cover the conjunctive finalization reference evaluator (CSR key match vs. mismatch across JIT and reused `dns` authorizations, key-changing renewal, and non-waivable order policy), informative reference classification, and CAA cross-references. `make lint`, `make`, and `git diff --check` passed on `main`, and generated text and HTML were inspected. These are source and build checks, not live CA testing.\n",
+      "createdAt": "2026-11-02T23:48:57Z",
+      "updatedAt": "2026-11-03T00:47:31Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "fd52243ff7f69b38411336c754ba436b9cb64cfd",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "feat-device-attest-conjunction",
+      "headRefOid": "691f6b297e84b26df0f3d48101aa219c43437fd0",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABVm8vxg",
+          "commit": {
+            "abbreviatedOid": "691f6b2"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "<!-- ccr-overview-v2 -->\n\n### \ud83d\udfe1 Changes recommended\n\nThe scoping `SHOULD` omits the warning that a still-authorized CA/account without non-waivable attestation policy can issue using persistent DNS authorization alone, so the domain owner's certificate-key attestation requirement is not guaranteed.\n\n<details open>\n<summary><strong>1 open issue</strong></summary>\n\n- <picture><source media=\"(prefers-color-scheme: dark)\" srcset=\"https://github.githubassets.com/static/images/icons/copilot-code-review/low-v2-dark.svg\"><source media=\"(prefers-color-scheme: light)\" srcset=\"https://github.githubassets.com/static/images/icons/copilot-code-review/low-v2-light.svg\"><img src=\"https://github.githubassets.com/static/images/icons/copilot-code-review/low-v2-light.png\" alt=\"Low severity\" width=\"62\" height=\"18\" align=\"texttop\"></picture> [Warn that DNS authorization alone can bypass attestation requirements](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/87#discussion_r4449190453) \u00b7 New\n</details>\n\n<details>\n<summary><strong>What changed in this PR</strong></summary>\n\nAddresses #76 by specifying how persistent DNS domain validation combines with certificate-key attestation through CA order policy rather than DNS parameters alone.\n\n**Changes:**\n- Requires non-waivable attestation authorizations and CSR public-key binding, including JIT validation and authorization reuse.\n- Covers fresh attestation for key rotation and domain-owner scoping to CAs/accounts that enforce attestation.\n- Adds an informative device-attestation reference and clarifies CAA\u2019s role.\n\n| File | Description |\r\n| ---- | ----------- |\r\n| `draft-ietf-acme-dns-persist.md` | Adds combined validation and attestation requirements, renewal guidance, and a CAA cross-reference. |\n</details>\n\n<sub>Review effort: Balanced</sub>",
+          "createdAt": "2026-11-02T23:52:19Z",
+          "updatedAt": "2026-11-02T23:52:19Z",
+          "comments": [
+            {
+              "originalPosition": 15,
+              "body": "The scoping `SHOULD` does not state the consequence of not following it (.github/copilot-instructions.md \u00a72). Please explicitly warn that a still-authorized CA/account without non-waivable attestation policy can issue using the persistent DNS authorization alone, so the domain owner's certificate-key attestation requirement is not guaranteed.",
+              "createdAt": "2026-11-02T23:52:19Z",
+              "updatedAt": "2026-11-02T23:52:20Z"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
