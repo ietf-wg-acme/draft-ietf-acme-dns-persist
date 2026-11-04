@@ -181,7 +181,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
 1.  The RDATA value MUST conform to the issue-value syntax defined in {{!RFC8659}}, Section 4.2. CAs MUST recognize the parameter names `accounturi`, `policy`, and `persistUntil` using ASCII case-insensitive comparison. This comparison applies only to parameter names; the value-comparison rules below are unchanged. Each of these recognized parameters MUST occur at most once within a single issue-value. If a recognized parameter occurs more than once, including with different casing, the CA MUST treat the record as malformed and reject it. To ensure forward compatibility, the server MUST ignore parameters whose names it does not recognize, including repeated occurrences of such parameters.
 
-2.  The `issuer-domain-name` portion of the issue-value MUST be one of the Issuer Domain Names provided by the CA in the `issuerDomainNames` array of the challenge object. If the `issuer-domain-name` does not match any of the provided values, the CA MUST reject the record.
+2.  The `issuer-domain-name` portion of the issue-value MUST match an entry in the challenge object's `issuerDomainNames` array using ASCII case-insensitive comparison. For this comparison, ASCII letters `A` through `Z` match their lowercase equivalents; all other octets MUST match exactly. The CA MUST parse the issue-value according to {{!RFC8659}}, Section 4.2, before comparing the issuer name. Surrounding whitespace permitted by that syntax is not part of the issuer name. If no entry matches, the CA MUST reject the record.
 
 3.  The issue-value MUST contain an `accounturi` parameter whose value is a hashed URI identifying the ACME account requesting validation. A hashed URI cryptographically binds the account to the domain being validated without publishing the account URL in cleartext. It is formed by concatenating the CA's `accountHashPrefix`, a hash-algorithm identifier, a "/" separator, and a base64url hash value:
 
@@ -243,7 +243,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 
 ## Verification Procedure {#verification-procedure}
 
-The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Validation Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its `issuer-domain-name` value MUST match one of the values provided in the `issuerDomainNames` array from the challenge object, and its `accounturi` parameter MUST be a hashed URI that identifies the requesting account, as defined in {{validation-record-format}}. When comparing issuer domain names, the server MUST adhere to the normalization rules specified in {{challenge-object}}. The server also interprets any `policy` parameter values according to this specification. If no record meeting all requirements is found, the server MUST treat the challenge as failed.
+The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Validation Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its `issuer-domain-name` value MUST match one of the values provided in the `issuerDomainNames` array from the challenge object, and its `accounturi` parameter MUST be a hashed URI that identifies the requesting account, as defined in {{validation-record-format}}. The server MUST compare issuer domain names using the ASCII case-insensitive comparison specified in {{validation-record-format}}. The server also interprets any `policy` parameter values according to this specification. If no record meeting all requirements is found, the server MUST treat the challenge as failed.
 
 To verify a hashed-URI `accounturi` value, the CA already knows the requesting account's URL and the FQDN being validated. The CA computes the expected hashed URI as defined in {{validation-record-format}} over each ACME public key it retains for that account (see below); for each such key it computes the value twice, once using the FQDN being validated as `domain_name` and once using the domain-omitted opt-out form (`domain_name` set to `*`). The CA treats the record as satisfying the requirement if its `accounturi` value equals any of these computed hashed URIs under Simple String Comparison ({{!RFC3986}}, Section 6.2.1). Retaining an account's prior key thumbprints allows records provisioned before a key rotation to continue validating.
 
@@ -491,7 +491,7 @@ Additionally, CAs SHOULD protect their `ACME directory URL` with appropriate sec
 
 ## Issuer Domain Name Normalization and Limits
 
-The `issuerDomainNames` field requires domain names to be provided in a normalized form (lowercase A-labels, no trailing dot) to prevent errors and security issues arising from case-sensitivity differences or Unicode homograph attacks. By requiring a canonical representation, servers and clients can perform simple byte-for-byte comparisons, ensuring interoperability and deterministic validation. The order of names in the array has no significance.
+The `issuerDomainNames` field requires lowercase ASCII domain names, with internationalized labels represented as A-labels and no trailing dot. Clients use these advertised names when constructing records. CAs compare the parsed issuer name using ASCII case-insensitive comparison, as specified in {{validation-record-format}}. This comparison permits ASCII case differences without accepting Unicode input or trailing dots that the issue-value syntax prohibits. The order of names in the array has no significance.
 
 The server-side limit on the number of issuer domain names provided in a single challenge (e.g., 10) helps mitigate denial-of-service vectors where a client might be forced to perform an excessive number of DNS queries or a server might be burdened by validating against a large set of domains.
 
@@ -618,21 +618,18 @@ Failure to correctly format long RDATA values may result in validation failures.
 
 ## Domain Name Normalization Algorithm {#normalization-algorithm}
 
-Clients and CAs MUST use the following procedure to produce the `domain_name` octets used in {{validation-record-format}} from the actual DNS name at which the record is provisioned, after removing the leading `_validation-persist` label:
+Clients and CAs MUST derive `domain_name` from the actual DNS name where the record is provisioned, after removing the leading `_validation-persist` label. The input MUST be a valid DNS name in US-ASCII, with internationalized labels represented as valid A-labels ({{!RFC5890}} and {{!RFC5891}}). An optional trailing root-label dot is permitted.
 
-1. Represent each internationalized label as a valid IDNA A-label, as defined in {{!RFC5890}} and {{!RFC5891}}. If the selected name is supplied using U-labels, those labels MUST be valid NFC U-labels and MUST be converted directly to their A-label equivalents without Unicode case-folding. Existing labels beginning with `xn--`, matched ASCII case-insensitively, MUST be checked for IDNA validity after converting their ASCII letters to lowercase, rather than treated as arbitrary ASCII strings. Invalid IDNA labels MUST NOT be used to construct or validate a record.
-2. Convert ASCII letters `A` through `Z` to lowercase. Leave other ASCII octets unchanged.
-3. Remove the trailing root-label dot, if present. Encode the resulting presentation form as ASCII octets.
+Name selection and validation MUST occur before this procedure. Implementations MAY reuse validation performed when accepting an ACME identifier or selecting a name for provisioning. Any conversion of user-supplied Unicode to A-labels occurs during name selection, outside this procedure. Implementations MUST reject non-ASCII input to this procedure.
 
-This procedure does not define how an application maps arbitrary user input to a DNS name. Any such mapping occurs before the name is selected for provisioning or validation, not while deriving the hash input. In particular, the selected name `faß.example` has A-label form `xn--fa-hia.example`; it MUST NOT be changed to `fass.example` when computing `domain_name`.
+Clients and CAs MUST apply the following steps in order:
 
-For example, `EXAMPLE.com.` produces `example.com`.
+1. Replace each ASCII uppercase letter `A` through `Z` with its lowercase equivalent. Leave all other octets unchanged.
+2. Remove the trailing root-label dot, if present.
 
-An application accepting the user input `üÑICODE-example.com.` might select the valid U-label name `üñicode-example.com.` before invoking this procedure. For that selected name:
+The resulting ASCII octets are the `domain_name` input to {{validation-record-format}}. Clients and CAs MUST NOT perform Unicode mapping, normalization, or conversion during this procedure. It does not apply to the explicit `*` opt-out defined in {{validation-record-format}}.
 
-1. The A-label presentation is `xn--icode-example-hkb8n.com.`.
-2. ASCII lowercasing leaves that presentation unchanged.
-3. Removing the trailing root-label dot produces `xn--icode-example-hkb8n.com`.
+For example, `EXAMPLE.com.` produces `example.com`, and `XN--FA-HIA.example.` produces `xn--fa-hia.example`. The names `xn--fa-hia.example` and `fass.example` remain distinct.
 
 ## CA Implementation Guidelines {#ca-implementation-guidelines}
 
