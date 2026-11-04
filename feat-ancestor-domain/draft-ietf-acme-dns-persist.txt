@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 7 May 2027                                Crosslayer Labs, Inc.
+Expires: 8 May 2027                                Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                         3 November 2026
+                                                         4 November 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -59,7 +59,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 7 May 2027.
+   This Internet-Draft will expire on 8 May 2027.
 
 Copyright Notice
 
@@ -1056,6 +1056,11 @@ Table of Contents
        A; it MUST NOT alter the authorization object's identifier field
        or set subdomainAuthAllowed ([RFC9444], Section 4.1).
 
+   Rejections under items 2–4 are HTTP errors on the challenge-response
+   request ([RFC8555], Section 7.5.1) that leave the challenge in the
+   pending state, whereas a failure under item 5 is a validation failure
+   that transitions the challenge to invalid ([RFC8555], Section 7.1.6).
+
    Note: Because ancestorDomain is a request-only challenge-response
    field, the resulting challenge object does not echo ancestorDomain.
    A client interacting with a non-conforming legacy implementation that
@@ -1729,17 +1734,18 @@ Table of Contents
       proper ancestor within the DNS length limits (Section 6.2), a POST
       attempting to modify ancestorDomain on an accepted pending,
       processing, or finalized challenge (Section 4), duplicate
-      parameters, invalid timestamp format in the persistUntil
-      parameter, missing mandatory accounturi parameter, an accounturi
-      that is not a well-formed hashed URI (for example, one not placed
-      under the CA's accountHashPrefix, one using an algorithm
-      identifier the CA does not accept, or one whose hash value is not
-      valid base64url of the expected length), or other syntactic
-      violations of the formats specified in this document.  For errors
-      detected in retrieved DNS TXT records rather than the client's
-      HTTP request payload, a CA MAY return unauthorized instead of
-      malformed to maintain a uniform authorization-failure disclosure
-      policy.
+      occurrences of a recognized parameter, invalid timestamp format in
+      the persistUntil parameter, missing mandatory accounturi
+      parameter, an accounturi that is not a well-formed hashed URI (for
+      example, one not placed under the CA's accountHashPrefix, one
+      using an algorithm identifier the CA does not accept, or one whose
+      hash value is not valid base64url of the expected length), or
+      other syntactic violations of the formats specified in this
+      document.  For syntax errors detected in retrieved DNS TXT records
+      (rather than the client's HTTP request payload) where this
+      specification does not mandate a specific error type, a CA MAY
+      return unauthorized instead of malformed to maintain a uniform
+      authorization-failure disclosure policy.
 
    *  CAs SHOULD return an unauthorized error (as defined in [RFC8555])
       when validation fails due to authorization or policy issues,
