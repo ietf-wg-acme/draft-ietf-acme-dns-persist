@@ -42,14 +42,14 @@ For newcomers (reinforce the subtitle briefly):
 **[DEFAULT — IF SHORT (0:45)]:**
 "In September we published `-02`, which landed the mandatory hashed `accounturi` construction, the domain-omitted star opt-out, lifetime witnessed-key retention across account key rollover overridden immediately by account deactivation, the `persistUntil` clamp on authorization `expires`, and directory `issuerDomainNames`.
 
-Since `-02`, we merged nine clarification PRs into `main` and incorporated Jacob Hoffman-Andrews's normalization feedback—operating hash canonicalization strictly on validated US-ASCII DNS names (with internationalized labels already in IDNA2008 A-label form per RFC 8555 §§5 and 7.1.4) via ASCII lowercasing and trailing-dot removal, making `issuer-domain-name` matching explicitly ASCII case-insensitive, making parameter names ASCII case-insensitive with duplicate rejection in PR `#80`, constraining `accountHashPrefix` to fit RFC 8659's TXT `value` grammar in PR `#81`, and clarifying validation flows and JIT rate-limiting in PRs `#82` and `#83`."
+In `-03`, following Jacob Hoffman-Andrews's list feedback, hash canonicalization is ASCII only: validated A-label input, ASCII lowercasing, and trailing-dot removal. `issuer-domain-name` matching is ASCII case-insensitive. Parameter names are case-insensitive with duplicates rejected, `accountHashPrefix` fits RFC 8659's TXT `value` grammar, and the validation-flow and JIT rate-limiting text is clearer."
 
 **[FULL SCRIPT (1:15, only if given a 15-minute slot)]:**
 "On the left: `-02` published in September with all the core decisions from Vienna and the August list threads. The hashed `accounturi` is the sole form, binding the domain length, domain name, 43-octet RFC 7638 JWK thumbprint, and account URL. The domain-omitted `*` opt-out is client-MAY, CA-MUST. For account key rollover, CAs retain witnessed account-key thumbprints for the lifetime of the account so pre-provisioned and backup-CA records survive routine key rotations, while account deactivation immediately overrides retention. And `persistUntil` clamps the resulting ACME authorization's `expires` field.
 
-On the right: since `-02` we merged PRs `#74`, `#75`, and `#77` through `#83` into `main`. PR `#79` specifies IDNA2008 `ToASCII` conversion without transitional processing before hashing so `faß.example` and `fass.example` never collide. PR `#80` makes parameter names (`accounturi`, `policy`, `persistUntil`) ASCII case-insensitive while keeping parameter values case-sensitive and rejecting duplicate recognized parameters. PR `#81` constrains `accountHashPrefix` to printable US-ASCII excluding semicolons and whitespace so constructed URIs always fit RFC 8659 TXT syntax. And PRs `#75`, `#82`, and `#83` clarify per-attempt computation bounds, delegated account-proof ordering, and JIT rate limiting."
+On the right: `-03` includes PRs `#74`, `#75`, `#77` through `#83`, and `#89`. Following Jacob's list feedback, PR `#89` limits hash canonicalization to ASCII lowercasing and trailing-dot removal on validated A-label input, so `xn--fa-hia.example` and `fass.example` stay distinct. It also makes `issuer-domain-name` matching ASCII case-insensitive. PR `#80` makes parameter names (`accounturi`, `policy`, `persistUntil`) ASCII case-insensitive while keeping parameter values case-sensitive and rejecting duplicate recognized parameters. PR `#81` constrains `accountHashPrefix` to printable US-ASCII excluding semicolons and whitespace so constructed URIs always fit RFC 8659 TXT syntax. And PRs `#75`, `#82`, and `#83` clarify per-attempt computation bounds, delegated account-proof ordering, and JIT rate limiting."
 
-**Transition:** "With those merged into `main`, four open feature PRs remain—starting with subdomain validation in `#33`."
+**Transition:** "`-03` also resolves the four open feature issues. First up is subdomain validation in `#33`."
 
 ---
 
@@ -146,22 +146,21 @@ Second: why is the inner `key` input fixed to the 43-octet RFC 7638 SHA-256 JWK 
 
 ## Slide 8: Implementation Status & Path to WGLC (0:45, protect)
 
-"With PRs `#74`, `#75`, and `#77` through `#83` merged into `main`, and PRs `#84` through `#87` open and reviewed for Issues `#33`, `#32`, `#39`, and `#76`, every open issue in the repository is addressed.
+"`-03` resolves Issues `#33`, `#32`, `#39`, and `#76` through PRs `#84` to `#87`, plus the normalization change in `#89`. Every tracked issue is addressed.
 
 On the implementation side: Pebble and lego have support merged, Seo's Pebble fork exercised `-02`, cert-manager design and prototype work is active, and CAs including Let's Encrypt, Fastly, Amazon Trust Services, and Google Trust Services have been actively engaged. On the CA/B Forum side, Michael's draft Servercert ballot defines the dedicated ACME `dns-persist-01` validation method aligned with `-03`.
 
-Our plan is to merge `#84` through `#87` following today's feedback, submit `draft-ietf-acme-dns-persist-03`, and ask the chairs to initiate Working Group Last Call."
+We think `-03` is ready, so we'd like to ask the chairs to start Working Group Last Call."
 
-**Transition:** "With that, I'll open the floor for questions on `#84` through `#87`, the URI scheme, or WGLC readiness."
+**Transition:** "With that, I'll open the floor for questions on the `-03` changes or on WGLC."
 
 ---
 
 ## Slide 9: Questions & Discussion (Remaining Time)
 
-Open the floor. Standing asks for the room and chairs:
-1. "Any objections to merging PRs `#84` (`ancestorDomain`), `#85` (`_ip-validation-persist`), `#86` (`persistExpired`), and `#87` (attestation conjunction) into `-03`?"
-2. "Any objections to keeping `https://` `accountHashPrefix` and the fixed RFC 7638 SHA-256 inner thumbprint?"
-3. "Chairs: once `-03` is posted with `#84`–`#87` merged, we would like to request Working Group Last Call."
+Open the floor and take questions on the `-03` changes. Then make one request to the chairs:
+
+"Chairs: we believe `-03` addresses all tracked issues and would like to request Working Group Last Call. If anyone has remaining concerns, the list is the best place to raise them."
 
 ---
 

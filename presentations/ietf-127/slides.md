@@ -168,9 +168,9 @@ IETF 127 ACME WG — San Francisco
 </div>
 <div>
 
-## Merged to `main` Post-`-02`
+## Landed in `-03`
 
-- [ASCII-only hash canonicalization](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/79) & [IDN example fix](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/77): validated A-label input, ASCII lowercase + strip trailing dot; ASCII case-insensitive `issuer-domain-name` match
+- [ASCII-only hash canonicalization](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/89) (after [#77](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/77), [#79](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/79); list feedback): validated A-label input, ASCII lowercase + strip trailing dot; ASCII case-insensitive `issuer-domain-name` match
 - [Case-insensitive parameter names](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/80): `accounturi`, `policy`, `persistUntil`; duplicate recognized names rejected
 - [`accountHashPrefix` syntax](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/81): fits RFC 8659 TXT `value` grammar
 - [Validation flows & security limits](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/82) + [normative & JIT guidance](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/83) + [per-attempt cost](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/75)
@@ -215,7 +215,7 @@ POST /chall/abc  →  { "ancestorDomain": "example.com" }
 
 <div class="ask">
 
-**Ask:** Any objection to `ancestorDomain` and RFC 9444 coexistence ([PR #84](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/84))?
+**Why:** Client names the record location; no DNS tree walk.
 
 </div>
 
@@ -238,7 +238,7 @@ _ip-validation-persist.1.2.0.192.in-addr.arpa. IN TXT "authority.example; accoun
 
 <div class="ask">
 
-**Ask:** Any objection to merging the `_ip-validation-persist` profile ([PR #85](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/85)) into this draft?
+**Why:** Same record format; separate node name keeps `ip` and `dns` apart.
 
 </div>
 
@@ -281,7 +281,7 @@ Why DNS parameters and CAA alone cannot express `dns-persist-01` **AND** `device
 
 <div class="ask">
 
-**Ask:** Any objection to specifying Order-level attestation conjunction in [PR #87](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/87)?
+**Why:** Orders already require every authorization; no new syntax.
 
 </div>
 
@@ -334,14 +334,14 @@ H(len || domain_name || key || account_URL)
 
 ## Issue & PR Status
 
-- **Merged to `main` (`fd52243`):**
-  - [#74](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/74), [#75](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/75), [#77](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/77)–[#83](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/83) (post-`-02` clarifications & `#69` cost notes)
-- **Ready to Merge for `-03`:**
+- **Clarifications since `-02`:**
+  - [#74](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/74), [#75](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/75), [#77](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/77)–[#83](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/83), [#89](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/89)
+- **New in `-03`:**
   - [PR #84](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/84): `#33` `ancestorDomain` + RFC 9444
   - [PR #85](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/85): `#32` `_ip-validation-persist`
   - [PR #86](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/86): `#39` `persistExpired`
-  - [PR #87](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/87): `#76` `device-attest` conjunction
-- **Zero unaddressed issues remain**
+  - [PR #87](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/87): `#76` attestation conjunction
+- **All tracked issues addressed**
 
 </div>
 <div>
@@ -359,7 +359,7 @@ H(len || domain_name || key || account_URL)
 
 <div class="ask">
 
-**Release plan:** Merge `#84`–`#87`, publish `-03`, and request **Working Group Last Call**.
+**Next step:** Request **WGLC** on `-03`.
 
 </div>
 
@@ -369,10 +369,9 @@ H(len || domain_name || key || account_URL)
 
 # Questions & Discussion
 
-- Any objections to merging [#84 (`ancestorDomain`)](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/84), [#85 (`_ip-validation-persist`)](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/85), [#86 (`persistExpired`)](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/86), and [#87 (attestation conjunction)](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/87) into `-03`?
-- Any objections to keeping `https://` `accountHashPrefix` and the fixed RFC 7638 SHA-256 inner thumbprint?
-- Ready for **Working Group Last Call (WGLC)** once `-03` publishes?
+- Feedback on how `-03` resolves `#32`, `#33`, `#39`, and `#76`
+- Is `-03` ready for **Working Group Last Call**?
 
 Mailing list: acme@ietf.org<br>
-GitHub: [open feature PRs #84–#87](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pulls) · [repository](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist)<br>
+GitHub: [repository](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist)<br>
 Draft: https://datatracker.ietf.org/doc/draft-ietf-acme-dns-persist/
