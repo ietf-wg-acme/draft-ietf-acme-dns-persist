@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 10 April 2027                             Crosslayer Labs, Inc.
+Expires: 10 May 2027                               Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                          7 October 2026
+                                                         6 November 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -24,13 +24,9 @@ Abstract
    record containing CA and account identification information.  This
    method is particularly suited for environments where traditional
    challenge methods are impractical, such as multi-tenant hosting
-   platforms, enterprise DNS environments, and IoT deployments.  The
-   validation method is designed with a strong focus on security and
-   robustness, incorporating widely adopted industry best practices for
-   persistent domain control validation.  This design aims to make it
-   suitable for Certification Authorities operating under various policy
-   environments, including those that align with the CA/Browser Forum
-   Baseline Requirements.
+   platforms, enterprise DNS environments, and IoT deployments.  Whether
+   a CA can use this method under a particular certificate policy or
+   trust program depends on that policy's requirements.
 
 About This Document
 
@@ -63,7 +59,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 10 April 2027.
+   This Internet-Draft will expire on 10 May 2027.
 
 Copyright Notice
 
@@ -82,7 +78,7 @@ Copyright Notice
 Table of Contents
 
    1.  Introduction
-     1.1.  Robustness and Alignment with Industry Best Practices
+     1.1.  Persistent Validation Design
    2.  Conventions and Definitions
    3.  The "dns-persist-01" Challenge
      3.1.  Challenge Object
@@ -103,44 +99,49 @@ Table of Contents
      6.1.  Determining Permitted Subdomains
      6.2.  Implementation Requirements
      6.3.  Example: Subdomain Validation
-   7.  Security Considerations
-     7.1.  Persistent Record Risks
-     7.2.  Account Binding Security
-       7.2.1.  Account Key Rotation
-       7.2.2.  Account URI Privacy
-       7.2.3.  Hashed Account URIs
-     7.3.  Subdomain Validation Risks
-     7.4.  Cross-CA Validation Reuse
-     7.5.  Record Tampering and Integrity
-     7.6.  Issuer Domain Name Normalization and Limits
-     7.7.  CAA Interaction
-     7.8.  DNS Security Measures
-       7.8.1.  DNSSEC
-       7.8.2.  Multi-Perspective Validation
-     7.9.  Validation Data Reuse
-     7.10. persistUntil Parameter Considerations
-     7.11. Revocation and Invalidation of Persistent Authorizations
-   8.  IANA Considerations
-     8.1.  ACME Validation Methods Registry
-     8.2.  Underscored and Globally Scoped DNS Node Names Registry
-     8.3.  ACME Directory Metadata Fields
-   9.  Implementation Considerations
-     9.1.  DNS Record Size Considerations
-     9.2.  Domain Name Normalization Algorithm
-     9.3.  CA Implementation Guidelines
-       9.3.1.  Error Handling
-     9.4.  Client Implementation Guidelines
-     9.5.  DNS Provider Considerations
-   10. Examples
-     10.1.  Basic Validation Example (FQDN Only)
-     10.2.  Hashed-URI Example
-     10.3.  Pre-Provisioned Validation Example
-     10.4.  Wildcard Validation Example
-     10.5.  Validation Example with persistUntil
-     10.6.  Wildcard Validation Example with persistUntil
-   11. References
-     11.1.  Normative References
-     11.2.  Informative References
+   7.  IP Address Validation via the Reverse Namespace
+     7.1.  Reverse-Zone Mapping and Validation Domain Name
+     7.2.  Record Format, Digest Input, and Scope for IP Validation
+     7.3.  IPv4 and IPv6 Validation Examples
+   8.  Security Considerations
+     8.1.  Persistent Record Risks
+     8.2.  Account Binding Security
+       8.2.1.  Account Key Rotation
+       8.2.2.  Account URI Privacy
+       8.2.3.  Hashed Account URIs
+     8.3.  Subdomain Validation Risks
+     8.4.  IP Address Validation Risks
+     8.5.  Cross-CA Validation Reuse
+     8.6.  Record Tampering and Integrity
+     8.7.  Issuer Domain Name Normalization and Limits
+     8.8.  CAA Interaction
+     8.9.  DNS Security Measures
+       8.9.1.  DNSSEC
+       8.9.2.  Multi-Perspective Validation
+     8.10. Validation Data Reuse
+     8.11. persistUntil Parameter Considerations
+     8.12. Revocation and Invalidation of Persistent Authorizations
+   9.  IANA Considerations
+     9.1.  ACME Validation Methods Registry
+     9.2.  Underscored and Globally Scoped DNS Node Names Registry
+     9.3.  ACME Directory Metadata Fields
+   10. Implementation Considerations
+     10.1.  DNS Record Size Considerations
+     10.2.  Domain Name Normalization Algorithm
+     10.3.  CA Implementation Guidelines
+       10.3.1.  Error Handling
+     10.4.  Client Implementation Guidelines
+     10.5.  DNS Provider Considerations
+   11. Examples
+     11.1.  Basic Validation Example (FQDN Only)
+     11.2.  Hashed-URI Example
+     11.3.  Pre-Provisioned Validation Example
+     11.4.  Wildcard Validation Example
+     11.5.  Validation Example with persistUntil
+     11.6.  Wildcard Validation Example with persistUntil
+   12. References
+     12.1.  Normative References
+     12.2.  Informative References
    Acknowledgments
    Change Log
      Since draft-ietf-acme-dns-persist-01
@@ -187,33 +188,26 @@ Table of Contents
    [RFC8659], incorporating an issuer-domain-name and a mandatory
    accounturi parameter whose value is defined in Section 4.1.  The
    parameter name is reused from the CAA accounturi parameter defined in
-   [RFC8657], Section 3; Section 7.7 explains the relationship between
+   [RFC8657], Section 3; Section 8.8 explains the relationship between
    them.  The accounturi is a hashed URI that cryptographically binds
    the account to the domain being validated.  This design provides
    strong binding between the domain, the CA, and the entity requesting
    validation.
 
-1.1.  Robustness and Alignment with Industry Best Practices
+1.1.  Persistent Validation Design
 
-   This validation method is designed to provide a robust and persistent
-   mechanism for domain control verification within the ACME protocol.
-   Its technical design incorporates widely adopted security principles
-   and best practices for domain validation, ensuring high assurance
-   regardless of the specific CA policy environment.  These principles
-   include, but are not limited to:
+   This method combines:
 
-   1.  The use of a well-defined, unique DNS label (e.g., "_validation-
-       persist") for persistent validation records, minimizing potential
-       conflicts.
+   1.  A dedicated "_validation-persist" DNS label for persistent
+       validation records.
 
-   2.  Explicit binding of the domain validation to an ACME account
-       through a unique identifier, establishing clear accountability
-       and enhancing security against unauthorized use.
+   2.  Binding of each record to an ACME account through the hashed
+       accounturi defined in Section 4.1.
 
-   Certification Authorities operating under various trust program
-   requirements will find this technical framework suitable for their
-   domain validation needs, as its design inherently supports robust and
-   auditable validation practices.
+   These mechanisms do not by themselves establish compliance with a
+   CA's certificate policy or applicable trust program requirements.
+   Those requirements determine whether the method is permitted and
+   which additional controls apply.
 
 2.  Conventions and Definitions
 
@@ -256,7 +250,7 @@ Table of Contents
       no longer be considered valid by CAs.  The value MUST be a base-10
       encoded integer representing a UNIX timestamp (the number of
       seconds since 1970-01-01T00:00:00Z ignoring leap seconds).  Client
-      pre-flight guidance appears in Section 9.4.
+      pre-flight guidance appears in Section 10.4.
 
    This document follows [RFC8555] in attributing DNS provisioning
    actions to the ACME client.  Except where a requirement explicitly
@@ -372,11 +366,13 @@ Table of Contents
    values, when advertised, after applying the same lowercase A-label
    and trailing-dot rules used for D and C.
 
-   caaIdentities values of publicly trusted CAs are kept distinct by the
-   CA/Browser Forum disclosure and audit regime.  Identities of CAs
-   outside that regime have no equivalent protection against another CA
-   recognizing the same name, so a domain owner who adds such an
-   identity to a CAA policy accepts that reuse caveat.
+   CA disclosure identifies the Issuer Domain Names a CA recognizes; it
+   does not establish that each name is recognized by only one CA.  For
+   example, [RFC8657], Section 5.4, discusses a parent CA and a
+   subsidiary that recognize a shared name and requires account URIs to
+   be unambiguous within the relevant recognition scope.  The issuer-
+   domain-name check therefore does not replace the account-binding
+   check in Section 4.2.
 
    A client MUST treat a missing or nonconforming directory
    issuerDomainNames array as unavailable for pre-provisioning.  A
@@ -406,9 +402,16 @@ Table of Contents
    The RDATA of this TXT record MUST fulfill the following requirements:
 
    1.  The RDATA value MUST conform to the issue-value syntax defined in
-       [RFC8659], Section 4.2.  To ensure forward compatibility, the
-       server MUST ignore any parameter within the issue-value that has
-       an unrecognized tag.
+       [RFC8659], Section 4.2.  CAs MUST recognize the parameter names
+       accounturi, policy, and persistUntil using ASCII case-insensitive
+       comparison.  This comparison applies only to parameter names; the
+       value-comparison rules below are unchanged.  Each of these
+       recognized parameters MUST occur at most once within a single
+       issue-value.  If a recognized parameter occurs more than once,
+       including with different casing, the CA MUST treat the record as
+       malformed and reject it.  To ensure forward compatibility, the
+       server MUST ignore parameters whose names it does not recognize,
+       including repeated occurrences of such parameters.
 
    2.  The issuer-domain-name portion of the issue-value MUST be one of
        the Issuer Domain Names provided by the CA in the
@@ -432,8 +435,13 @@ Table of Contents
        places hashed account URIs under the CA's infrastructure and lets
        a client construct them from the directory without a per-
        provisioning request to the CA.  The CA MUST choose a prefix such
-       that appending the remaining components yields a valid URI (for
-       example, https://ca.example/account-hash/).
+       that, for each hash algorithm it accepts, appending the remaining
+       components yields both a valid URI ([RFC3986]) and a value
+       conforming to the value production of the issue-value grammar in
+       [RFC8659], Section 4.2 (for example, https://ca.example/account-
+       hash/).  Clients and CAs MUST use the advertised prefix unchanged
+       when constructing the hashed URI, including any percent-encoded
+       octets.
 
        <hash-alg> MUST be the exact Hash Name String registered in the
        "Named Information Hash Algorithm Registry" defined by [RFC6920],
@@ -475,13 +483,13 @@ Table of Contents
 
        2.  domain_name is, by default, the FQDN being validated: the
            Validation Domain Name with its leading _validation-persist
-           label removed and no trailing dot, in the normalized
-           lowercase A-label form produced by Section 9.2.  This form is
-           US-ASCII.  This is the FQDN at which the _validation-persist
-           record is provisioned, not the FQDN of the certificate
-           ultimately requested; binding the record to its own domain is
-           what makes the hashed URI domain-specific (see
-           Section 7.2.3).
+           label removed and no trailing dot, in the lowercase ASCII
+           presentation form produced by Section 10.2, using validated
+           A-labels for internationalized labels.  This is the FQDN at
+           which the _validation-persist record is provisioned, not the
+           FQDN of the certificate ultimately requested; binding the
+           record to its own domain is what makes the hashed URI domain-
+           specific (see Section 8.2.3).
 
            As an exception, a client MAY set domain_name to the single
            US-ASCII octet * (0x2a; length_of_domain is then 0x01) to opt
@@ -489,7 +497,7 @@ Table of Contents
            hashed URI does not depend on the domain and MAY therefore be
            reused across domains.  A CA MUST accept a hashed URI
            computed with domain_name set to *. The privacy trade-off of
-           this opt-out is described in Section 7.2.3.
+           this opt-out is described in Section 8.2.3.
 
        3.  key is the 43 ASCII octets of the unpadded base64url encoding
            [RFC4648] of the SHA-256 JWK Thumbprint [RFC7638] of a public
@@ -506,7 +514,7 @@ Table of Contents
            to the deactivation and retention rules stated there.  This
            allows a record provisioned before a key rotation to continue
            to validate.  The rationale for these requirements is given
-           in Section 7.2.3.
+           in Section 8.2.3.
 
        4.  account_URL is the ACME account URL ([RFC8555], Section 7.3).
            A URI is US-ASCII per [RFC3986], so it is encoded as those
@@ -577,7 +585,7 @@ Table of Contents
    For example, for validation of the FQDN "example.com" with issuer
    domain name "authority.example", where the CA advertises an
    accountHashPrefix of "https://ca.example/account-hash/" and the
-   account's hashed URI (see Section 10.2 for the full computation) is
+   account's hashed URI (see Section 11.2 for the full computation) is
    "https://ca.example/account-hash/sha-256/5SQm7n6tPh2-
    PlLbCKGnViTXX5z19SCN4cPGQHSk-kw", the DNS TXT record would contain:
 
@@ -656,8 +664,7 @@ Table of Contents
 
    A domain MAY authorize multiple Certificate Authorities (CAs) by
    provisioning a separate _validation-persist TXT record for each
-   issuer.  This allows domain owners to maintain relationships with
-   multiple CAs simultaneously, enhancing flexibility and resilience.
+   issuer.
 
 4.3.1.  Coexistence of Records
 
@@ -692,16 +699,18 @@ Table of Contents
 
 4.3.3.  Security and Management Considerations
 
-   When authorizing multiple issuers, domain owners MUST consider the
-   following:
+   The following are operational considerations for domain owners
+   authorizing multiple issuers; the explicit requirement for
+   authorization removal appears below:
 
    *Auditing*  Regularly audit DNS records to ensure that only intended
       CAs remain authorized.  Remove records for CAs that are no longer
       in use.
 
-   *Independent Security*  Each authorized CA operates independently.
-      The compromise of one CA's systems does not directly affect the
-      security of other authorized CAs.
+   *Issuer and Account Checks*  Each record is checked against the
+      validating CA's Issuer Domain Names and the requesting account, as
+      specified in Section 4.2.  These checks do not establish that the
+      authorized CAs have independent infrastructure.
 
    *Weakest Link*  The domain's overall security posture is influenced
       by the security practices of all authorized CAs.  Domain owners
@@ -715,8 +724,6 @@ Table of Contents
    This example demonstrates how a domain owner can authorize two
    different CAs, "ca1.example" and "ca2.example", to issue certificates
    for example.org.
-
-   *DNS Configuration:*
 
    _validation-persist.example.org. 3600 IN TXT ("ca1.example;"
    " accounturi=https://ca1.example/account-hash/"
@@ -769,26 +776,26 @@ Table of Contents
    one record meets all validation requirements, the CA MAY transition
    the authorization to the "valid" status without returning a "pending"
    challenge to the client.  This mechanism is an optimization and does
-   not alter the ACME state machine defined in [RFC8555].  The server
-   internally transitions the authorization from "pending" through
-   "processing" to "valid" instantaneously.  From the client's
-   perspective, it receives a "valid" authorization object directly in
-   response to its creation request.
+   not alter the ACME state machine defined in [RFC8555].  The newOrder
+   response is an order object containing authorization URLs; the client
+   retrieves the referenced authorization objects using POST-as-GET
+   requests ([RFC8555], Sections 7.4 and 7.5).  If the CA offers the
+   optional newAuthz resource, its response contains the authorization
+   object directly ([RFC8555], Section 7.4.1).
 
    If no DNS TXT record meets the validation requirements, or if the
    records are absent, the CA MUST proceed with the standard
-   authorization flow by returning a "pending" authorization with an
-   associated dns-persist-01 challenge object.
+   authorization flow with a "pending" authorization and an associated
+   dns-persist-01 challenge object.
 
    CAs implementing Just-in-Time validation SHOULD rate-limit JIT DNS
    lookups per domain identifier, independent of the requesting account,
    to prevent amplification attacks where multiple accounts trigger
-   excessive queries against a target domain.  CAs SHOULD restrict JIT
-   validation to accounts that have previously completed a successful
-   dns-persist-01 validation.  CAs implementing Just-in-Time validation
-   SHOULD provide account activity notifications or logging, as this
-   path eliminates the challenge-response interaction that might
-   otherwise provide a detection window for account compromise.
+   excessive queries against a target domain.  CAs implementing Just-in-
+   Time validation SHOULD provide account activity notifications or
+   logging, as this path eliminates the challenge-response interaction
+   that might otherwise provide a detection window for account
+   compromise.
 
    This mechanism enables efficient reuse of persistent validation
    records while maintaining the security properties of the validation
@@ -829,7 +836,7 @@ Table of Contents
    CA's directory ([RFC8555], Section 7.1.1) and SHOULD retrieve the
    directory over an authenticated channel, so that the record is placed
    under the intended CA's infrastructure.  Because the hashed URI
-   cryptographically binds the account key (see Section 7.2.3), a record
+   cryptographically binds the account key (see Section 8.2.3), a record
    computed with the client's genuine account key cannot be made to
    validate for a different account; this key binding is what lets a
    domain owner safely pre-provision without the challenge-response
@@ -868,13 +875,13 @@ Table of Contents
    Sharing these values with such a party discloses the account URL,
    which the hashed form otherwise keeps out of public DNS, and enables
    that party to correlate the account's records across domains (see
-   Section 7.2.2); the key binding described in Section 7.2.3 is
+   Section 8.2.2); the key binding described in Section 8.2.3 is
    unaffected by which party performs the computation.
 
    Organizations pre-provisioning records SHOULD maintain an inventory
    of _validation-persist records and the ACME accounts they reference.
    Records MAY include a persistUntil parameter to bound their effective
-   lifetime (see Section 7.10).  Domain owners SHOULD audit _validation-
+   lifetime (see Section 8.11).  Domain owners SHOULD audit _validation-
    persist records after any DNS infrastructure security incident, as
    pre-provisioned records persist beyond the window of compromise.
 
@@ -958,7 +965,7 @@ Table of Contents
    *  If the policy parameter is absent or has any value other than
       wildcard, subdomain validation MUST NOT be permitted.
 
-   See Section 7.3 for important security implications of enabling
+   See Section 8.3 for important security implications of enabling
    subdomain validation.
 
 6.3.  Example: Subdomain Validation
@@ -972,7 +979,153 @@ Table of Contents
    *  Not permitted without additional validation: otherexample.com,
       example.net
 
-7.  Security Considerations
+7.  IP Address Validation via the Reverse Namespace
+
+   The dns-persist-01 validation method MAY also be used to validate
+   control of an IPv4 or IPv6 address represented as an ACME ip
+   identifier ([RFC8738], Section 3) by provisioning a persistent DNS
+   TXT record in the reverse DNS namespace.
+
+7.1.  Reverse-Zone Mapping and Validation Domain Name
+
+   When an ACME authorization object has identifier.type set to ip, the
+   client and CA construct the normalized Reverse Zone Domain Name (R)
+   for the IP address in lowercase US-ASCII with no trailing dot (note
+   that [RFC1035], Section 3.5 and [RFC3596], Section 2.5 write IN-
+   ADDR.ARPA and IP6.ARPA in uppercase; per Section 10.2, this
+   specification uses lowercase .in-addr.arpa and .ip6.arpa) as follows:
+
+   *  *IPv4 ([RFC1035], Section 3.5):* Represent the 32-bit IPv4 address
+      as four decimal octet labels (0–255, with leading zeros omitted
+      except for a single 0 octet) in reverse order, followed by the
+      suffix .in-addr.arpa.  For example, 192.0.2.1 maps to
+      1.2.0.192.in-addr.arpa.
+
+   *  *IPv6 ([RFC3596], Section 2.5):* Expand the 128-bit IPv6 address
+      to all 32 hexadecimal digits (expanding any :: zero compression)
+      and represent them as 32 single-character lowercase hexadecimal
+      (0–9, a–f) labels separated by dots in reverse order (low-order
+      nibble first), followed by the suffix .ip6.arpa.  The resulting
+      Reverse Zone Domain Name is always 72 octets in length.  For
+      example, 2001:db8::1 maps to
+      1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.
+
+   For an ip identifier, the Validation Domain Name is formed by
+   prepending the label _ip-validation-persist to the Reverse Zone
+   Domain Name (_ip-validation-persist.<R>).  This distinct underscore
+   label separates IP-address validation from dns-identifier validation.
+
+   A CA MUST query _ip-validation-persist.<R> only when validating an
+   authorization with identifier.type set to ip, and MUST query
+   _validation-persist only when validating an authorization with
+   identifier.type set to dns.  When validating an ip identifier with
+   dns-persist-01, the CA MUST NOT perform a PTR lookup or validate the
+   target domain name of a PTR record in place of _ip-validation-
+   persist.<R>.
+
+7.2.  Record Format, Digest Input, and Scope for IP Validation
+
+   All requirements in Section 4.1, Section 4.2, Section 4.3,
+   Section 4.4, Section 4.5 (excluding dns-only CAA accounturi guidance,
+   as CAA does not govern IP address issuance), Section 8.10,
+   Section 8.12, and Section 10 apply to ip authorizations by
+   substituting _ip-validation-persist.<R> for _validation-
+   persist.<FQDN> and the normalized Reverse Zone Domain Name R for the
+   validated FQDN, subject to the following rules:
+
+   1.  *Digest domain_name input:* By default, both the client (or
+       delegated DNS publisher) and the CA MUST set domain_name in
+       H(length_of_domain || domain_name || key || account_URL)
+       (Section 4.1) to the normalized lowercase US-ASCII Reverse Zone
+       Domain Name R (the Validation Domain Name with its leading _ip-
+       validation-persist. removed and no trailing dot).  As specified
+       in Section 4.1, a client MAY instead set domain_name to the
+       single US-ASCII octet * (0x2a; length_of_domain 0x01) to opt out
+       of per-address domain binding, and a CA MUST accept both forms.
+       Because a CNAME record at <R> (such as a classless in-addr.arpa
+       PTR alias) redirects only the owner name <R> and not child labels
+       beneath it, delegating _ip-validation-persist.<R> via CNAME
+       requires an explicit alias at _ip-validation-persist.<R> itself;
+       where _ip-validation-persist.<R> is aliased via CNAME to a target
+       in a delegated zone, both the publisher and the CA MUST still
+       compute domain_name using the normalized in-addr.arpa or ip6.arpa
+       Reverse Zone Domain Name R (or *), never the CNAME target (i.e.,
+       R is the reverse-mapping domain name of the IP address prior to
+       following any CNAME aliases, not the DNS canonical name of the
+       alias target in the sense of [RFC1035], Section 3.3.1).
+
+   2.  *Exact-address scope:* Validation of _ip-validation-persist.<R>
+       authorizes certificate issuance only for the single IPv4 or IPv6
+       address in the ip authorization's identifier.value.  It grants no
+       authority over any IP prefix, CIDR range, or reverse-zone
+       ancestor.  Clients and DNS publishers SHOULD omit the policy
+       parameter on _ip-validation-persist records; if policy=wildcard
+       (or any other policy value) is present on an _ip-validation-
+       persist record, the CA MUST ignore it and treat the validation as
+       applying only to the single IP address.
+
+   3.  *Challenge response for ip authorizations:* To respond to a dns-
+       persist-01 challenge for an ip authorization, the client POSTs an
+       empty JSON object ({}) to the challenge URL ([RFC8555],
+       Section 7.5.1).  Ancestor selection does not apply to ip
+       identifiers; if a client includes an ancestorDomain field in a
+       challenge response for an ip authorization, the CA MUST reject
+       the challenge with a malformed error ([RFC8555], Section 6.7).
+
+   4.  *Identifier-typed caching:* Any CA caching of computed hashed
+       URIs or validation outcomes (Section 4.2) MUST remain scoped to
+       the authorization's identifier type (ip versus dns) so that a
+       digest or record evaluated for one identifier type is never
+       treated as satisfying an authorization for the other identifier
+       type.
+
+7.3.  IPv4 and IPv6 Validation Examples
+
+   Using the same CA accountHashPrefix (https://ca.example/account-
+   hash/), Issuer Domain Name (authority.example), account URL
+   (https://ca.example/acct/123), and account key thumbprint
+   (NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs) as Section 11.2:
+
+   *  *IPv4 example (192.0.2.1):*
+
+      -  length_of_domain: 0x16 (22 octets)
+
+      -  domain_name: 1.2.0.192.in-addr.arpa
+
+      -  Unpadded base64url SHA-256 digest: CnwSwHOHJbE-
+         X_FSkydPTw6dGMovluSdRsY3_tmA-0E
+
+   _ip-validation-persist.1.2.0.192.in-addr.arpa. IN TXT (
+     "authority.example;"
+     " accounturi=https://ca.example/account-hash/"
+     "sha-256/CnwSwHOHJbE-X_FSkydPTw6dGMovluSdRsY3_tmA-0E")
+
+                    Figure 4: IPv4 Validation TXT Record
+
+   *  *IPv6 example (2001:db8::1):*
+
+      -  length_of_domain: 0x48 (72 octets)
+
+      -  domain_name:
+         1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa
+
+      -  Unpadded base64url SHA-256 digest:
+         9RLd7iwi0v30KV01dsPwGvSBucGEYgsJhDNCxk8Nb9g
+
+   _ip-validation-persist.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa. IN TXT (
+     "authority.example;"
+     " accounturi=https://ca.example/account-hash/"
+     "sha-256/9RLd7iwi0v30KV01dsPwGvSBucGEYgsJhDNCxk8Nb9g")
+
+                    Figure 5: IPv6 Validation TXT Record
+
+   If the client instead opts out of per-address binding by setting
+   domain_name to * (length_of_domain 0x01), both records use the same
+   hashed URI as the domain-omitted example in Section 11.2
+   (https://ca.example/account-hash/sha-256/
+   NpDnSwUthQK8zCgFdefYxAdAVPnygMLbs9US6oO-5ug).
+
+8.  Security Considerations
 
    The requirement for CAs to ignore unknown parameter tags means that
    future extensions must be carefully designed to ensure that being
@@ -980,7 +1133,7 @@ Table of Contents
    require strict enforcement should use alternative mechanisms, such as
    separate record types or explicit version negotiation.
 
-7.1.  Persistent Record Risks
+8.1.  Persistent Record Risks
 
    The persistence of validation records creates extended windows of
    vulnerability compared to traditional ACME challenge methods.  If an
@@ -999,23 +1152,24 @@ Table of Contents
 
    *  Regularly reviewing and rotating validation records
 
-7.2.  Account Binding Security
+8.2.  Account Binding Security
 
    The accounturi parameter provides strong binding between domain
    validation and the ACME account identified by the hashed URI.
    However, this binding depends on the security of the account itself.
 
-   The security of this method is fundamentally bound to the security of
-   the ACME account's private key.  Because the accounturi is a hashed
-   URI computed in part over the account key (see Section 7.2.3), if
-   this key is compromised, an attacker can immediately use any pre-
-   existing dns-persist-01 authorizations associated with that account
-   to issue certificates, without needing any further access to the
-   domain's DNS infrastructure.  This elevates the importance of secure
-   key management for ACME clients far above that required for transient
-   challenge methods, as the window of opportunity for an attacker is
-   tied to the lifetime of the persistent authorization, not a momentary
-   challenge.
+   The security of this method depends on protecting the ACME account's
+   current private key, which authenticates requests to the CA.  An
+   attacker who compromises that key can authenticate as the account and
+   use qualifying persistent records without further DNS access,
+   including dormant records computed with retained prior key
+   thumbprints (see Section 4.2).  The attacker does not need the
+   corresponding old private keys.  Still-valid authorizations can also
+   support issuance within their existing scope and expiration.
+   Issuance remains subject to the CA's authorization and policy checks;
+   account-key compromise does not guarantee immediate issuance.  The
+   persistence of the records makes secure account-key management
+   important throughout their effective lifetime.
 
    CAs SHOULD implement robust account security measures, including:
 
@@ -1033,18 +1187,20 @@ Table of Contents
    security as they would protect private keys for high-value
    certificates.
 
-7.2.1.  Account Key Rotation
+8.2.1.  Account Key Rotation
 
    When an account key rotates following the procedures defined in
    [RFC8555], Section 7.3.5, the ACME account URL remains unchanged.
-   The hashed URI in existing records changes because key is an input to
-   the hash.  Existing records remain valid under the retention rules in
-   Section 4.2.  Clients SHOULD republish _validation-persist records
-   with the hashed URI recomputed under the account's new key promptly
-   after a rotation.  Republication ensures records reflect current
-   credentials, which facilitates operational hygiene and auditing.
+   Recomputing the hashed URI with the new account key produces a
+   different value because key is an input to the hash.  Published
+   records remain unchanged until republication.  Existing records
+   remain valid under the retention rules in Section 4.2.  Clients
+   SHOULD republish _validation-persist records with the hashed URI
+   recomputed under the account's new key promptly after a rotation.
+   Republication ensures records reflect current credentials, which
+   facilitates operational hygiene and auditing.
 
-7.2.2.  Account URI Privacy
+8.2.2.  Account URI Privacy
 
    Because _validation-persist TXT records are publicly queryable and
    long-lived, the accounturi value is visible to any party that queries
@@ -1055,7 +1211,7 @@ Table of Contents
    Section 5.9.  The hashed URI defined in this document mitigates that
    risk by binding domain_name into the digest, so a given account
    produces a different accounturi value for each domain (see
-   Section 7.2.3).
+   Section 8.2.3).
 
    Domain owners who require stronger privacy can additionally use
    separate ACME accounts for domains that should not be correlated.
@@ -1065,14 +1221,14 @@ Table of Contents
    can link those domains.  A domain owner who uses the opt-out to reuse
    one record across domains accepts that linkage.
 
-7.2.3.  Hashed Account URIs
+8.2.3.  Hashed Account URIs
 
    The hashed URI is the sole accounturi form (Section 4.1).  It serves
    two purposes: it cryptographically binds the requesting account to
    the domain so that a record cannot be transferred to authorize a
    different account, preserving the non-transferability property of
    [RFC8555]; and it reduces the correlation exposure described in
-   Section 7.2.2.  It does not hide the account from the CA, which
+   Section 8.2.2.  It does not hide the account from the CA, which
    necessarily learns the account URL when it recomputes and validates
    the record.
 
@@ -1129,7 +1285,7 @@ Table of Contents
    cannot be lifted to a different domain.  A domain owner who
    deliberately wants one record to authorize many names uses the
    domain-omitted opt-out (domain_name set to *), accepting the
-   correlation trade-off described in Section 7.2.2.
+   correlation trade-off described in Section 8.2.2.
 
    *Digest construction.* The digest is compared for exact equality
    against a value the CA recomputes over a fixed field structure
@@ -1161,18 +1317,20 @@ Table of Contents
    when it was provisioned, so even if the key in the record is one that
    was later rotated out, the domain owner's intent to authorize that
    account is preserved.  Retaining historical public key thumbprints
-   creates no capability for an attacker: under [RFC8555],
-   Section 7.3.5, a rotated-out key cannot authenticate subsequent
-   requests, and registering a fresh account with an old key yields a
-   different account URL that produces a different hashed URI.
-   Furthermore, no CA acceptance policy can automatically distinguish an
-   honest key rotation from a hostile one, so time-bounded acceptance
-   provides no defense against account takeover; the effective controls
-   against account takeover remain account deactivation, DNS record
-   removal, and the persistUntil parameter.  Account deactivation
-   overrides this acceptance: once an account is deactivated, no digest
-   computed from any of its keys validates, which is the emergency stop
-   for a suspected key compromise.
+   does not allow a rotated-out key alone to authenticate subsequent
+   requests under [RFC8555], Section 7.3.5.  Registering a fresh account
+   with that key yields a different account URL and therefore a
+   different hashed URI.  However, a requester authenticating with the
+   original account's current key can use a qualifying record computed
+   with any retained prior thumbprint, including a dormant record that
+   was never previously validated, without possessing the corresponding
+   old private key.  This continuity also applies after compromise of
+   the current account key.  A key rollover alone does not establish
+   whether control of the account remains with the intended holder;
+   lifetime retention preserves record usability rather than providing
+   takeover containment.  Account deactivation overrides prior-key
+   acceptance, while DNS record removal and persistUntil have the timing
+   and reuse effects described in Section 8.12 and Section 8.10.
 
    *Limits of the privacy protection.* This construction is a best-
    effort obfuscation, not a cryptographically strong privacy mechanism.
@@ -1182,13 +1340,12 @@ Table of Contents
    Domain owners who require stronger unlinkability SHOULD use separate
    ACME accounts for domains that must not be correlated.
 
-7.3.  Subdomain Validation Risks
+8.3.  Subdomain Validation Risks
 
-   Enabling subdomain validation via policy=wildcard creates significant
-   security implications.  Organizations using this feature SHOULD
-   carefully control subdomain delegation and monitor for unauthorized
-   subdomains.  This policy value serves as the explicit mechanism for
-   domain owners to opt-in to broader validation scopes.
+   The policy=wildcard value serves as the explicit mechanism for domain
+   owners to opt-in to broader validation scopes.  Organizations using
+   this feature SHOULD carefully control subdomain delegation and
+   monitor for unauthorized subdomains.
 
    The ability to issue certificates for subdomains of validated FQDNs
    creates significant security risks, particularly in environments with
@@ -1218,7 +1375,37 @@ Table of Contents
    *  Provide clear governance policies for subdomain certificate
       authority
 
-7.4.  Cross-CA Validation Reuse
+8.4.  IP Address Validation Risks
+
+   When dns-persist-01 is used for an ip identifier (Section 7),
+   authorization derives from control of the _ip-validation-persist.<R>
+   node in the in-addr.arpa or ip6.arpa reverse DNS tree.  In many
+   deployments, reverse-zone delegation is held by the upstream network
+   provider, hosting operator, or address-space registrant rather than
+   the operator of the individual host, and [RFC8738], Section 7
+   prohibits dns-01 for IP identifiers (see also [RFC8738],
+   Section 9.1).  Unlike dns-01, _ip-validation-persist uses a dedicated
+   underscore label (_ip-validation-persist), binds both the CA (issuer-
+   domain-name) and the ACME account (accounturi), forbids PTR target
+   indirection, and ignores policy=wildcard so a single authorization
+   covers only one IP address.  However, because the reverse-zone
+   operator controls all nodes within its delegated zone, it can still
+   synthesize TXT responses across addresses in that zone (for example,
+   by publishing a DNS wildcard TXT record such as *.2.0.192.in-
+   addr.arpa carrying a domain_name=* hashed URI, which can answer both
+   _ip-validation-persist.<R> and _validation-persist.<R> queries where
+   no closer node intervenes).  Furthermore, if an IP address is
+   reassigned while a persistent _ip-validation-persist.<R> record (or
+   CNAME delegation) remains in place, the prior holder's account could
+   continue to validate the address until the record is removed and any
+   existing authorizations expire; operators SHOULD remove _ip-
+   validation-persist.<R> records upon address reassignment and SHOULD
+   use persistUntil (Section 8.11) to bound persistent records to the
+   expected address allocation period.  Address holders and CAs SHOULD
+   account for reverse-zone delegation boundaries in their threat
+   models.
+
+8.5.  Cross-CA Validation Reuse
 
    The persistent nature of validation records raises concerns about
    potential reuse across different Certificate Authorities.  While the
@@ -1226,7 +1413,7 @@ Table of Contents
    implementations MUST validate that the issuer-domain-name in the DNS
    record matches the CA's disclosed Issuer Domain Name.
 
-7.5.  Record Tampering and Integrity
+8.6.  Record Tampering and Integrity
 
    DNS records are generally not authenticated end-to-end, making them
    potentially vulnerable to tampering.  CAs SHOULD implement additional
@@ -1242,7 +1429,7 @@ Table of Contents
    DNS security risk that extends beyond this specification, it is
    amplified by any mechanism that relies on DNS for identity.
 
-7.6.  Issuer Domain Name Normalization and Limits
+8.7.  Issuer Domain Name Normalization and Limits
 
    The issuerDomainNames field requires domain names to be provided in a
    normalized form (lowercase A-labels, no trailing dot) to prevent
@@ -1258,7 +1445,7 @@ Table of Contents
    of DNS queries or a server might be burdened by validating against a
    large set of domains.
 
-7.7.  CAA Interaction
+8.8.  CAA Interaction
 
    The dns-persist-01 validation method is a valid validationmethods
    parameter value for CAA records per [RFC8657].  Under [RFC8657],
@@ -1272,13 +1459,13 @@ Table of Contents
    reinforcing checks: both can restrict issuance, and the CA evaluates
    them separately.
 
-7.8.  DNS Security Measures
+8.9.  DNS Security Measures
 
    To enhance the security and integrity of the validation process, CAs
    and clients should consider implementing advanced DNS security
    measures.
 
-7.8.1.  DNSSEC
+8.9.1.  DNSSEC
 
    DNS Security Extensions (DNSSEC) [RFC4033] provide cryptographic
    authentication of DNS data, ensuring that the validation records
@@ -1292,7 +1479,7 @@ Table of Contents
    guidance in [RFC8555] because dns-persist-01 records are long-lived
    and their compromise would persist for the record's lifetime.
 
-7.8.2.  Multi-Perspective Validation
+8.9.2.  Multi-Perspective Validation
 
    Multi-Perspective Issuance Corroboration (MPIC) is a technique to
    validate domain control from multiple network vantage points.  This
@@ -1306,7 +1493,7 @@ Table of Contents
    known and such localized attacks are not part of the threat model,
    operators might reasonably judge MPIC unnecessary.
 
-7.9.  Validation Data Reuse
+8.10.  Validation Data Reuse
 
    This validation method is explicitly designed for persistence and
    reuse.  The period for which a CA may rely on validation data is its
@@ -1323,12 +1510,12 @@ Table of Contents
    expires constraint established by any persistUntil parameter on the
    validated record (see Section 4.1).  For a validation attempt that
    queries DNS, removing or changing the TXT record takes effect after
-   resolver caches expire, as described in Section 7.11.  Record removal
+   resolver caches expire, as described in Section 8.12.  Record removal
    or later modification of persistUntil in DNS does not retroactively
    invalidate or shorten previously obtained validation data before its
    established authorization expiration.
 
-7.10.  persistUntil Parameter Considerations
+8.11.  persistUntil Parameter Considerations
 
    The persistUntil parameter provides domain owners with direct control
    over the validity period of their validation records.  CAs and
@@ -1353,7 +1540,7 @@ Table of Contents
    *  CAs MUST parse and apply the persistUntil timestamp as specified
       in Section 4.1.
 
-7.11.  Revocation and Invalidation of Persistent Authorizations
+8.12.  Revocation and Invalidation of Persistent Authorizations
 
    The persistent nature of dns-persist-01 authorizations means that a
    valid DNS TXT record can grant control for an extended period,
@@ -1372,17 +1559,20 @@ Table of Contents
        available to the domain owner and does not require CA
        involvement.
 
-   2.  *Deactivate ACME account:* For situations requiring immediate
-       revocation of issuance capability (e.g., suspected account key
-       compromise), the account bound by the record can be deactivated
-       as specified in [RFC8555], Section 7.3.6.  Per the deactivation
-       rule in Section 4.2, a CA MUST NOT accept a hashed URI computed
-       from any key of a deactivated account; deactivation therefore
-       takes effect immediately and overrides key retention, including
-       the certificate-backed retention of a key that a currently valid
-       certificate depends on.  This makes account deactivation a full
-       emergency measure that invalidates the record's utility without
-       waiting for DNS caches to expire.
+   2.  *Deactivate ACME account:* If account-key compromise is
+       suspected, the account bound by the record can be deactivated as
+       specified in [RFC8555], Section 7.3.6.  Per the deactivation rule
+       in Section 4.2, a CA MUST NOT accept a hashed URI computed from
+       any key of a deactivated account; new validations fail without
+       waiting for DNS caches to expire, and deactivation overrides
+       witnessed key retention.  RFC 8555 prohibits further requests
+       authorized by the deactivated account's key, but cancellation of
+       already-pending operations, such as certificate orders, is a
+       SHOULD rather than an unconditional requirement.  Deactivation
+       therefore does not guarantee that every pending issuance
+       operation is cancelled.  RFC 8555 also recommends against
+       revoking already-issued certificates solely because the account
+       was deactivated.
 
    The following table summarizes the applicability and timing of these
    actions:
@@ -1419,9 +1609,9 @@ Table of Contents
       timestamp and rejecting new validation attempts after the
       timestamp elapses.
 
-   *  Ensure their internal systems are capable of efficiently handling
-      the validation failure when DNS records are removed or become
-      invalid.
+   *  Handle failed challenges as specified in Section 4.2 and
+      Section 10.3; apply the fallback in Section 4.4 when a Just-in-
+      Time lookup finds no qualifying record.
 
    While this method provides a persistent signal of control, the
    fundamental ACME authorization object (as defined in [RFC8555])
@@ -1430,11 +1620,11 @@ Table of Contents
    authorization object issued by the CA will have a defined validity
    period, after which it expires unless renewed.
 
-8.  IANA Considerations
+9.  IANA Considerations
 
-8.1.  ACME Validation Methods Registry
+9.1.  ACME Validation Methods Registry
 
-   IANA is requested to register the following entry in the "ACME
+   IANA is requested to register the following entries in the "ACME
    Validation Methods" registry:
 
    *  *Label*: dns-persist-01
@@ -1445,10 +1635,19 @@ Table of Contents
 
    *  *Reference*: This document
 
-8.2.  Underscored and Globally Scoped DNS Node Names Registry
+   *  *Label*: dns-persist-01
 
-   IANA is requested to register the following entry in the "Underscored
-   and Globally Scoped DNS Node Names" registry defined in [RFC8552]:
+   *  *Identifier Type*: ip
+
+   *  *ACME*: Y
+
+   *  *Reference*: This document
+
+9.2.  Underscored and Globally Scoped DNS Node Names Registry
+
+   IANA is requested to register the following entries in the
+   "Underscored and Globally Scoped DNS Node Names" registry defined in
+   [RFC8552]:
 
    *  *RR Type*: TXT
 
@@ -1456,7 +1655,13 @@ Table of Contents
 
    *  *Reference*: This document
 
-8.3.  ACME Directory Metadata Fields
+   *  *RR Type*: TXT
+
+   *  *_NODE NAME*: _ip-validation-persist
+
+   *  *Reference*: This document
+
+9.3.  ACME Directory Metadata Fields
 
    IANA is requested to register the following entries in the "Fields in
    the 'meta' Object within a Directory Object" registry defined in
@@ -1474,7 +1679,7 @@ Table of Contents
 
    *  *Reference*: This document
 
-9.  Implementation Considerations
+10.  Implementation Considerations
 
    When designing future extensions to this specification, new
    parameters SHOULD be designed to degrade gracefully when ignored by
@@ -1482,7 +1687,7 @@ Table of Contents
    the security properties of the validation SHOULD NOT be introduced
    without a version negotiation mechanism.
 
-9.1.  DNS Record Size Considerations
+10.1.  DNS Record Size Considerations
 
    The RDATA of the TXT record, which contains the issue-value, may
    become large, particularly if the accounturi is long.  While the
@@ -1506,57 +1711,55 @@ Table of Contents
    _validation-persist.example.com. IN TXT ("first-255-bytes..."
    " ...remaining-bytes")
 
-                  Figure 4: Multi-String TXT Record Format
+                  Figure 6: Multi-String TXT Record Format
 
    Failure to correctly format long RDATA values may result in
    validation failures.
 
-9.2.  Domain Name Normalization Algorithm
+10.2.  Domain Name Normalization Algorithm
 
-   This section provides an algorithm for domain name normalization to
-   promote interoperability.  Both clients and servers SHOULD follow a
-   consistent normalization process to ensure that domain names are
-   handled uniformly.
+   Clients and CAs MUST use the following procedure to produce the
+   domain_name octets used in Section 4.1 from the actual DNS name at
+   which the record is provisioned, after removing the leading
+   _validation-persist label:
 
-   The recommended normalization process consists of the following four
-   steps, applied in order:
+   1.  Represent each internationalized label as a valid IDNA A-label,
+       as defined in [RFC5890] and [RFC5891].  If the selected name is
+       supplied using U-labels, those labels MUST be valid NFC U-labels
+       and MUST be converted directly to their A-label equivalents
+       without Unicode case-folding.  Existing labels beginning with
+       xn--, matched ASCII case-insensitively, MUST be checked for IDNA
+       validity after converting their ASCII letters to lowercase,
+       rather than treated as arbitrary ASCII strings.  Invalid IDNA
+       labels MUST NOT be used to construct or validate a record.
 
-   1.  *Case-folding*: Apply Unicode-aware, locale-independent case-
-       folding to the entire domain name string to convert it to
-       lowercase.
+   2.  Convert ASCII letters A through Z to lowercase.  Leave other
+       ASCII octets unchanged.
 
-   2.  *Unicode Normalization*: Normalize the string to Unicode
-       Normalization Form C (NFC).
+   3.  Remove the trailing root-label dot, if present.  Encode the
+       resulting presentation form as ASCII octets.
 
-   3.  *Punycode Conversion*: Convert each label of the domain name to
-       its A-label (Punycode) representation as specified in [RFC5890].
+   This procedure does not define how an application maps arbitrary user
+   input to a DNS name.  Any such mapping occurs before the name is
+   selected for provisioning or validation, not while deriving the hash
+   input.  In particular, the selected name faß.example has A-label form
+   xn--fa-hia.example; it MUST NOT be changed to fass.example when
+   computing domain_name.
 
-   4.  *Trailing Dot Removal*: Remove any trailing dot from the final
-       string.
+   For example, EXAMPLE.com. produces example.com.
 
-   For example, a domain name like EXAMPLE.com. is normalized as
-   follows:
+   An application accepting the user input üÑICODE-example.com. might
+   select the valid U-label name üñicode-example.com. before invoking
+   this procedure.  For that selected name:
 
-   1.  After case-folding: example.com.
+   1.  The A-label presentation is xn--icode-example-hkb8n.com..
 
-   2.  After NFC normalization: example.com.
+   2.  ASCII lowercasing leaves that presentation unchanged.
 
-   3.  After Punycode conversion: example.com.
+   3.  Removing the trailing root-label dot produces xn--icode-example-
+       hkb8n.com.
 
-   4.  After removing trailing dot: example.com
-
-   An internationalized domain name like üÑICODE-example.com. is
-   normalized as follows:
-
-   1.  After case-folding: ünicode-example.com.
-
-   2.  After NFC normalization: ünicode-example.com.
-
-   3.  After Punycode conversion: xn--nicode-example-9jb.com.
-
-   4.  After removing trailing dot: xn--nicode-example-9jb.com
-
-9.3.  CA Implementation Guidelines
+10.3.  CA Implementation Guidelines
 
    Certificate Authorities implementing this validation method should
    consider:
@@ -1570,21 +1773,22 @@ Table of Contents
    *  Providing clear documentation for clients on proper record
       construction
 
-9.3.1.  Error Handling
+10.3.1.  Error Handling
 
    When implementing the "dns-persist-01" validation method, Certificate
    Authorities SHOULD return appropriate ACME error codes to provide
    clear feedback on validation failures.  Specifically:
 
    *  CAs SHOULD return a malformed error (as defined in [RFC8555]) when
-      the TXT record has invalid syntax, such as duplicate parameters,
-      invalid timestamp format in the persistUntil parameter, missing
-      mandatory accounturi parameter, an accounturi that is not a well-
-      formed hashed URI (for example, one not placed under the CA's
-      accountHashPrefix, one using an algorithm identifier the CA does
-      not accept, or one whose hash value is not valid base64url of the
-      expected length), or other syntactic violations of the record
-      format specified in this document.
+      the TXT record has invalid syntax, such as duplicate occurrences
+      of a recognized parameter, invalid timestamp format in the
+      persistUntil parameter, missing mandatory accounturi parameter, an
+      accounturi that is not a well-formed hashed URI (for example, one
+      not placed under the CA's accountHashPrefix, one using an
+      algorithm identifier the CA does not accept, or one whose hash
+      value is not valid base64url of the expected length), or other
+      syntactic violations of the record format specified in this
+      document.
 
    *  CAs SHOULD return an unauthorized error (as defined in [RFC8555])
       when validation fails due to authorization issues, including:
@@ -1616,7 +1820,12 @@ Table of Contents
    extensive key rollover history, CAs MUST rate-limit failed validation
    attempts per domain and account.
 
-9.4.  Client Implementation Guidelines
+   Failed-validation rate limits do not bound the computation of an
+   individual validation attempt.  Matching a historical thumbprint can
+   require examining the full retained-key history, even when validation
+   succeeds.
+
+10.4.  Client Implementation Guidelines
 
    ACME clients implementing this validation method should consider:
 
@@ -1642,10 +1851,10 @@ Table of Contents
    operator if a record's persistUntil value has already expired or is
    likely to expire before validation completes.  A client that skips
    this check risks initiating a validation attempt that the CA will
-   reject with an unauthorized error (see Section 9.3) instead of
+   reject with an unauthorized error (see Section 10.3) instead of
    reporting an actionable, locally diagnosed cause.
 
-9.5.  DNS Provider Considerations
+10.5.  DNS Provider Considerations
 
    DNS providers supporting this validation method should consider:
 
@@ -1668,9 +1877,9 @@ Table of Contents
    *  Providing inventory and audit views of _validation-persist records
       to support the inventory practices described in Section 4.5
 
-10.  Examples
+11.  Examples
 
-10.1.  Basic Validation Example (FQDN Only)
+11.1.  Basic Validation Example (FQDN Only)
 
    For validation of "example.com" by a CA using "authority.example" as
    its Issuer Domain Name, where the validation should only apply to
@@ -1688,7 +1897,7 @@ Table of Contents
 
    2.  Client chooses one of the provided Issuer Domain Names (e.g.,
        "authority.example"), computes its hashed URI as shown in
-       Section 10.2, and provisions a DNS TXT record (note the absence
+       Section 11.2, and provisions a DNS TXT record (note the absence
        of a policy parameter for scope):
 
       _validation-persist.example.com. IN TXT ("authority.example;"
@@ -1698,7 +1907,7 @@ Table of Contents
    3.  CA validates the record through DNS queries.  This validation is
        sufficient only for "example.com".
 
-10.2.  Hashed-URI Example
+11.2.  Hashed-URI Example
 
    This example validates "example.com" using a hashed URI (Section 4.1)
    and serves as a test vector.  The hash inputs are:
@@ -1730,7 +1939,7 @@ Table of Contents
    " accounturi=https://ca.example/account-hash/"
    "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw")
 
-                   Figure 5: Hashed-URI Validation Record
+                   Figure 7: Hashed-URI Validation Record
 
    To instead opt out of the domain-correlation mitigation
    (Section 4.1), the client sets domain_name to the single octet * (so
@@ -1743,7 +1952,7 @@ Table of Contents
    NpDnSwUthQK8zCgFdefYxAdAVPnygMLbs9US6oO-5ug, does not depend on the
    domain and MAY be reused across domains.
 
-10.3.  Pre-Provisioned Validation Example
+11.3.  Pre-Provisioned Validation Example
 
    This example illustrates the pre-provisioning flow described in
    Section 4.5: the _validation-persist record for "example.com" is
@@ -1765,43 +1974,59 @@ Table of Contents
          }
        }
 
-               Figure 6: Directory Metadata for Pre-Provisioning
+               Figure 8: Directory Metadata for Pre-Provisioning
 
        Per Section 3.2, a name taken from this array is guaranteed to
        satisfy the issuer-domain-name requirement of any dns-persist-01
        challenge this CA issues later.
 
-   3.  The account holder supplies the account URL https://ca.example/
-       acct/123 and the account key's public JWK Thumbprint (encoded as
-       NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs, as in Section 10.2)
-       to the DNS operator managing the zone, a party distinct from the
-       ACME client.  No private key material is shared.  Using the same
-       inputs and result as Section 10.2, that party computes the hashed
-       URI and publishes the TXT record:
+   3.  Before handing off the record inputs, the account holder
+       satisfies the account check in Section 4.5 using an authenticated
+       POST-as-GET request to the exact account URL used in the digest,
+       https://ca.example/acct/123.  The request has a zero-length
+       payload: the JWS payload field is present and set to the empty
+       string "", rather than carrying the JSON object {}. The client
+       follows no redirects and verifies that the returned account
+       object's status is valid.  A successful proof for an unchanged
+       (account URL, account key) pair can satisfy this later pre-
+       publication check, as permitted in Section 4.5.  If the check is
+       not satisfied, the handoff does not proceed.
+
+       The domain owner then transmits the account URL
+       https://ca.example/acct/123, the account key's public JWK
+       Thumbprint (encoded as NzbLsXh8uDCcd-
+       6MNwXF4W_7noWXFZAfHkxZsRGC9Xs, as in Section 11.2), the domain
+       input example.com, the accountHashPrefix https://ca.example/
+       account-hash/, the algorithm identifier sha-256, and the selected
+       Issuer Domain Name authority.example through an authenticated
+       channel to the DNS operator managing the zone, a party distinct
+       from the ACME client.  The client retains the account private
+       key; no private key material is shared.  Using the same inputs
+       and result as Section 11.2, that party computes the hashed URI
+       and publishes the TXT record:
 
        _validation-persist.example.com. IN TXT ("authority.example;"
        " accounturi=https://ca.example/account-hash/"
        "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw")
 
-                  Figure 7: Pre-Provisioned Validation Record
+                  Figure 9: Pre-Provisioned Validation Record
 
-   4.  At any later time, the client submits a newOrder request.  If the
-       CA returns a pending dns-persist-01 challenge, the client
-       responds to it and the CA validates the already-present record
-       through DNS queries; no DNS change is needed at order time.  A CA
-       implementing Just-in-Time validation (Section 4.4) may instead
-       evaluate the record when the authorization is created and return
-       it already valid, subject to the restrictions in that section;
-       because the account in this example has not previously completed
-       a dns-persist-01 validation, a CA following that section's
-       account restriction would take the pending-challenge path for
-       this first order.
+   4.  At any later time, the client submits a newOrder request and
+       receives an order object containing authorization URLs.  The
+       client retrieves the referenced authorization objects using POST-
+       as-GET requests ([RFC8555], Section 7.5).  If an authorization is
+       pending with a dns-persist-01 challenge, the client responds by
+       POSTing {} to the challenge URL, and the CA validates the
+       already-present record using fresh DNS data; no DNS change is
+       needed at order time.  A CA implementing Just-in-Time validation
+       (Section 4.4) may instead complete the authorization's validation
+       without a challenge-response exchange, subject to the
+       restrictions in that section.
 
-10.4.  Wildcard Validation Example
+11.4.  Wildcard Validation Example
 
-   For validation of "*.example.com" (which also validates "example.com"
-   and specific subdomains like "www.example.com") by a CA using
-   "authority.example" as its Issuer Domain Name:
+   For validation of "*.example.com" by a CA using "authority.example"
+   as its Issuer Domain Name:
 
    1.  The CA provides a challenge object similar to the basic example,
        containing an issuerDomainNames array.
@@ -1815,13 +2040,18 @@ Table of Contents
        "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw;"
        " policy=wildcard")
 
-                  Figure 8: Wildcard Policy Validation Record
+                  Figure 10: Wildcard Policy Validation Record
 
-   3.  CA validates the record through DNS queries.  This validation
-       authorizes certificates for "example.com", "*.example.com", and
-       specific subdomains like "www.example.com".
+   3.  CA validates the record through DNS queries for the requested
+       wildcard identifier.  The resulting authorization has identifier
+       value example.com and wildcard set to true ([RFC8555], Sections
+       7.1.3 and 7.1.4).  The CA may also use this record to validate
+       "example.com" and specific subdomains like "www.example.com",
+       subject to Section 5 and Section 6.  Any required authorizations
+       for those identifiers are handled separately; the record's
+       applicability does not automatically complete them.
 
-10.5.  Validation Example with persistUntil
+11.5.  Validation Example with persistUntil
 
    For validation of "example.com" with an explicit expiration date:
 
@@ -1837,13 +2067,13 @@ Table of Contents
        "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw;"
        " persistUntil=1721952000")
 
-                Figure 9: Validation Record with Expiration Time
+               Figure 11: Validation Record with Expiration Time
 
    3.  CA validates the record.  This validation is sufficient only for
        "example.com" and will not be considered valid after the
        specified timestamp (2024-07-26T00:00:00Z).
 
-10.6.  Wildcard Validation Example with persistUntil
+11.6.  Wildcard Validation Example with persistUntil
 
    For validation of "*.example.com" with an explicit expiration date:
 
@@ -1860,16 +2090,18 @@ Table of Contents
        " policy=wildcard;"
        " persistUntil=1721952000")
 
-           Figure 10: Wildcard Validation Record with Expiration Time
+           Figure 12: Wildcard Validation Record with Expiration Time
 
-   3.  CA validates the record.  This validation authorizes certificates
-       for "example.com", "*.example.com", and specific subdomains, but
-       will not be considered valid after the specified timestamp
-       (2024-07-26T00:00:00Z).
+   3.  CA validates the record for the requested wildcard identifier,
+       with authorization scope as described in Section 11.4.  The
+       record may also support validation for "example.com" and specific
+       subdomains, but does not automatically complete authorizations
+       for those identifiers.  The validation will not be considered
+       valid after the specified timestamp (2024-07-26T00:00:00Z).
 
-11.  References
+12.  References
 
-11.1.  Normative References
+12.1.  Normative References
 
    [FIPS180-4]
               National Institute of Standards and Technology (NIST),
@@ -1906,6 +2138,11 @@ Table of Contents
               RFC 5890, DOI 10.17487/RFC5890, August 2010,
               <https://www.rfc-editor.org/info/rfc5890>.
 
+   [RFC3986]  Berners-Lee, T., Fielding, R., and L. Masinter, "Uniform
+              Resource Identifier (URI): Generic Syntax", STD 66,
+              RFC 3986, DOI 10.17487/RFC3986, January 2005,
+              <https://www.rfc-editor.org/info/rfc3986>.
+
    [RFC6920]  Farrell, S., Kutscher, D., Dannewitz, C., Ohlman, B.,
               Keranen, A., and P. Hallam-Baker, "Naming Things with
               Hashes", RFC 6920, DOI 10.17487/RFC6920, April 2013,
@@ -1923,17 +2160,27 @@ Table of Contents
               Thumbprint", RFC 7638, DOI 10.17487/RFC7638, September
               2015, <https://www.rfc-editor.org/info/rfc7638>.
 
-   [RFC3986]  Berners-Lee, T., Fielding, R., and L. Masinter, "Uniform
-              Resource Identifier (URI): Generic Syntax", STD 66,
-              RFC 3986, DOI 10.17487/RFC3986, January 2005,
-              <https://www.rfc-editor.org/info/rfc3986>.
+   [RFC8738]  Shoemaker, R.B., "Automated Certificate Management
+              Environment (ACME) IP Identifier Validation Extension",
+              RFC 8738, DOI 10.17487/RFC8738, February 2020,
+              <https://www.rfc-editor.org/info/rfc8738>.
+
+   [RFC3596]  Thomson, S., Huitema, C., Ksinant, V., and M. Souissi,
+              "DNS Extensions to Support IP Version 6", STD 88,
+              RFC 3596, DOI 10.17487/RFC3596, October 2003,
+              <https://www.rfc-editor.org/info/rfc3596>.
 
    [RFC8552]  Crocker, D., "Scoped Interpretation of DNS Resource
               Records through "Underscored" Naming of Attribute Leaves",
               BCP 222, RFC 8552, DOI 10.17487/RFC8552, March 2019,
               <https://www.rfc-editor.org/info/rfc8552>.
 
-11.2.  Informative References
+   [RFC5891]  Klensin, J., "Internationalized Domain Names in
+              Applications (IDNA): Protocol", RFC 5891,
+              DOI 10.17487/RFC5891, August 2010,
+              <https://www.rfc-editor.org/info/rfc5891>.
+
+12.2.  Informative References
 
    [birgelee-sc082-security]
               Birge-Lee, H., "Security of SC-082 Redux", 2025.
@@ -1952,15 +2199,16 @@ Acknowledgments
    The authors acknowledge prior community work that directly informed
    this specification:
 
-   *  The CA/Browser Forum ballot proposals to enable persistent /
-      static DNS Domain Control Validation signals in the Baseline
-      Requirements [cabf-br], in particular Ballot SC-082 ("Clarify CA
-      Assisted DNS Validation under 3.2.2.4.7", authored by Michael
-      Slaughter) and the active proposal SC-088 ("DNS TXT Record with
-      Persistent Value DCV Method", also authored by Michael Slaughter).
-      These efforts provided the policy framing and initial industry
-      discussion motivating standardization of a reusable ACME DNS
-      validation record.
+   *  The CA/Browser Forum ballot work on persistent / static DNS Domain
+      Control Validation signals in the Baseline Requirements [cabf-br],
+      in particular Ballot SC-082 ("Clarify CA Assisted DNS Validation
+      under 3.2.2.4.7", authored by Michael Slaughter) and Ballot SC-088
+      ("DNS TXT Record with Persistent Value DCV Method", also authored
+      by Michael Slaughter).  SC-088 was adopted on October 9, 2025,
+      with an effective date of November 10, 2025.  These efforts
+      provided the policy framing and initial industry discussion
+      motivating standardization of a reusable ACME DNS validation
+      record.
 
    *  The formal and empirical security analysis of static / persistent
       DCV methods performed by Henry Birge-Lee ("Proof of static DCV
@@ -2008,18 +2256,13 @@ Since draft-ietf-acme-dns-persist-01
    *  Added a mandatory domain-omitted opt-out (domain_name set to *)
       for correlation opt-out and cross-domain record reuse.
 
-   *  Specified CA key retention as a data-retention obligation with
-      ranked precedence (deactivation overrides certificate-backed
-      retention overrides general retention); account deactivation is an
-      immediate override.
-
    *  Retired the temporal key rotation window mechanisms
       (keyRotationPeriod directory metadata and keyRolloverWindow);
       prior-key acceptance is governed by CA retention.
 
    *  Specified uniform witnessed-thumbprint retention as a MUST bounded
-      only by account lifetime, with pruning permitted upon account
-      deactivation.
+      only by account lifetime, with account deactivation immediately
+      overriding acceptance and permitting pruning.
 
    *  Replaced the -01 reuse-unaffected text with a requirement that CAs
       clamp authorization expires to persistUntil.
@@ -2052,7 +2295,7 @@ Since draft-ietf-acme-dns-persist-01
       substitution rule.
 
    *  Clarified the relationship between the CAA accounturi and the dns-
-      persist-01 accounturi in the Introduction and Section 7.7, citing
+      persist-01 accounturi in the Introduction and Section 8.8, citing
       [RFC8657], Section 3.1.
 
    *  Added a privacy caveat noting that a cleartext http-01 key
@@ -2060,12 +2303,12 @@ Since draft-ietf-acme-dns-persist-01
       hashed URI, leaving account-URL entropy as the remaining
       protection.
 
-   *  Added client-side guidance (Section 9.4) to check persistUntil
+   *  Added client-side guidance (Section 10.4) to check persistUntil
       against local provisioning state before initiating an order (#38).
 
    *  Removed DNS TTL as a validation data reuse limit; reuse remains
       subject to persistUntil and the CA's Validation Data Reuse Period.
-      Renamed Section 7.9 accordingly and removed the related TTL-
+      Renamed Section 8.10 accordingly and removed the related TTL-
       specific implementation guidance (#42).
 
    *  Corrected the stale Account Key Rotation text: the account URL is
