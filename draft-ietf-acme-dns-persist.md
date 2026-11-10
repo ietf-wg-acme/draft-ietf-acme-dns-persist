@@ -695,6 +695,14 @@ IANA is requested to register the following entries in the "Fields in the 'meta'
 - **Field Type**: array of string
 - **Reference**: This document
 
+## ACME Error Types Registry {#acme-error-types-registry}
+
+IANA is requested to register the following entry in the "ACME Error Types" registry defined in {{!RFC8555}}, Section 9.7.4:
+
+- **Type**: persistExpired
+- **Description**: A persistent validation record matching the CA and requesting account has an expired `persistUntil` timestamp
+- **Reference**: This document
+
 # Implementation Considerations {#implementation-considerations}
 
 When designing future extensions to this specification, new parameters SHOULD be designed to degrade gracefully when ignored by CAs that do not recognize them. Parameters that fundamentally change the security properties of the validation SHOULD NOT be introduced without a version negotiation mechanism.
@@ -751,9 +759,11 @@ When implementing the "dns-persist-01" validation method, Certificate Authoritie
 
 - CAs SHOULD return a `malformed` error (as defined in {{!RFC8555}}) when the challenge response or TXT record has invalid syntax, such as an `ancestorDomain` value that is not a valid lowercase A-label proper ancestor within the DNS length limits ({{subdomain-implementation-requirements}}), a POST attempting to modify `ancestorDomain` on an accepted `pending`, `processing`, or finalized challenge ({{challenge-response-and-verification}}), duplicate occurrences of a recognized parameter, invalid timestamp format in the `persistUntil` parameter, missing mandatory `accounturi` parameter, an `accounturi` that is not a well-formed hashed URI (for example, one not placed under the CA's `accountHashPrefix`, one using an algorithm identifier the CA does not accept, or one whose hash value is not valid base64url of the expected length), or other syntactic violations of the formats specified in this document. For syntax errors detected in retrieved DNS TXT records (rather than the client's HTTP request payload) where this specification does not mandate a specific error type, a CA MAY return `unauthorized` instead of `malformed` to maintain a uniform authorization-failure disclosure policy.
 
-- CAs SHOULD return an `unauthorized` error (as defined in {{!RFC8555}}) when validation fails due to authorization or policy issues, including:
+- When a challenge validation attempt fails and at least one retrieved record at the queried Validation Domain Name is otherwise qualifying for that attempt—meaning it has valid syntax, uses an accepted hash algorithm, matches one of the challenge's `issuerDomainNames`, has an `accounturi` matching the live requesting account ({{verification-procedure}}), and satisfies any applicable `policy=wildcard` requirement—but fails solely because its well-formed `persistUntil` timestamp has passed, the CA SHOULD return a `persistExpired` error (`urn:ietf:params:acme:error:persistExpired`, {{acme-error-types-registry}}). A CA MUST NOT return `persistExpired` if any record at the queried name satisfies validation, or if no otherwise qualifying record for the CA and the requesting account failed solely due to an expired `persistUntil` timestamp (regardless of the order in which records are evaluated). This mandatory eligibility restriction ensures that `persistExpired` never discloses the expiration state of a record belonging to a different account or CA. A CA MAY return an `unauthorized` error instead of `persistExpired` even when the eligibility condition holds (for example, to maintain a uniform authorization-failure disclosure policy); if it does so, clients and operators cannot distinguish record expiration from other authorization failures using the error type alone.
+
+- CAs SHOULD return an `unauthorized` error (as defined in {{!RFC8555}}) when validation fails due to other authorization or policy issues (or when the CA declines to return `persistExpired` as described above), including:
    - The `accounturi` hashed URI in the DNS TXT record does not, when recomputed by the CA over the requesting account's retained keys (see {{verification-procedure}}), match any value the CA accepts for that account
-   - The `persistUntil` timestamp has expired, indicating that the validation record is no longer considered valid for new validation attempts
+   - The `persistUntil` timestamp has expired and `persistExpired` is not returned
    - The `issuer-domain-name` in the DNS TXT record does not match any of the values provided in the `issuerDomainNames` array of the challenge object
    - The record lacks `policy=wildcard` when required for a wildcard authorization, an {{!RFC9444}} `subdomainAuthAllowed` authorization, or a challenge response specifying `ancestorDomain`, or the request is declined under item 4 or 7 of {{subdomain-implementation-requirements}} or otherwise disallowed by the CA's policy
 
@@ -772,12 +782,12 @@ ACME clients implementing this validation method should consider:
 - Implementing secure DNS record management practices
 - Providing clear user interfaces for managing persistent validation records
 - Implementing validation record monitoring and alerting
-- Designing appropriate error handling for validation failures
+- Designing appropriate error handling for validation failures, accommodating both `persistExpired` and generic `unauthorized` responses when a record's `persistUntil` timestamp has passed
 - Considering the security implications of persistent records in their threat models
 
 Clients that delegate record publication to third parties (such as DNS providers) MUST perform the pre-publication account check specified in {{pre-provisioning-records}} before transmitting inputs.
 
-Clients that manage or provision `_validation-persist` records SHOULD inspect their own local provisioning state (rather than relying on a DNS lookup) before initiating a new order, and SHOULD warn the operator if a record's `persistUntil` value has already expired or is likely to expire before validation completes. A client that skips this check risks initiating a validation attempt that the CA will reject with an `unauthorized` error (see {{ca-implementation-guidelines}}) instead of reporting an actionable, locally diagnosed cause.
+Clients that manage or provision `_validation-persist` records SHOULD inspect their own local provisioning state (rather than relying on a DNS lookup) before initiating a new order, and SHOULD warn the operator if a record's `persistUntil` value has already expired or is likely to expire before validation completes. A client that skips this check risks initiating a validation attempt that the CA will reject with a `persistExpired` or `unauthorized` error (see {{ca-implementation-guidelines}}) instead of reporting an actionable, locally diagnosed cause.
 
 ## DNS Provider Considerations {#dns-provider-considerations}
 
