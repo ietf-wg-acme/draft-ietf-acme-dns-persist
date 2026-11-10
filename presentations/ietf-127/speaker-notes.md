@@ -2,92 +2,82 @@
 
 # Speaker Notes: draft-ietf-acme-dns-persist — IETF 127
 
-**Total slot: 10–15 minutes.** Speak for at most 8 minutes on the default route (or 6 minutes on the compressed route) and leave the remainder for WG discussion and the WGLC readiness check.
+**Total slot: 10 minutes** (Wednesday, November 18, 2026, 09:00 PST). Speak for about 7 minutes on the default route (or 5:30 on the compressed route) and leave 3+ minutes for WG discussion and the WGLC readiness check.
 
 ## Timing Summary
 
 | Slide | Topic | Time | Cumulative |
 |-------|-------|------|------------|
 | 1 | Title | 0:15 | 0:15 |
-| 2 | Since IETF 126 (`-02` + merged `#74`, `#75`, `#77`–`#83`) (default: short) | 0:45 | 1:00 |
-| 3 | Subdomain validation via `ancestorDomain` (`#33` / PR `#84`) (protect) | 1:45 | 2:45 |
-| 4 | IP validation via `_ip-validation-persist` (`#32` / PR `#85`) (protect) | 1:30 | 4:15 |
-| 5 | `persistExpired` error type (`#39` / PR `#86`) | 0:50 | 5:05 |
-| 6 | Combining with certificate-key attestation (`#76` / PR `#87`) | 0:50 | 5:55 |
-| 7 | Mailing-list implementation feedback (URI scheme & inner thumbprint) | 1:00 | 6:55 |
-| 8 | Implementation status, CABF alignment & WGLC path | 0:45 | 7:40 |
-| 9 | Questions & Discussion | 2:20+ | 10:00+ |
+| 2 | Since IETF 126 (`-02` + `-03` hardening & clarifications) (default: short) | 0:55 | 1:10 |
+| 3 | Subdomain validation via `ancestorDomain` (`#33` / PR `#84`) (protect) | 1:30 | 2:40 |
+| 4 | IP validation via `_ip-validation-persist` (`#32` / PR `#85`) (protect) | 1:15 | 3:55 |
+| 5 | `persistExpired` error type (`#39` / PR `#86`) | 0:45 | 4:40 |
+| 6 | Combining with certificate-key attestation (`#76` / PR `#87`) | 0:45 | 5:25 |
+| 7 | Mailing-list implementation feedback (URI scheme & inner thumbprint) | 0:50 | 6:15 |
+| 8 | Implementation status, earlier-draft interop, CABF & WGLC path (protect) | 0:45 | 7:00 |
+| 9 | Questions & Discussion | 3:00 | 10:00 |
 
 ## Time Discipline
 
 - **Protected slides:** Slides **3** (`ancestorDomain`, `#33`), **4** (`_ip-validation-persist`, `#32`), and **8** (WGLC path) are protected—Let's Encrypt and Google Trust Services specifically requested `#33` and `#32`, and Slide 8 sets up the WGLC ask.
-- **Default `[IF SHORT]` slide:** Use the `[IF SHORT]` script on **Slide 2** by default because `-02` was already reviewed on the list and `#77`–`#83` are already merged into `main`.
-- **Hard rule:** If Slide 4 (`_ip-validation-persist`) is not on screen by **3:30 cumulative**, switch Slides 5, 6, and 7 to their `[IF SHORT]` versions so you land on Slide 8 by 6:00 and preserve at least 3–4 minutes for the microphone queue.
+- **Default `[IF SHORT]` slide:** Use the `[IF SHORT]` script on **Slide 2** by default in the 10-minute slot (~920 spoken words across Slides 1–8).
+- **Hard rules:** If Slide 4 (`_ip-validation-persist`) is not on screen by **3:00 cumulative**, switch Slides 5, 6, and 7 to their `[IF SHORT]` versions (~5:30 total). If **6:15 cumulative** arrives before Slide 8, advance directly to Slide 8 so at least 3 minutes remain for the microphone queue.
 
 ---
 
 ## Slide 1: Title (0:15)
 
-"Good morning—Shiloh Heurich, presenting `draft-ietf-acme-dns-persist` with Henry Birge-Lee and Michael Slaughter. Fourth WG presentation. Today's goal is to walk through the four remaining feature PRs (`#84` through `#87`), close out two implementation questions from the mailing list, and check readiness for Working Group Last Call once `-03` is published."
-
-For newcomers (reinforce the subtitle briefly):
-"In one sentence: `dns-persist-01` lets a domain or IP holder publish a long-lived DNS TXT record carrying a hashed `accounturi` and an optional `persistUntil` timestamp so a specific ACME account at a specific CA can validate and renew certificates without modifying DNS on every issuance."
-
-**Transition:** "Quick recap of what landed since Vienna."
+"Good morning—Shiloh Heurich, presenting `draft-ietf-acme-dns-persist-03` with Henry Birge-Lee and Michael Slaughter. Today I'll cover the four feature additions and pre-WGLC hardening in `-03`, two October list questions, and our request for Working Group Last Call."
 
 ---
 
-## Slide 2: Since IETF 126 (Vienna) (0:45 default short / 1:15 full)
+## Slide 2: Since IETF 126 (Vienna) (0:55 default short / 1:25 full)
 
-**[DEFAULT — IF SHORT (0:45)]:**
-"In September we published `-02`, which landed the mandatory hashed `accounturi` construction, the domain-omitted star opt-out, lifetime witnessed-key retention across account key rollover overridden immediately by account deactivation, the `persistUntil` clamp on authorization `expires`, and directory `issuerDomainNames`.
+**[DEFAULT — IF SHORT (0:55)]:**
+"In September `-02` landed the mandatory hashed `accounturi`, the star opt-out, lifetime witnessed-key retention overridden by account deactivation, the `persistUntil` clamp, and directory `issuerDomainNames`.
 
-In `-03`, following Jacob Hoffman-Andrews's list feedback, hash canonicalization is ASCII only: validated A-label input, ASCII lowercasing, and trailing-dot removal. `issuer-domain-name` matching is exact, with no case folding. Parameter names are case-insensitive with duplicates rejected, `accountHashPrefix` fits RFC 8659's TXT `value` grammar, and the validation-flow and JIT rate-limiting text is clearer."
+In `-03`, hash canonicalization is ASCII-only on validated A-labels, `issuer-domain-name` matching is exact, and CAs follow CNAMEs at the Validation Domain Name while keeping `domain_name` bound to the pre-alias `R` (or `*`). Clients and delegated publishers MUST verify `accountHashPrefix` uses only RFC 8659 `value` octets and `%` plus RFC 3986 `reserved`/`unreserved` characters—blocking semicolon injection and zone-file escapes—with no fallback if absent or invalid. Recognized parameter tags are ASCII case-insensitive with duplicate recognized tags rejected; `persistUntil` MUST be unsigned ASCII digits up to `2^63 - 1`, valid through `T`, never combining records. CAs MUST NOT reassign account URLs to different accounts or derive them solely from the account key, and directory `issuerDomainNames` require stability and a migration period."
 
-**[FULL SCRIPT (1:15, only if given a 15-minute slot)]:**
-"On the left: `-02` published in September with all the core decisions from Vienna and the August list threads. The hashed `accounturi` is the sole form, binding the domain length, domain name, 43-octet RFC 7638 JWK thumbprint, and account URL. The domain-omitted `*` opt-out is client-MAY, CA-MUST. For account key rollover, CAs retain witnessed account-key thumbprints for the lifetime of the account so pre-provisioned and backup-CA records survive routine key rotations, while account deactivation immediately overrides retention. And `persistUntil` clamps the resulting ACME authorization's `expires` field.
+**[FULL SCRIPT (1:25, only if given extra time)]:**
+"On the left: `-02` published in September with all the core decisions from Vienna and the August list threads. The hashed `accounturi` is the sole form, binding the domain length, domain name, 43-octet RFC 7638 JWK thumbprint, and account URL. The domain-omitted `*` opt-out is client-MAY, CA-MUST. For account key rollover, CAs retain witnessed account-key thumbprints for the lifetime of the account while any non-`valid` account status (deactivated or revoked) immediately overrides retention. And `persistUntil` clamps the resulting authorization's `expires` field.
 
-On the right: `-03` includes PRs `#74`, `#75`, `#77` through `#83`, and `#89`. Following Jacob's list feedback, PR `#89` limits hash canonicalization to ASCII lowercasing and trailing-dot removal on validated A-label input, so `xn--fa-hia.example` and `fass.example` stay distinct. It also makes `issuer-domain-name` matching exact. PR `#80` makes parameter names (`accounturi`, `policy`, `persistUntil`) ASCII case-insensitive while keeping parameter values case-sensitive and rejecting duplicate recognized parameters. PR `#81` constrains `accountHashPrefix` to printable US-ASCII excluding semicolons and whitespace so constructed URIs always fit RFC 8659 TXT syntax. And PRs `#75`, `#82`, and `#83` clarify per-attempt computation bounds, delegated account-proof ordering, and JIT rate limiting."
+On the right: `-03` incorporates list feedback and pre-WGLC review hardening, plus new RFC 6973 Privacy Considerations and RFC 7942 Implementation Status sections. Following Jacob's list feedback, PR `#89` keeps hash canonicalization ASCII-only on validated A-labels and makes `issuer-domain-name` comparison exact. CAs follow CNAME aliases at `_validation-persist.<R>`, while `domain_name` stays the pre-alias `R`, never a CNAME target. On `accountHashPrefix`, both the client and any delegated publisher MUST verify the prefix is present and uses only RFC 8659 `value` octets and `%` plus RFC 3986 `reserved`/`unreserved` characters—blocking `;x=` parameter injection and `\`/`"` zone-file escapes—and MUST NOT fall back to another value if missing or invalid. Recognized parameter names are ASCII case-insensitive with duplicate recognized parameters rejected; `persistUntil` MUST be unsigned ASCII digits `<= 9223372036854775807`, valid at or before `T` and expired after `T`, and multiple qualifying records are never combined. Finally, CAs MUST NOT reassign an account URL or derive it solely from the account key, and advertised directory `issuerDomainNames` MUST stay stable with a dual-acceptance migration period."
 
 **Transition:** "`-03` also resolves the four open feature issues. First up is subdomain validation in `#33`."
 
 ---
 
-## Slide 3: Subdomain Validation via `ancestorDomain` (`#33` / PR `#84`) (1:45, protect)
+## Slide 3: Subdomain Validation via `ancestorDomain` (`#33` / PR `#84`) (1:30, protect)
 
-"At IETF 125 we discussed how a CA knows which parent domain holds a `policy=wildcard` record when validating a subdomain like `server.dept.example.com`, without doing blind DNS tree walks. PR `#84` resolves Issue `#33`.
+"PR `#84` resolves Issue `#33` without DNS tree walks via a request-only `ancestorDomain` field in the challenge-response `POST` payload, leaving the Challenge Object schema unchanged.
 
-First, we aligned the field name with RFC 9444's camelCase convention: `ancestorDomain`, sent only in the client's challenge-response `POST` payload. The server's Challenge Object resource is unchanged.
+PR `#84` separates the certificate identifier `F`, the authorization's `identifier.value` `A` (with `*.` already stripped per RFC 8555), and the record domain `R`. Default `{}` sets `R = A`—including base wildcards like `*.example.com`. Deeper wildcards (`*.dept.example.com`) or subdomains send `{\"ancestorDomain\": \"example.com\"}`.
 
-To avoid any ambiguity with wildcards, PR `#84` separates three names: the requested certificate identifier `F`, the authorization object's `identifier.value` `A`—where RFC 8555 Section 7.1.3 already strips the `*.` prefix—and the record domain `R`.
-- When the client sends the default empty JSON object `{}`, `R` equals `A`. Notice that for a base-level wildcard `*.example.com`, `A` is already `example.com`, so the client just sends `{}`.
-- For a deeper wildcard `*.dept.example.com` where `A` is `dept.example.com`, or a subdomain `server.dept.example.com`, the client sends `{\"ancestorDomain\": \"example.com\"}`.
+On the right:
 
-On the right are the six normative guardrails:
-1. Every CA implementing `dns-persist-01` MUST recognize `ancestorDomain` and never silently ignore it to query `A`.
-2. Both `R` and the constructed `_validation-persist.<R>` must fit the 63-octet label and 253-octet total DNS length limits, and `R` must be a strict whole-label proper suffix of normalized `A`.
-3. CAs SHOULD NOT accept a public suffix, because one record there would cover every registrant below it. A single-organization TLD or private PKI namespace is a reasonable exception. The same guidance applies to wildcard and RFC 9444 authorizations for a suffix.
-4. A qualifying record at `_validation-persist.<R>` MUST include `policy=wildcard`, and the `accounturi` digest is computed over `R` (or `*`), not the child name `A`.
-5. The first accepted challenge-response POST locks `R` for that validation attempt; conflicting retries are rejected with HTTP `malformed`.
-6. Finally, PR `#84` specifies clean coexistence with RFC 9444 (`subdomainAuthAllowed`): `ancestorDomain` in a challenge response satisfies only that single authorization for `A` without mutating `identifier.value` or setting `subdomainAuthAllowed`, whereas if a CA validates an RFC 9444 ancestor authorization (`subdomainAuthAllowed: true`) via `dns-persist-01`, `policy=wildcard` is required."
+1. CAs MUST recognize `ancestorDomain`—no silent fallback to `A`.
+2. DNS length limits (63-octet labels, 253-octet VDN) apply to every `R`, including `R = A`: if `_validation-persist.<A>` is overlong, the CA MUST reject `{}` with HTTP `malformed` without any DNS or JIT query, and the client can select an ancestor.
+3. `R` must be a strict whole-label proper suffix of `A`. CAs SHOULD NOT accept public suffixes—including suffix-level wildcard or RFC 9444 authorizations—with exceptions where one organization controls the suffix, such as a brand TLD or private PKI.
+4. The record at `R` requires `policy=wildcard`, and the digest hashes `R` (or `*`).
+5. The first accepted POST locks `R`, and `ancestorDomain` coexists with RFC 9444 while satisfying only `A`."
 
-**[IF SHORT]:** "PR `#84` adds a request-only `ancestorDomain` field to the `POST /chall` payload. CAs must recognize it, verify `R` is a non-public-suffix proper ancestor within the 253-octet VDN limit, require `policy=wildcard` at `_validation-persist.<R>`, and hash `R` (or `*`). It coexists cleanly with RFC 9444 without altering the authorization object." (45 sec)
+**[IF SHORT]:** "PR `#84` adds a request-only `ancestorDomain` field to `POST /chall`. CAs must recognize it, enforce the 253-octet VDN limit on both `R` and `R = A`, verify a whole-label proper ancestor while applying `SHOULD NOT` to public suffixes (subject to single-organization exceptions), require `policy=wildcard` at `R`, and hash `R` (or `*`)." (45 sec)
 
 **Transition:** "Second feature PR: IP address validation in `#32`."
 
 ---
 
-## Slide 4: IP Address Validation via `_ip-validation-persist` (`#32` / PR `#85`) (1:30, protect)
+## Slide 4: IP Address Validation via `_ip-validation-persist` (`#32` / PR `#85`) (1:15, protect)
 
-"PR `#85` resolves Issue `#32` by defining an additive profile for ACME `ip` identifiers under RFC 8738 using the reverse DNS tree.
+"PR `#85` resolves Issue `#32` with an additive RFC 8738 `ip` profile in reverse DNS. The normalized Reverse Zone Domain Name `R` is four reversed octets under `.in-addr.arpa` for IPv4 or 32 reversed lowercase hex nibbles under `.ip6.arpa` (72 octets) for IPv6.
 
-For IPv4, the normalized Reverse Zone Domain Name `R` is the four reversed decimal octets under `.in-addr.arpa`. For IPv6, `R` is all 32 reversed lowercase hexadecimal nibbles under `.ip6.arpa`—always 72 octets.
+We prepend `_ip-validation-persist.<R>`, register the node name and `ip` validation method with IANA, keep `ip` and `dns` queries and caches separate, and never follow `PTR` records.
 
-We prepend a distinct underscore label, `_ip-validation-persist.<R>`, and register both `_ip-validation-persist` in the IANA Underscored DNS Node Names registry and `dns-persist-01` for the `ip` identifier type. CAs query `_ip-validation-persist` only for `ip` authorizations, query `_validation-persist` only for `dns` authorizations, and never follow `PTR` records.
+Two key details:
 
-Two important details in PR `#85`, including updates from Max Hearnden's review on GitHub:
-- First, for the digest `domain_name` input, both the publisher and CA use the normalized lowercase `.in-addr.arpa` or `.ip6.arpa` Reverse Zone Domain Name `R` (or `*`) prior to following any CNAME aliases—not the DNS canonical name of a CNAME target. And because a CNAME at `<R>` redirects only `<R>` itself and not child labels beneath it, RFC 2317 classless CNAME delegation of `_ip-validation-persist.<R>` places the CNAME at `_ip-validation-persist.<R>` while still hashing the `.in-addr.arpa` / `.ip6.arpa` name `R`.
-- Second, validation scope is strictly the single IP address: `policy=wildcard` is ignored on `_ip-validation-persist` records, `ancestorDomain` is rejected with `malformed`, and Security Considerations call out reverse-zone delegation boundaries, DNS wildcard synthesis in delegated zones, and cleaning up records or bounding `persistUntil` across IP reassignments."
+- Matching Section 12.2's CNAME rule, both publisher and CA hash the normalized reverse name `R` (or `*`) prior to any CNAME aliases—never a CNAME target. For RFC 2317 delegation, the alias goes at `_ip-validation-persist.<R>` itself.
+- Scope is strictly one IP address: `policy=wildcard` is ignored, `ancestorDomain` is rejected with `malformed`, and Security Considerations cover reverse-zone delegation, DNS wildcards, and IP reassignment cleanup."
 
 **[IF SHORT]:** "PR `#85` adds IPv4 and IPv6 validation at `_ip-validation-persist.<R>` in `in-addr.arpa` and `ip6.arpa`. Digest input uses the normalized reverse name `R` (or `*`) even across RFC 2317 CNAME delegation, scope is strictly one IP address (`policy=wildcard` ignored, `ancestorDomain` rejected), and both IANA registries are updated." (40 sec)
 
@@ -95,12 +85,12 @@ Two important details in PR `#85`, including updates from Max Hearnden's review 
 
 ---
 
-## Slide 5: `persistExpired` Error Type (`#39` / PR `#86`) (0:50)
+## Slide 5: `persistExpired` Error Type (`#39` / PR `#86`) (0:45)
 
-"PR `#86` addresses Issue `#39` on dedicated error types. Rather than minting separate error codes for every sub-case—which risks creating an oracle across other accounts' or CAs' records at the same domain—PR `#86` registers a single error type, `urn:ietf:params:acme:error:persistExpired`, with a strict two-part rule:
+"PR `#86` resolves Issue `#39` by registering `urn:ietf:params:acme:error:persistExpired` with a two-part rule:
 
-1. A mandatory `MUST NOT` privacy gate: a CA MUST NOT return `persistExpired` if any record at the queried name satisfies validation, or if no record at that name is otherwise fully qualifying for the CA and the live requesting account and failed solely due to an expired `persistUntil` timestamp—regardless of RRset evaluation order.
-2. A `SHOULD` diagnostic recommendation: when that eligibility condition holds on a challenge attempt, the CA SHOULD return `persistExpired`, and MAY return `unauthorized` if it enforces a uniform disclosure policy. Just-in-Time validation continues to fall back to `pending`."
+1. Mandatory `MUST NOT` privacy gate: never return `persistExpired` if any record validates, or unless a record otherwise qualifying for the CA and live requesting account failed solely due to `persistUntil`, independent of RRset order.
+2. `SHOULD` diagnostic: when eligible on a challenge attempt, return `persistExpired` (or `unauthorized` for uniform disclosure). Records are valid through `T` and expired after `T`; multi-record failure priority stays `persistExpired`, `unauthorized`, `malformed`; JIT still falls back to `pending`."
 
 **[IF SHORT]:** "PR `#86` registers `persistExpired` with a mandatory `MUST NOT` privacy gate so it only fires when a record belonging to the requesting account and CA failed solely due to `persistUntil`, never leaking another account's or CA's expiry state." (20 sec)
 
@@ -108,16 +98,13 @@ Two important details in PR `#85`, including updates from Max Hearnden's review 
 
 ---
 
-## Slide 6: Combining with Certificate-Key Attestation (`#76` / PR `#87`) (0:50)
+## Slide 6: Combining with Certificate-Key Attestation (`#76` / PR `#87`) (0:45)
 
-"Issue `#76` asked how an enterprise or IoT deployment can require both `dns-persist-01` domain validation and hardware key attestation such as `device-attest-01`.
+"PR `#87` resolves Issue `#76` on requiring both `dns-persist-01` and certificate-key attestation. Because authorization `challenges` and CAA `validationmethods` are disjunctive and unknown TXT parameters are `MUST ignore`, PR `#87` specifies an ACME Order-level conjunction (citing `device-attest` informatively):
 
-As Slide 6 notes, ACME challenge arrays within a single authorization object are `OR` alternatives, CAA `validationmethods` lists are `OR` alternatives, and unknown `_validation-persist` parameters must be ignored by CAs that don't implement them.
-
-So PR `#87` specifies the conjunction at the ACME Order policy layer under RFC 8555 Sections 7.1.3 and 7.4, citing `draft-ietf-acme-device-attest` informatively so we create no normative reference hold:
-1. A CA enforcing the conjunction for an account or identifier MUST include the attestation authorization on every Order in that scope—covering all wildcard and subordinate names—and MUST NOT allow the client to waive it.
-2. At Order finalization, the CA MUST verify that all Order authorizations are `valid` AND that the CSR public key matches the Order's attested public key—even when `dns` validated via JIT or reuse.
-3. On renewal with a new CSR key, JIT reuses the `_validation-persist` record while the new Order requires fresh attestation for the new key."
+1. The CA MUST include the attestation authorization on every Order in scope—covering wildcards and subdomains—and MUST NOT allow client waiver.
+2. At finalization, all Order authorizations MUST be `valid` and the CSR key MUST match the attested key, even across JIT or authorization reuse.
+3. Key-rotating renewals reuse `_validation-persist` via JIT with fresh attestation for the new CSR key."
 
 **[IF SHORT]:** "PR `#87` specifies `dns-persist-01` plus certificate-key attestation as a non-waivable Order-level authorization conjunction with CSR public-key binding at finalization, citing `device-attest` informatively." (20 sec)
 
@@ -125,18 +112,13 @@ So PR `#87` specifies the conjunction at the ACME Order policy layer under RFC 8
 
 ---
 
-## Slide 7: Mailing-List Implementation Feedback (1:00)
+## Slide 7: Mailing-List Implementation Feedback (0:50)
 
-"Seo updated his Pebble fork to `-02` and raised two questions on the list that Henry asked us to bring to the group:
+"Two questions from Seo Suchan's October 13 Pebble `-02` report:
 
-First: should we keep the `https://` `accountHashPrefix` construction or mint a bespoke `accounthash:` URI scheme? The authors recommend keeping `https://` `accountHashPrefix`:
-- RFC 8657 Section 5.4 explicitly recommends satisfying `accounturi` uniqueness with URIs that include an authority component, which `https://` provides and a bare `accounthash:sha-256/...` lacks.
-- A custom scheme saves zero ACME directory lookups, because pre-provisioning already uses the directory's `issuerDomainNames` array (and in delegated DNS flows, the ACME client passes the computed URI or prefix to the DNS publisher).
-- Keeping `https://` avoids adding a BCP 35 IANA URI-scheme registration dependency and stays aligned with the draft CA/B Forum ballot text. And the one real trade-off—CA domain rebranding—is already handled by the Section 4.5 dual-acceptance migration rule.
+First, keep `https://` `accountHashPrefix` rather than a custom `accounthash:` scheme: RFC 8657 Section 5.4 recommends an authority component, pre-provisioning already fetches the directory for `issuerDomainNames`, we avoid a BCP 35 scheme registration while matching the CA/B Forum proposal's URI form, and Section 4.5's dual-acceptance migration rule covers `accountHashPrefix`, account URLs, and `issuerDomainNames`.
 
-Second: why is the inner `key` input fixed to the 43-octet RFC 7638 SHA-256 JWK thumbprint while the outer `<hash-alg>` is agile?
-- Because RFC 8555 Section 8.1 hardcodes the 43-octet SHA-256 JWK thumbprint for ACME key authorizations, every client and CA already computes it.
-- Even more importantly for CAs: keeping `key` fixed to that 43-octet string means a CA's historical key-retention table stores **one** 43-byte thumbprint per key regardless of which outer `<hash-alg>` the client uses, and keeps the field boundary before `account_URL` fixed-length."
+Second, keep inner `key` fixed to the 43-octet RFC 7638 SHA-256 thumbprint: clients and CAs already compute it for RFC 8555 Section 8.1, and CAs store just one 43-byte thumbprint per historical key regardless of outer `<hash-alg>`."
 
 **[IF SHORT]:** "On the October 13 list thread: we recommend keeping `https://` `accountHashPrefix` (matches RFC 8657 §5.4 authority guidance, saves a BCP 35 URI-scheme registration, and a custom scheme wouldn't remove the directory fetch for `issuerDomainNames`) and keeping the inner JWK thumbprint fixed at RFC 7638 SHA-256 (matching RFC 8555 §8.1 and keeping CA historical key storage to one thumbprint per key)." (25 sec)
 
@@ -146,9 +128,9 @@ Second: why is the inner `key` input fixed to the 43-octet RFC 7638 SHA-256 JWK 
 
 ## Slide 8: Implementation Status & Path to WGLC (0:45, protect)
 
-"`-03` resolves Issues `#33`, `#32`, `#39`, and `#76` through PRs `#84` to `#87`, plus the normalization change in `#89`. Every tracked issue is addressed.
+"`-03` resolves Issues `#33`, `#32`, `#39`, and `#76` through PRs `#84` to `#87`, plus `#89` and the pre-WGLC review guardrails. Every tracked issue is addressed.
 
-On the implementation side: Boulder, Pebble, and lego have support merged, and Boulder's update to `-02` is in progress. Seo's Pebble fork exercised `-02`, and a cert-manager design proposal is in review. CAs including Let's Encrypt, Fastly, Amazon Trust Services, and Google Trust Services have been actively engaged. On the CA/B Forum side, Michael's draft Servercert ballot defines the dedicated ACME `dns-persist-01` validation method aligned with `-03`.
+On implementations (`-03` conformance not yet verified): Pebble and lego have merged support, Pebble has an open `-02` PR (`#566`), Boulder merged `-01` and tracks `-02` in `#9127`, and cert-manager's design PR `#9487` is in review. Note in Section 8 that earlier-draft deployments do not interoperate with `-03`: `-03` clients require `accountHashPrefix` and skip `-01` directories that omit it, such as GTS's `-01` deployment. In CA/B Forum, Michael's Method 23 proposal (`servercert` PR `#9`) currently references `-02`; updating it for `-03` is a next step.
 
 We think `-03` is ready, so we'd like to ask the chairs to start Working Group Last Call."
 
@@ -176,7 +158,7 @@ The client sends `{}`. Under RFC 8555 Section 7.1.3, the ACME server strips the 
 
 ### 3. If a client sends an invalid or public-suffix `ancestorDomain`, does that transition the challenge to `invalid` or return an HTTP error while leaving the challenge `pending`? (#33 / PR #84)
 
-PR `#84` specifies this explicitly: syntax, non-ancestor, and public-suffix/policy rejections on the `POST` request (Items 2–4) are HTTP request errors (RFC 8555 Section 7.5.1) that leave the challenge in the `pending` state, whereas a DNS verification failure at `_validation-persist.<R>` (Item 5, such as missing `policy=wildcard` or non-matching `accounturi`) is a validation failure that transitions the challenge to `invalid` (RFC 8555 Section 7.1.6).
+PR `#84` specifies this explicitly: syntax, non-ancestor, and public-suffix/policy rejections on the `POST` request (Items 2–4 and 7) are HTTP request errors (RFC 8555 Section 7.5.1) that leave the existing challenge state unchanged (so a challenge that has not yet accepted a response remains `pending`), whereas a DNS verification failure at `_validation-persist.<R>` (Item 5, such as missing `policy=wildcard` or non-matching `accounturi`) is a validation failure that transitions the challenge to `invalid` (RFC 8555 Section 7.1.6).
 
 ### 4. How does RFC 2317 classless `in-addr.arpa` CNAME delegation work with `_ip-validation-persist`? (#32 / PR #85)
 
@@ -196,4 +178,12 @@ Because Section 4.1 Item 1 requires CAs to ignore unrecognized parameters in `_v
 
 ### 8. What about the recomputation DoS discussion on Issue #69 (retained historical keys)?
 
-Merged PR `#75` and `#83` note in Section 10.3 (`{{#ca-implementation-guidelines}}`) that while current-key-first evaluation makes normal validations `O(1)` and failed-validation rate limits bound failed attempts, an admitted attempt that succeeds against an older retained thumbprint can still scan the account's retained-key history. Because the account holder controls how many times it calls `keyChange`, CAs bound worst-case per-attempt work by rate-limiting `keyChange` or admitted attempts per account (and computing candidate hashes once per retained key across an RRset), without reintroducing a 50-key eviction cap that would break dormant backup-CA records.
+Merged PR `#75` and `#83` note in Section 12.3 (`{{#ca-implementation-guidelines}}`) that while current-key-first evaluation makes normal validations `O(1)` and failed-validation rate limits bound failed attempts, an admitted attempt that succeeds against an older retained thumbprint can still scan the account's retained-key history. Because the account holder controls how many times it calls `keyChange`, CAs bound worst-case per-attempt work by rate-limiting `keyChange` or admitted attempts per account (and computing candidate hashes once per retained key across an RRset), without reintroducing a 50-key eviction cap that would break dormant backup-CA records.
+
+### 9. Can `_validation-persist.<R>` be a CNAME alias, and what is hashed in `domain_name`?
+
+Yes. Section 12.2 (`{{#normalization-algorithm}}`) specifies that CAs follow CNAME aliases at the Validation Domain Name as for any TXT query, while `domain_name` in `H(length_of_domain || domain_name || key || account_URL)` remains the pre-alias `R` (or `*`), never a CNAME target. Thus a record computed over a specific `R` cannot be lifted to authorize another domain via CNAME, while a domain owner who wants one shared CNAME target across many domains uses the explicit `domain_name = *` opt-out.
+
+### 10. Why do `-03` clients skip `-01` deployments like Google Trust Services today?
+
+Section 4.1 Item 3 requires clients and delegated publishers to verify before building a record that `accountHashPrefix` is present in the directory and contains only RFC 8659 `value` octets and `%` plus RFC 3986 `reserved`/`unreserved` characters, with no fallback to raw account URLs. That check prevents a tampered or crafted prefix (such as one containing `;x=` or master-file escapes) from turning the client's digest into an ignored parameter. Because `-01` directories omit `accountHashPrefix` while using the same `dns-persist-01` challenge name, `-03` clients treat `dns-persist-01` as unavailable there until the CA advertises `accountHashPrefix` (noted non-normatively in Section 8, Implementation Status).

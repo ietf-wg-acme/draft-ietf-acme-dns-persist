@@ -170,10 +170,10 @@ IETF 127 ACME WG — San Francisco
 
 ## Landed in `-03`
 
-- [ASCII-only hash canonicalization](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/89) (after [#77](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/77), [#79](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/79); list feedback): validated A-label input, ASCII lowercase + strip trailing dot; exact `issuer-domain-name` match
-- [Case-insensitive parameter names](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/80): `accounturi`, `policy`, `persistUntil`; duplicate recognized names rejected
-- [`accountHashPrefix` syntax](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/81): fits RFC 8659 TXT `value` grammar
-- [Validation flows & security limits](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/82) + [normative & JIT guidance](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/83) + [per-attempt cost](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/75)
+- **Hash & CNAMEs ([#89](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/89)):** ASCII A-labels; exact `issuer-domain-name`; follow CNAMEs, hash pre-alias `R` (or `*`)
+- **`accountHashPrefix` ([#81](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/81)):** client/publisher **MUST** verify RFC 8659 `value` + URI chars; no fallback
+- **Parameters ([#80](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/80)):** case-insensitive recognized tags (no dupes); `persistUntil` **MUST** be ASCII digits `≤ 2^63−1` (valid `≤ T`)
+- **Account & issuer MUSTs:** no URL reassignment or sole-key URLs; `issuerDomainNames` stable + migration
 
 </div>
 </div>
@@ -204,11 +204,10 @@ POST /chall/abc  →  { "ancestorDomain": "example.com" }
 ### Guardrails & RFC 9444
 
 - **CA MUST recognize:** no silent fallback to `A`
-- **Proper ancestor:** strict suffix of `A`; VDN ≤ 253 octets
-- **Public suffixes: SHOULD NOT** accept (`unauthorized` if declined)
-- **Requires `policy=wildcard`** at `R`; digest hashes `R` (or `*`)
-- **First accepted POST locks `R`** for the attempt
-- **RFC 9444 (`subdomainAuthAllowed`):** coexists; satisfies only `A`
+- **Length MUST (`R` & `A`):** VDN ≤ 253 octets; overlong `_validation-persist.<A>` → `malformed`
+- **Proper ancestor:** strict suffix of `A`; public suffixes **SHOULD NOT** (incl. suffix wildcard/9444; `unauthorized`)
+- **Record at `R`:** requires `policy=wildcard`; hashes `R` (or `*`)
+- **Locks `R`:** first accepted POST fixes `R`; RFC 9444 (`subdomainAuthAllowed`) coexists
 
 </div>
 </div>
@@ -255,8 +254,8 @@ Registers `urn:ietf:params:acme:error:persistExpired` (RFC 8555 §9.7.4):
 | **1. Privacy Gate (`MUST NOT`)** | CA **MUST NOT** return `persistExpired` if any record at the queried name validates, or if no record at that name is otherwise qualifying for the CA and **live requesting account** and failed solely due to an expired `persistUntil` (order-independent across RRsets). |
 | **2. Diagnostic (`SHOULD` / `MAY`)** | When eligible on a challenge attempt, CA **SHOULD** return `persistExpired`, and **MAY** return `unauthorized` for uniform disclosure. |
 
-- **Just-in-Time validation:** continues to fall back to a `pending` challenge
-- **Clients:** check `persistUntil` locally before ordering; handle both `persistExpired` and `unauthorized`
+- **Boundary & order:** valid `≤ T`, expired `> T`; multi-record priority: `persistExpired` → `unauthorized` → `malformed`
+- **JIT & clients:** JIT falls back to `pending`; clients check `persistUntil` locally and handle `persistExpired` or `unauthorized`
 
 <div class="ask">
 
@@ -300,8 +299,8 @@ From [Seo Suchan's Pebble `-02` implementation report](https://mailarchive.ietf.
 
 - **RFC 8657 §5.4:** `accounturi` URIs include an authority component
 - **Zero directory savings:** pre-provisioning already uses directory `issuerDomainNames`
-- **No BCP 35 hold:** avoids IANA scheme registration; aligned with [servercert PR #9](https://github.com/slghtr-says/servercert/pull/9)
-- **Rebrands:** covered by §4.5 dual-acceptance migration
+- **No BCP 35 hold:** avoids IANA scheme; matches [servercert PR #9](https://github.com/slghtr-says/servercert/pull/9)
+- **Rebrands (§4.5):** dual-acceptance migration covers prefix, account URLs, and `issuerDomainNames`
 
 </div>
 <div>
@@ -334,8 +333,8 @@ H(len || domain_name || key || account_URL)
 
 ## Issue & PR Status
 
-- **Clarifications since `-02`:**
-  - [#74](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/74), [#75](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/75), [#77](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/77)–[#83](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/83), [#89](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/89)
+- **Clarifications & MUSTs:**
+  - [#74](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/74), [#75](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/75), [#77](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/77)–[#83](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/83), [#89](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/89) + pre-WGLC review
 - **New in `-03`:**
   - [PR #84](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/84): `#33` `ancestorDomain` + RFC 9444
   - [PR #85](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/85): `#32` `_ip-validation-persist`
@@ -348,12 +347,11 @@ H(len || domain_name || key || account_URL)
 
 ## Implementations & CABF
 
-- **Pebble:** merged ([#536](https://github.com/letsencrypt/pebble/pull/536)); `-02` fork tested
-- **lego:** merged ([#2871](https://github.com/go-acme/lego/pull/2871))
-- **Boulder:** `-01` merged; `-02` update in progress ([#9127](https://github.com/letsencrypt/boulder/issues/9127))
-- **cert-manager:** design proposal in review ([#9487](https://github.com/cert-manager/cert-manager/pull/9487))
+- **Servers:** Pebble ([#536](https://github.com/letsencrypt/pebble/pull/536) merged, `-02` PR [#566](https://github.com/letsencrypt/pebble/pull/566)); Boulder [`-01`](https://github.com/letsencrypt/boulder/pull/8725) (`-02` [#9127](https://github.com/letsencrypt/boulder/issues/9127))
+- **Clients:** lego merged ([#2871](https://github.com/go-acme/lego/pull/2871)); cert-manager PR ([#9487](https://github.com/cert-manager/cert-manager/pull/9487))
 - **CAs:** Let's Encrypt, Fastly / Certainly, Amazon Trust Services, Google Trust Services
-- **CA/B Forum:** draft ballot ([servercert PR #9](https://github.com/slghtr-says/servercert/pull/9)) aligned with `-03`
+- **No old-draft interop:** `-03` clients require `accountHashPrefix` (skip `-01`)
+- **CA/B Forum:** Method 23 ([servercert PR #9](https://github.com/slghtr-says/servercert/pull/9): cites `-02`, `-03` next)
 
 </div>
 </div>

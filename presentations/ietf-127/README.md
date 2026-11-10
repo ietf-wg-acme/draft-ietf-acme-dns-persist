@@ -6,11 +6,11 @@ Meeting: IETF 127 ACME Working Group
 
 Location: San Francisco, USA (in-person and remote)
 
-Slot: Wednesday, November 18, 2026, 09:00–11:00 PST (17:00–19:00 UTC)
+Slot: Wednesday, November 18, 2026, 09:00–11:00 PST (17:00–19:00 UTC; 10-minute presentation slot)
 
-Draft: `draft-ietf-acme-dns-persist` (`-02` published; post-`-02` clarifications `#74`, `#75`, `#77`–`#83` merged to `main`; open feature PRs `#84`–`#87` ready for `-03` and WGLC)
+Draft: `draft-ietf-acme-dns-persist-03` (WGLC candidate; includes `#74`, `#75`, `#77`–`#87`, `#89`, and pre-WGLC review and protocol-clarification updates)
 
-Status: Nine-slide Marp deck and speaker notes covering post-`-02` clarifications merged to `main`, the four open feature PRs (`#84` `ancestorDomain` + RFC 9444 coexistence, `#85` `_ip-validation-persist` reverse-DNS IP validation, `#86` `persistExpired` error type, `#87` certificate-key attestation conjunction), the October 13 implementation feedback (`https://` `accountHashPrefix` and fixed RFC 7638 SHA-256 inner thumbprint), and the `-03` → WGLC release path.
+Status: Nine-slide Marp deck and speaker notes covering `-03` clarifications and normative guardrails (ASCII-only hash normalization, exact issuer matching, CNAME/pre-alias `R` binding, `accountHashPrefix` character verification, unsigned `persistUntil` bounds, account-URL non-reuse, directory `issuerDomainNames` stability), the four feature additions (`#84` `ancestorDomain` + RFC 9444 coexistence, `#85` `_ip-validation-persist` reverse-DNS IP validation, `#86` `persistExpired` error type, `#87` certificate-key attestation conjunction), the October 13 implementation feedback, earlier-draft non-interoperability, and the WGLC request.
 
 ## Files
 
