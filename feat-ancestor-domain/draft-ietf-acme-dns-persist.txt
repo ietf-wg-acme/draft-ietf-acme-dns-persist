@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 8 May 2027                                Crosslayer Labs, Inc.
+Expires: 14 May 2027                               Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                         4 November 2026
+                                                        10 November 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -59,7 +59,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 8 May 2027.
+   This Internet-Draft will expire on 14 May 2027.
 
 Copyright Notice
 
@@ -809,15 +809,15 @@ Table of Contents
    the authorization object has wildcard or subdomainAuthAllowed
    ([RFC9444], Section 4.1) set to true.  If at least one record meets
    all validation requirements for that authorization's scope, the CA
-   MAY transition the authorization to the "valid" status without
-   returning a "pending" challenge to the client.  This mechanism is an
-   optimization and does not alter the ACME state machine defined in
-   [RFC8555].  The newOrder response is an order object containing
-   authorization URLs; the client retrieves the referenced authorization
-   objects using POST-as-GET requests ([RFC8555], Sections 7.4 and 7.5).
-   If the CA offers the optional newAuthz resource, its response
-   contains the authorization object directly ([RFC8555],
-   Section 7.4.1).
+   MAY transition the authorization to the "valid" status, subject to
+   item 7 of Section 6.2, without returning a "pending" challenge to the
+   client.  This mechanism is an optimization and does not alter the
+   ACME state machine defined in [RFC8555].  The newOrder response is an
+   order object containing authorization URLs; the client retrieves the
+   referenced authorization objects using POST-as-GET requests
+   ([RFC8555], Sections 7.4 and 7.5).  If the CA offers the optional
+   newAuthz resource, its response contains the authorization object
+   directly ([RFC8555], Section 7.4.1).
 
    If no DNS TXT record at _validation-persist.<A> meets the validation
    requirements, or if the records are absent (including when the domain
@@ -1005,7 +1005,9 @@ Table of Contents
 6.2.  Implementation Requirements
 
    CAs and clients MUST enforce the following requirements when
-   ancestorDomain is used in a dns-persist-01 challenge response:
+   ancestorDomain is used in a dns-persist-01 challenge response (items
+   1–6) or when the authorization itself covers names below a registry-
+   controlled or public suffix (item 7):
 
    1.  *Mandatory recognition:* Every CA implementing dns-persist-01
        MUST recognize the ancestorDomain field in a dns-persist-01
@@ -1031,15 +1033,18 @@ Table of Contents
        equals A or is not a whole-label suffix of A, the CA MUST reject
        the challenge with a malformed error.
 
-   4.  *Public-suffix and CA policy boundary:* The CA MUST NOT accept an
-       ancestorDomain that is a registry-controlled or public suffix,
-       unless expressly permitted within the CA's applicable policy and
-       trust-program requirements (for example, an ICANN Specification
-       13 single-organization TLD or a private PKI namespace).  If
-       ancestorDomain is a disallowed public suffix, or if the CA's
-       policy does not permit subdomain validation at the requested
-       ancestorDomain, the CA MUST reject the challenge with an
-       unauthorized error ([RFC8555], Section 6.7).
+   4.  *Public-suffix boundary:* The CA SHOULD NOT accept an
+       ancestorDomain that is a registry-controlled or public suffix
+       ([RFC9499], Section 9).  A qualifying record at such a name could
+       be used to validate the bound account for any name below it,
+       including names held by unrelated registrants.  A CA can
+       reasonably accept one where a single organization controls the
+       suffix and every name below it, such as a single-organization TLD
+       or a private PKI namespace.  If the CA declines an ancestorDomain
+       under this item, or its policy does not permit subdomain
+       validation at the requested ancestorDomain, the CA MUST reject
+       the challenge with an unauthorized error ([RFC8555],
+       Section 6.7).
 
    5.  *Record scope and digest binding:* When validating at
        _validation-persist.<ancestorDomain>, a retrieved TXT record
@@ -1056,10 +1061,24 @@ Table of Contents
        A; it MUST NOT alter the authorization object's identifier field
        or set subdomainAuthAllowed ([RFC9444], Section 4.1).
 
-   Rejections under items 2–4 are HTTP errors on the challenge-response
-   request ([RFC8555], Section 7.5.1) that leave the challenge in the
-   pending state, whereas a failure under item 5 is a validation failure
-   that transitions the challenge to invalid ([RFC8555], Section 7.1.6).
+   7.  *Suffix-level authorizations:* The guidance in item 4 also
+       applies when the authorization's identifier.value (A) is itself a
+       registry-controlled or public suffix and the authorization has
+       wildcard or subdomainAuthAllowed set to true, so that validation
+       at R = A would cover names below the suffix.  In that case, the
+       CA SHOULD NOT validate the authorization via dns-persist-01
+       except in the circumstances item 4 describes.  If the CA declines
+       such an authorization, a Just-in-Time lookup (Section 4.4) MUST
+       NOT transition it to valid; the CA proceeds with a pending
+       challenge instead.  If the CA declines a challenge response for
+       such an authorization, it MUST reject the response with an
+       unauthorized error ([RFC8555], Section 6.7).
+
+   Rejections of a challenge response under items 2–4 and 7 are HTTP
+   errors on the challenge-response request ([RFC8555], Section 7.5.1)
+   that leave the challenge in the pending state, whereas a failure
+   under item 5 is a validation failure that transitions the challenge
+   to invalid ([RFC8555], Section 7.1.6).
 
    Note: Because ancestorDomain is a request-only challenge-response
    field, the resulting challenge object does not echo ancestorDomain.
@@ -1089,7 +1108,8 @@ Table of Contents
       persist-01 (including via Just-in-Time validation, Section 4.4)
       MUST require policy=wildcard on the _validation-persist record
       even when the client omits ancestorDomain from the challenge
-      response (R = A).
+      response (R = A).  Item 7 of Section 6.2 applies when A is a
+      registry-controlled or public suffix.
 
    *  Under [RFC9444], Section 4.3, ancestorDomain in a newOrder
       identifier object (distinct from the challenge-response
@@ -1116,7 +1136,7 @@ Table of Contents
       ancestor authorization for example.com with subdomainAuthAllowed
       set to true)
 
-   *  Not permitted without additional validation: otherexample.com,
+   *  Not permitted without additional validation: example.org,
       example.net
 
 7.  Security Considerations
@@ -1767,8 +1787,8 @@ Table of Contents
       -  The record lacks policy=wildcard when required for a wildcard
          authorization, an [RFC9444] subdomainAuthAllowed authorization,
          or a challenge response specifying ancestorDomain, or the
-         requested ancestorDomain is a public suffix or otherwise
-         disallowed by the CA's policy (Section 6.2)
+         request is declined under item 4 or 7 of Section 6.2 or
+         otherwise disallowed by the CA's policy
 
    Note that these error codes apply to validation attempts on specific
    challenges.  In the case of Just-in-Time Validation (see
@@ -2147,6 +2167,10 @@ Table of Contents
    [cabf-br]  "Baseline Requirements for the Issuance and Management of
               Publicly-Trusted TLS Server Certificates", 2025,
               <https://cabforum.org/baseline-requirements-documents/>.
+
+   [RFC9499]  Hoffman, P. and K. Fujiwara, "DNS Terminology", BCP 219,
+              RFC 9499, DOI 10.17487/RFC9499, March 2024,
+              <https://www.rfc-editor.org/info/rfc9499>.
 
    [RFC4033]  Arends, R., Austein, R., Larson, M., Massey, D., and S.
               Rose, "DNS Security Introduction and Requirements",
