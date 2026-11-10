@@ -244,7 +244,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
     If the `policy` parameter is absent, or if its value is anything other than `wildcard`, the CA MUST proceed as if the `policy` parameter were not present (i.e., the validation applies only to the specific FQDN).
 
-5.  The issue-value MAY contain a `persistUntil` parameter. If present, the value MUST consist of one or more ASCII digits (`0`–`9`), with no sign or other characters, and represents a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds). If the value does not have this form, or exceeds 9223372036854775807 (2^63 - 1), the CA MUST treat the record as malformed and reject it.
+5.  The issue-value MAY contain a `persistUntil` parameter. If present, the value MUST consist of one or more ASCII digits (`0` through `9`), with no sign or other characters, and represents a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds). If the value does not have this form, or exceeds 9223372036854775807 (2^63 - 1), the CA MUST treat the record as malformed and reject it.
 
     When a CA validates a `_validation-persist` record containing a `persistUntil` parameter with timestamp T, the CA MUST NOT set the `expires` field of the resulting authorization object ({{!RFC8555}}, Section 7.1.4) later than T, and MUST NOT rely on that validation to issue certificates after T. After timestamp T, a CA MUST NOT consider the record valid for new validation attempts. Already-issued certificates are unaffected by the expiration of a `persistUntil` timestamp.
 
@@ -323,16 +323,16 @@ below:
 
 ### Example: Authorizing Two CAs {#multiple-issuer-example}
 
-This example demonstrates how a domain owner can authorize two different CAs, "ca1.example" and "ca2.example", to issue certificates for `example.org`.
+This example shows a domain owner authorizing two CAs, "ca1.example" and "ca2.example", to issue certificates for `example.org`. Each record uses `domain_name` `example.org` and the account key thumbprint from {{hashed-uri-example}}. The account URLs are `https://ca1.example/acct/123` at CA1 and `https://ca2.example/acct/456` at CA2.
 
 ~~~dns
 _validation-persist.example.org. 3600 IN TXT ("ca1.example;"
 " accounturi=https://ca1.example/account-hash/"
-"sha-256/wjZNvLpIgf7zrr9KQo7zCLaG2Ea67KS4o4cAwSepsls;"
+"sha-256/qGV7z_u4K-mcpnqe1n9rforNnuQWLcNZTidyrtOhWac;"
 " policy=wildcard")
 _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
 " accounturi=https://ca2.example/account-hash/"
-"sha-256/Mpngr2LZCN9gPArggXqEu4pKtYZvLL5IxMStzyWrrXc;"
+"sha-256/FoiSuymBL2Pk3iIpv5oPODm9wrZGRzLXBohP1QHVc2Y;"
 " persistUntil=1767225600")
 ~~~
 {: #ex-multiple-ca-auth title="Multiple CA Authorization Records"}
@@ -472,7 +472,7 @@ For wildcard certificate requests, {{!RFC8555}}, Section 7.1.3 removes the `*.` 
 
 ## Implementation Requirements {#subdomain-implementation-requirements}
 
-CAs and clients MUST enforce the following requirements when `ancestorDomain` is used in a `dns-persist-01` challenge response (items 1–6) or when the authorization itself covers names below a registry-controlled or public suffix (item 7):
+CAs and clients MUST enforce the following requirements when `ancestorDomain` is used in a `dns-persist-01` challenge response (items 1 through 6) or when the authorization itself covers names below a registry-controlled or public suffix (item 7):
 
 1. **Mandatory recognition:** Every CA implementing `dns-persist-01` MUST recognize the `ancestorDomain` field in a `dns-persist-01` challenge response and MUST NOT silently ignore it to query `_validation-persist.<A>`.
 2. **Canonical syntax and DNS length limits:** The `ancestorDomain` value MUST be a lowercase A-label domain name ({{!RFC5890}}) with no trailing dot and no `*.` wildcard prefix. Both `ancestorDomain` and the complete constructed Validation Domain Name (`_validation-persist.<ancestorDomain>`) MUST conform to the 63-octet label limit and the 253-octet presentation / 255-octet wire-format total length limit of {{!RFC1035}}, Section 2.3.4. If `ancestorDomain` is not a JSON string or violates these syntax or length rules, the CA MUST reject the challenge with a `malformed` error ({{!RFC8555}}, Section 6.7).
@@ -482,7 +482,7 @@ CAs and clients MUST enforce the following requirements when `ancestorDomain` is
 6. **Preservation of authorization scope:** Validating a challenge with `ancestorDomain` satisfies only that authorization object for `A`; it MUST NOT alter the authorization object's `identifier` field or set `subdomainAuthAllowed` ({{!RFC9444}}, Section 4.1).
 7. **Suffix-level authorizations:** The guidance in item 4 also applies when the authorization's `identifier.value` (`A`) is itself a registry-controlled or public suffix and the authorization has `wildcard` or `subdomainAuthAllowed` set to `true`, so that validation at `R = A` would cover names below the suffix. In that case, the CA SHOULD NOT validate the authorization via `dns-persist-01` except in the circumstances item 4 describes. If the CA declines such an authorization, a Just-in-Time lookup ({{just-in-time-validation}}) MUST NOT transition it to `valid`; the CA proceeds with a `pending` challenge instead. If the CA declines a challenge response for such an authorization, it MUST reject the response with an `unauthorized` error ({{!RFC8555}}, Section 6.7).
 
-Rejections of a challenge response under items 2–4 and 7 are HTTP errors on the challenge-response request ({{!RFC8555}}, Section 7.5.1) that leave the challenge's existing state unchanged; a challenge that has not yet accepted a response remains `pending`. In contrast, a failure under item 5 is a validation failure that transitions the challenge to `invalid` ({{!RFC8555}}, Section 7.1.6).
+Rejections of a challenge response under items 2 through 4 and 7 are HTTP errors on the challenge-response request ({{!RFC8555}}, Section 7.5.1) that leave the challenge's existing state unchanged; a challenge that has not yet accepted a response remains `pending`. In contrast, a failure under item 5 is a validation failure that transitions the challenge to `invalid` ({{!RFC8555}}, Section 7.1.6).
 
 Note: Because `ancestorDomain` is a request-only challenge-response field, the resulting challenge object does not echo `ancestorDomain`. A client interacting with a non-conforming legacy implementation that ignored `ancestorDomain` while an independent valid record also existed at `_validation-persist.<A>` would not observe the ignored field from the challenge object alone.
 
@@ -490,7 +490,7 @@ See {{subdomain-validation-risks}} for important security implications of enabli
 
 ## Interaction with RFC 9444 {#rfc9444-interaction}
 
-{{!RFC9444}} defines an optional ACME extension in which a client requests an authorization object whose `identifier.value` is itself an ancestor domain and whose `subdomainAuthAllowed` field is set to `true` ({{!RFC9444}}, Sections 4.1–4.3). This extension allows a single validated ancestor authorization to be reused across subsequent orders for subordinate subdomains without additional challenge flows.
+{{!RFC9444}} defines an optional ACME extension in which a client requests an authorization object whose `identifier.value` is itself an ancestor domain and whose `subdomainAuthAllowed` field is set to `true` ({{!RFC9444}}, Sections 4.1 through 4.3). This extension allows a single validated ancestor authorization to be reused across subsequent orders for subordinate subdomains without additional challenge flows.
 
 When a CA implements {{!RFC9444}} alongside `dns-persist-01`, the two mechanisms operate at different protocol layers and interact as follows:
 
@@ -512,8 +512,8 @@ The `dns-persist-01` validation method MAY also be used to validate control of a
 
 When an ACME authorization object has `identifier.type` set to `ip`, the client and CA construct the normalized Reverse Zone Domain Name (`R`) for the IP address in lowercase US-ASCII with no trailing dot. {{!RFC1035}}, Section 3.5 and {{!RFC3596}}, Section 2.5 write `IN-ADDR.ARPA` and `IP6.ARPA` in uppercase; per {{normalization-algorithm}}, this specification uses lowercase `.in-addr.arpa` and `.ip6.arpa`. The construction proceeds as follows:
 
-- **IPv4 ({{!RFC1035}}, Section 3.5):** Represent the 32-bit IPv4 address as four decimal octet labels (0–255, with leading zeros omitted except for a single `0` octet) in reverse order, followed by the suffix `.in-addr.arpa`. For example, `192.0.2.1` maps to `1.2.0.192.in-addr.arpa`.
-- **IPv6 ({{!RFC3596}}, Section 2.5):** Expand the 128-bit IPv6 address to all 32 hexadecimal digits (expanding any `::` zero compression). Represent them as 32 single-character lowercase hexadecimal (`0`–`9`, `a`–`f`) labels separated by dots in reverse order (low-order nibble first), followed by the suffix `.ip6.arpa`. The resulting Reverse Zone Domain Name is always 72 octets in length. For example, `2001:db8::1` maps to the Reverse Zone Domain Name used in {{ex-ipv6-validation}}.
+- **IPv4 ({{!RFC1035}}, Section 3.5):** Represent the 32-bit IPv4 address as four decimal octet labels (0 to 255, with leading zeros omitted except for a single `0` octet) in reverse order, followed by the suffix `.in-addr.arpa`. For example, `192.0.2.1` maps to `1.2.0.192.in-addr.arpa`.
+- **IPv6 ({{!RFC3596}}, Section 2.5):** Expand the 128-bit IPv6 address to all 32 hexadecimal digits (expanding any `::` zero compression). Represent them as 32 single-character lowercase hexadecimal (`0` through `9` and `a` through `f`) labels separated by dots in reverse order (low-order nibble first), followed by the suffix `.ip6.arpa`. The resulting Reverse Zone Domain Name is always 72 octets in length. For example, `2001:db8::1` maps to the Reverse Zone Domain Name used in {{ex-ipv6-validation}}.
 
 For an `ip` identifier, the Validation Domain Name is formed by prepending the label `_ip-validation-persist` to the Reverse Zone Domain Name (`_ip-validation-persist.<R>`). This distinct underscore label separates IP-address validation from `dns`-identifier validation.
 
