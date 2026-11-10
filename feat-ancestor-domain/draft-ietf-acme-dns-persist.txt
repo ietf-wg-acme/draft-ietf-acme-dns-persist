@@ -1006,8 +1006,8 @@ Table of Contents
 
    CAs and clients MUST enforce the following requirements when
    ancestorDomain is used in a dns-persist-01 challenge response (items
-   1–6) or when the authorization itself covers names below a registry-
-   controlled or public suffix (item 7):
+   1–6) or when the authorization itself covers names below a public
+   suffix (item 7):
 
    1.  *Mandatory recognition:* Every CA implementing dns-persist-01
        MUST recognize the ancestorDomain field in a dns-persist-01
@@ -1034,17 +1034,16 @@ Table of Contents
        the challenge with a malformed error.
 
    4.  *Public-suffix boundary:* The CA SHOULD NOT accept an
-       ancestorDomain that is a registry-controlled or public suffix
-       ([RFC9499], Section 9).  A qualifying record at such a name could
-       be used to validate the bound account for any name below it,
-       including names held by unrelated registrants.  A CA can
-       reasonably accept one where a single organization controls the
-       suffix and every name below it, such as a single-organization TLD
-       or a private PKI namespace.  If the CA declines an ancestorDomain
-       under this item, or its policy does not permit subdomain
-       validation at the requested ancestorDomain, the CA MUST reject
-       the challenge with an unauthorized error ([RFC8555],
-       Section 6.7).
+       ancestorDomain that is a public suffix ([RFC9499], Section 9).  A
+       qualifying record at such a name could be used to validate the
+       bound account for any name below it, including names held by
+       unrelated registrants.  A CA can reasonably accept one where a
+       single organization controls the suffix and every name below it,
+       such as a single-organization TLD or a private PKI namespace.  If
+       the CA declines an ancestorDomain under this item, or its policy
+       does not permit subdomain validation at the requested
+       ancestorDomain, the CA MUST reject the challenge with an
+       unauthorized error ([RFC8555], Section 6.7).
 
    5.  *Record scope and digest binding:* When validating at
        _validation-persist.<ancestorDomain>, a retrieved TXT record
@@ -1063,16 +1062,16 @@ Table of Contents
 
    7.  *Suffix-level authorizations:* The guidance in item 4 also
        applies when the authorization's identifier.value (A) is itself a
-       registry-controlled or public suffix and the authorization has
-       wildcard or subdomainAuthAllowed set to true, so that validation
-       at R = A would cover names below the suffix.  In that case, the
-       CA SHOULD NOT validate the authorization via dns-persist-01
-       except in the circumstances item 4 describes.  If the CA declines
-       such an authorization, a Just-in-Time lookup (Section 4.4) MUST
-       NOT transition it to valid; the CA proceeds with a pending
-       challenge instead.  If the CA declines a challenge response for
-       such an authorization, it MUST reject the response with an
-       unauthorized error ([RFC8555], Section 6.7).
+       public suffix and the authorization has wildcard or
+       subdomainAuthAllowed set to true, so that validation at R = A
+       would cover names below the suffix.  In that case, the CA SHOULD
+       NOT validate the authorization via dns-persist-01 except in the
+       circumstances item 4 describes.  If the CA declines such an
+       authorization, a Just-in-Time lookup (Section 4.4) MUST NOT
+       transition it to valid; the CA proceeds with a pending challenge
+       instead.  If the CA declines a challenge response for such an
+       authorization, it MUST reject the response with an unauthorized
+       error ([RFC8555], Section 6.7).
 
    Rejections of a challenge response under items 2–4 and 7 are HTTP
    errors on the challenge-response request ([RFC8555], Section 7.5.1)
@@ -1109,7 +1108,7 @@ Table of Contents
       MUST require policy=wildcard on the _validation-persist record
       even when the client omits ancestorDomain from the challenge
       response (R = A).  Item 7 of Section 6.2 applies when A is a
-      registry-controlled or public suffix.
+      public suffix.
 
    *  Under [RFC9444], Section 4.3, ancestorDomain in a newOrder
       identifier object (distinct from the challenge-response
