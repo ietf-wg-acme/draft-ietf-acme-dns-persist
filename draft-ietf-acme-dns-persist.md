@@ -244,7 +244,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
     If the `policy` parameter is absent, or if its value is anything other than `wildcard`, the CA MUST proceed as if the `policy` parameter were not present (i.e., the validation applies only to the specific FQDN).
 
-5.  The issue-value MAY contain a `persistUntil` parameter. If present, the value MUST consist of one or more ASCII digits (`0`–`9`), with no sign or other characters, and represents a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds). If the value does not have this form, or exceeds 2^63−1, the CA MUST treat the record as malformed and reject it.
+5.  The issue-value MAY contain a `persistUntil` parameter. If present, the value MUST consist of one or more ASCII digits (`0`–`9`), with no sign or other characters, and represents a UNIX timestamp (the number of seconds since 1970-01-01T00:00:00Z ignoring leap seconds). If the value does not have this form, or exceeds 9223372036854775807 (2^63 - 1), the CA MUST treat the record as malformed and reject it.
 
     When a CA validates a `_validation-persist` record containing a `persistUntil` parameter with timestamp T, the CA MUST NOT set the `expires` field of the resulting authorization object ({{!RFC8555}}, Section 7.1.4) later than T, and MUST NOT rely on that validation to issue certificates after T. After timestamp T, a CA MUST NOT consider the record valid for new validation attempts. Already-issued certificates are unaffected by the expiration of a `persistUntil` timestamp.
 
@@ -1128,7 +1128,7 @@ RFC Editor: please remove this section before publication.
 - Described CA order-policy enforcement of persistent DNS validation together with certificate-key attestation, including CSR key binding and renewal with a new key.
 - Clarified exact comparison of parsed issuer names and ASCII-only canonicalization of domain hash inputs. Kept syntax whitespace separate from issuer comparison.
 - Consolidated prior-key retention rules and clarified the effects of account deactivation, key compromise, and validation-data reuse.
-- Required that CAs never reassign an account URL to a different account or derive account URLs solely from the account key. Restricted `persistUntil` to unsigned ASCII digits not exceeding 2^63−1. Applied the deactivation rule to any account whose status is not `valid`. Recommended that shared-parent operators reserve the validation labels.
+- Required that CAs never reassign an account URL to a different account or derive account URLs solely from the account key. Restricted `persistUntil` to unsigned ASCII digits not exceeding 2^63 - 1. Applied the deactivation rule to any account whose status is not `valid`. Recommended that shared-parent operators reserve the validation labels.
 - Added Privacy Considerations ({{privacy-considerations}}) and Implementation Status ({{implementation-status}}) sections.
 - Edited the text for readability: shorter sentences, a named actor for each requirement, and consistent terminology, with no change to requirements.
 - Added figures for hashed-URI construction ({{fig-hashed-uri-construction}}) and delegated pre-provisioning ({{fig-delegated-preprovisioning}}), and summary tables for domain scope ({{tab-domain-scope-summary}}) and error handling ({{tab-error-handling-summary}}).
@@ -1154,5 +1154,5 @@ RFC Editor: please remove this section before publication.
 - Added client-side guidance ({{client-implementation-guidelines}}) to check `persistUntil` against local provisioning state before initiating an order (#38).
 - Removed DNS TTL as a validation data reuse limit; reuse remains subject to `persistUntil` and the CA's Validation Data Reuse Period. Renamed {{validation-data-reuse}} accordingly and removed the related TTL-specific implementation guidance (#42).
 - Corrected the stale Account Key Rotation text: the account URL is stable, but the hashed `accounturi` changes with the account key, and continued acceptance of a prior key is governed by {{verification-procedure}}.
-- Added the required directory `issuerDomainNames` metadata field and the D ⊆ C consistency rule with the challenge object's `issuerDomainNames`; the C ⊆ I rule against `caaIdentities` applies when the CA advertises `caaIdentities` (#60).
+- Added the required directory `issuerDomainNames` metadata field and the rule that D is a subset of C for the challenge object's `issuerDomainNames`; the rule that C is a subset of I against `caaIdentities` applies when the CA advertises `caaIdentities` (#60).
 - Added a pre-provisioned validation example and clarified that computing and publishing a `_validation-persist` record requires no private-key operation and can be performed out of band by a party other than the ACME client, at any point after account creation.
