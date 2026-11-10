@@ -148,7 +148,7 @@ Second: why is the inner `key` input fixed to the 43-octet RFC 7638 SHA-256 JWK 
 
 "`-03` resolves Issues `#33`, `#32`, `#39`, and `#76` through PRs `#84` to `#87`, plus the normalization change in `#89`. Every tracked issue is addressed.
 
-On the implementation side: Pebble and lego have support merged, Seo's Pebble fork exercised `-02`, cert-manager design and prototype work is active, and CAs including Let's Encrypt, Fastly, Amazon Trust Services, and Google Trust Services have been actively engaged. On the CA/B Forum side, Michael's draft Servercert ballot defines the dedicated ACME `dns-persist-01` validation method aligned with `-03`.
+On the implementation side: Boulder, Pebble, and lego have support merged, and Boulder's update to `-02` is in progress. Seo's Pebble fork exercised `-02`, and a cert-manager design proposal is in review. CAs including Let's Encrypt, Fastly, Amazon Trust Services, and Google Trust Services have been actively engaged. On the CA/B Forum side, Michael's draft Servercert ballot defines the dedicated ACME `dns-persist-01` validation method aligned with `-03`.
 
 We think `-03` is ready, so we'd like to ask the chairs to start Working Group Last Call."
 

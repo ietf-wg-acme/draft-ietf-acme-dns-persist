@@ -350,7 +350,8 @@ H(len || domain_name || key || account_URL)
 
 - **Pebble:** merged ([#536](https://github.com/letsencrypt/pebble/pull/536)); `-02` fork tested
 - **lego:** merged ([#2871](https://github.com/go-acme/lego/pull/2871))
-- **cert-manager:** design & prototype ([#8373](https://github.com/cert-manager/cert-manager/issues/8373))
+- **Boulder:** `-01` merged; `-02` update in progress ([#9127](https://github.com/letsencrypt/boulder/issues/9127))
+- **cert-manager:** design proposal in review ([#9487](https://github.com/cert-manager/cert-manager/pull/9487))
 - **CAs:** Let's Encrypt, Fastly / Certainly, Amazon Trust Services, Google Trust Services
 - **CA/B Forum:** draft ballot ([servercert PR #9](https://github.com/slghtr-says/servercert/pull/9)) aligned with `-03`
 
