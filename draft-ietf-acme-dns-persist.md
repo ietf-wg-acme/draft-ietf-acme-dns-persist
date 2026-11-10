@@ -561,6 +561,25 @@ _ip-validation-persist.1.0.0.0.0.0.0.0 IN TXT (
 
 If the client instead opts out of per-address binding by setting `domain_name` to `*` (`length_of_domain` `0x01`), both records use the same hashed URI as the domain-omitted example in {{hashed-uri-example}} (`https://ca.example/account-hash/sha-256/NpDnSwUthQK8zCgFdefYxAdAVPnygMLbs9US6oO-5ug`).
 
+# Implementation Status {#implementation-status}
+{:removeinrfc}
+
+This section records the status of known implementations of the protocol defined by this specification at the time of posting of this Internet-Draft, and is based on a proposal described in {{?RFC7942}}. The description of implementations in this section is intended to assist the IETF in its decision processes in progressing drafts to RFCs. Please note that the listing of any individual implementation here does not imply endorsement by the IETF. Furthermore, no effort has been spent to verify the information presented here that was supplied by IETF contributors. This is not intended as, and must not be construed to be, a catalog of available implementations or their features. Readers are advised to note that other implementations may exist.
+
+According to {{?RFC7942}}, "this will allow reviewers and working groups to assign due consideration to documents that have the benefit of running code, which may serve as evidence of valuable experimentation and feedback that have made the implemented protocols more mature. It is up to the individual working groups to use this information as they see fit".
+
+Boulder (CA server):
+: Organization: Internet Security Research Group (ISRG). Boulder is the ACME server used by Let's Encrypt. It supports `dns-persist-01` as specified in draft-ietf-acme-dns-persist-01; an update to `-02` is in progress. Source: https://github.com/letsencrypt/boulder
+
+Pebble (test CA server):
+: Organization: ISRG. Pebble is a small ACME test server. It has supported `dns-persist-01` since release v2.10.0. Source: https://github.com/letsencrypt/pebble
+
+lego (client):
+: lego is an ACME client and library written in Go. It has supported `dns-persist-01` since release v5.0.0. Source: https://github.com/go-acme/lego
+
+cert-manager (client):
+: cert-manager is a certificate controller for Kubernetes. A design proposal for `dns-persist-01` is under review. Source: https://github.com/cert-manager/cert-manager
+
 # Security Considerations {#security-considerations}
 
 The requirement for CAs to ignore unknown parameter tags means that a future extension must be designed so that a CA that ignores it does not create a security vulnerability. Extensions that require strict enforcement should use alternative mechanisms, such as separate record types or explicit version negotiation.
@@ -731,6 +750,25 @@ Certificate Authorities (CAs) implementing this method MUST:
 - Handle failed challenges as specified in {{verification-procedure}} and {{ca-implementation-guidelines}}; apply the fallback in {{just-in-time-validation}} when a Just-in-Time lookup finds no qualifying record.
 
 While this method provides a persistent signal of control, the fundamental ACME authorization object (as defined in {{!RFC8555}}) remains subject to its own lifecycle, including expiration. A persistent DNS record allows for repeated authorizations, but each authorization object issued by the CA will have a defined validity period, after which it expires unless renewed.
+
+# Privacy Considerations {#privacy-considerations}
+
+This section addresses the privacy considerations described in {{?RFC6973}}. A `_validation-persist` record is public and long-lived. Anyone who can query DNS can observe it for as long as it is published.
+
+Correlation of domains through account identifiers:
+: A cleartext account URL in many records would let an observer link the domains that share an ACME account. The hashed URI binds each value to one domain, so a single account publishes a different value in each zone ({{account-uri-privacy}}). The mitigation is best-effort and has limits; see {{hashed-uri-security}}.
+
+Choices that weaken the mitigation:
+: The domain-omitted opt-out ({{validation-record-format}}) publishes the same value in every record that uses it. A CAA `accounturi` parameter ({{caa-interaction}}) publishes the account URL itself. Sharing the account URL with a DNS operator or other third party lets that party link the account's records ({{pre-provisioning-records}}). Domain owners who need domains to stay unlinked can use separate ACME accounts.
+
+Information revealed by the record's presence:
+: A record reveals that its domain has authorized a particular CA, and its `persistUntil` value reveals when that authorization ends. Records under `_ip-validation-persist` reveal which addresses an operator has prepared for certificates. These facts may expose deployment structure that the domain or address holder considers private.
+
+Information held by the CA:
+: The CA necessarily learns which domains and addresses each account has authorized. This document does not change what the CA learns compared with other ACME challenges, but persistent records let the CA confirm that relationship at any time without a new action by the account holder.
+
+Information returned in errors:
+: The `persistExpired` error is returned only for a record that would otherwise validate for the requesting account and CA, so it does not reveal the state of another account's records ({{error-handling}}).
 
 # IANA Considerations {#iana-considerations}
 
@@ -1091,6 +1129,8 @@ RFC Editor: please remove this section before publication.
 - Clarified exact comparison of parsed issuer names and ASCII-only canonicalization of domain hash inputs. Kept syntax whitespace separate from issuer comparison.
 - Consolidated prior-key retention rules and clarified the effects of account deactivation, key compromise, and validation-data reuse.
 - Required that CAs never reassign an account URL to a different account or derive account URLs solely from the account key. Restricted `persistUntil` to unsigned ASCII digits not exceeding 2^63−1. Applied the deactivation rule to any account whose status is not `valid`. Recommended that shared-parent operators reserve the validation labels.
+- Added Privacy Considerations ({{privacy-considerations}}) and Implementation Status ({{implementation-status}}) sections.
+- Edited the text for readability: shorter sentences, a named actor for each requirement, and consistent terminology, with no change to requirements.
 - Added figures for hashed-URI construction ({{fig-hashed-uri-construction}}) and delegated pre-provisioning ({{fig-delegated-preprovisioning}}), and summary tables for domain scope ({{tab-domain-scope-summary}}) and error handling ({{tab-error-handling-summary}}).
 
 ## Since draft-ietf-acme-dns-persist-01
