@@ -1031,7 +1031,7 @@ svg {
   & :is([stroke="white"], [stroke^="#fff"]) {
     stroke: var(--background-color);
   }
-  & :is([fill="black"], [fill^="#000"], :not([fill])) {
+  & :is([fill="black"], [fill^="#000"], :not([fill], [fill] *)) {
     fill: var(--text-color);
   }
   & :is([fill="white"], [fill^="#fff"]) {
@@ -1050,7 +1050,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Heurich, et al.</td>
-<td class="center">Expires 8 May 2027</td>
+<td class="center">Expires 14 May 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1063,12 +1063,12 @@ svg {
 <dd class="internet-draft">draft-ietf-acme-dns-persist-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-11-04" class="published">4 November 2026</time>
+<time datetime="2026-11-10" class="published">10 November 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-05-08">8 May 2027</time></dd>
+<dd class="expires"><time datetime="2027-05-14">14 May 2027</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -1125,7 +1125,7 @@ svg {
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 8 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 14 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1572,7 +1572,7 @@ The server <span class="bcp14">MUST</span> ensure the array is not empty. Server
             <p id="section-4.1-2.1.1">The RDATA value <span class="bcp14">MUST</span> conform to the issue-value syntax defined in <span>[<a href="#RFC8659" class="cite xref">RFC8659</a>]</span>, Section 4.2. CAs <span class="bcp14">MUST</span> recognize the parameter names <code>accounturi</code>, <code>policy</code>, and <code>persistUntil</code> using ASCII case-insensitive comparison. This comparison applies only to parameter names; the value-comparison rules below are unchanged. Each of these recognized parameters <span class="bcp14">MUST</span> occur at most once within a single issue-value. If a recognized parameter occurs more than once, including with different casing, the CA <span class="bcp14">MUST</span> treat the record as malformed and reject it. To ensure forward compatibility, the server <span class="bcp14">MUST</span> ignore parameters whose names it does not recognize, including repeated occurrences of such parameters.<a href="#section-4.1-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.1-2.2">
-            <p id="section-4.1-2.2.1">The <code>issuer-domain-name</code> portion of the issue-value <span class="bcp14">MUST</span> match an entry in the challenge object's <code>issuerDomainNames</code> array using ASCII case-insensitive comparison. For this comparison, ASCII letters <code>A</code> through <code>Z</code> match their lowercase equivalents; all other octets <span class="bcp14">MUST</span> match exactly. The CA <span class="bcp14">MUST</span> parse the issue-value according to <span>[<a href="#RFC8659" class="cite xref">RFC8659</a>]</span>, Section 4.2, before comparing the issuer name. Surrounding whitespace permitted by that syntax is not part of the issuer name. If no entry matches, the CA <span class="bcp14">MUST</span> reject the record.<a href="#section-4.1-2.2.1" class="pilcrow">¶</a></p>
+            <p id="section-4.1-2.2.1">The CA <span class="bcp14">MUST</span> parse the issue-value according to <span>[<a href="#RFC8659" class="cite xref">RFC8659</a>]</span>, Section 4.2, before comparing the issuer name. Surrounding whitespace permitted by that syntax is not part of the issuer name. The parsed <code>issuer-domain-name</code> <span class="bcp14">MUST</span> match an entry in the challenge object's <code>issuerDomainNames</code> array using Simple String Comparison (<span>[<a href="#RFC3986" class="cite xref">RFC3986</a>]</span>, Section 6.2.1). The CA <span class="bcp14">MUST NOT</span> apply case folding or other normalization when comparing these strings. If no entry matches, the CA <span class="bcp14">MUST</span> reject the record.<a href="#section-4.1-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.1-2.3">
             <p id="section-4.1-2.3.1">The issue-value <span class="bcp14">MUST</span> contain an <code>accounturi</code> parameter whose value is a hashed URI identifying the ACME account requesting validation. A hashed URI cryptographically binds the account to the domain being validated without publishing the account URL in cleartext. It is formed by concatenating the CA's <code>accountHashPrefix</code>, a hash-algorithm identifier, a "/" separator, and a base64url hash value:<a href="#section-4.1-2.3.1" class="pilcrow">¶</a></p>
@@ -1666,7 +1666,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
         <h3 id="name-verification-procedure">
 <a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-verification-procedure" class="section-name selfRef">Verification Procedure</a>
         </h3>
-<p id="section-4.2-1">The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Validation Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its <code>issuer-domain-name</code> value <span class="bcp14">MUST</span> match one of the values provided in the <code>issuerDomainNames</code> array from the challenge object, and its <code>accounturi</code> parameter <span class="bcp14">MUST</span> be a hashed URI that identifies the requesting account, as defined in <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>. The server <span class="bcp14">MUST</span> compare issuer domain names using the ASCII case-insensitive comparison specified in <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>. The server also interprets any <code>policy</code> parameter values according to this specification. If no record meeting all requirements is found, the server <span class="bcp14">MUST</span> treat the challenge as failed.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.2-1">The ACME server verifies the challenge by performing a DNS lookup for TXT records at the Validation Domain Name. It then iterates through the returned records to find one that conforms to the required structure. For a record to be considered valid, its <code>issuer-domain-name</code> value <span class="bcp14">MUST</span> match one of the values provided in the <code>issuerDomainNames</code> array from the challenge object, and its <code>accounturi</code> parameter <span class="bcp14">MUST</span> be a hashed URI that identifies the requesting account, as defined in <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>. The server <span class="bcp14">MUST</span> compare issuer domain names using the Simple String Comparison specified in <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>. The server also interprets any <code>policy</code> parameter values according to this specification. If no record meeting all requirements is found, the server <span class="bcp14">MUST</span> treat the challenge as failed.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
 <p id="section-4.2-2">To verify a hashed-URI <code>accounturi</code> value, the CA already knows the requesting account's URL and the FQDN being validated. The CA computes the expected hashed URI as defined in <a href="#validation-record-format" class="auto internal xref">Section 4.1</a> over each ACME public key it retains for that account (see below); for each such key it computes the value twice, once using the FQDN being validated as <code>domain_name</code> and once using the domain-omitted opt-out form (<code>domain_name</code> set to <code>*</code>). The CA treats the record as satisfying the requirement if its <code>accounturi</code> value equals any of these computed hashed URIs under Simple String Comparison (<span>[<a href="#RFC3986" class="cite xref">RFC3986</a>]</span>, Section 6.2.1). Retaining an account's prior key thumbprints allows records provisioned before a key rotation to continue validating.<a href="#section-4.2-2" class="pilcrow">¶</a></p>
 <p id="section-4.2-3">To recompute these hashed URIs, a CA has a data-retention obligation: it <span class="bcp14">MUST</span> retain an association between each ACME account and the SHA-256 JWK Thumbprints of all public keys that account has used since the CA began accepting <code>dns-persist-01</code> records. The following rules govern this retained data and the acceptance of the keys behind it, listed in order of precedence with earlier rules overriding later ones:<a href="#section-4.2-3" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-4.2-4">
@@ -2080,7 +2080,7 @@ _validation-persist.example.org. 3600 IN TXT ("ca2.example;"
         <h3 id="name-issuer-domain-name-normaliz">
 <a href="#section-7.6" class="section-number selfRef">7.6. </a><a href="#name-issuer-domain-name-normaliz" class="section-name selfRef">Issuer Domain Name Normalization and Limits</a>
         </h3>
-<p id="section-7.6-1">The <code>issuerDomainNames</code> field requires lowercase ASCII domain names, with internationalized labels represented as A-labels and no trailing dot. Clients use these advertised names when constructing records. CAs compare the parsed issuer name using ASCII case-insensitive comparison, as specified in <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>. This comparison permits ASCII case differences without accepting Unicode input or trailing dots that the issue-value syntax prohibits. The order of names in the array has no significance.<a href="#section-7.6-1" class="pilcrow">¶</a></p>
+<p id="section-7.6-1">The <code>issuerDomainNames</code> field requires lowercase ASCII domain names, with internationalized labels represented as A-labels and no trailing dot. Clients use these advertised names unchanged when constructing records. CAs compare the parsed issuer name using Simple String Comparison, as specified in <a href="#validation-record-format" class="auto internal xref">Section 4.1</a>. An issuer name that differs in case from an advertised name does not match. The issue-value syntax prohibits Unicode input and trailing dots in the issuer name. The order of names in the array has no significance.<a href="#section-7.6-1" class="pilcrow">¶</a></p>
 <p id="section-7.6-2">The server-side limit on the number of issuer domain names provided in a single challenge (e.g., 10) helps mitigate denial-of-service vectors where a client might be forced to perform an excessive number of DNS queries or a server might be burdened by validating against a large set of domains.<a href="#section-7.6-2" class="pilcrow">¶</a></p>
 </section>
 </div>

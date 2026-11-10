@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 8 May 2027                                Crosslayer Labs, Inc.
+Expires: 14 May 2027                               Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                         4 November 2026
+                                                        10 November 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -59,7 +59,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 8 May 2027.
+   This Internet-Draft will expire on 14 May 2027.
 
 Copyright Notice
 
@@ -408,15 +408,14 @@ Table of Contents
        server MUST ignore parameters whose names it does not recognize,
        including repeated occurrences of such parameters.
 
-   2.  The issuer-domain-name portion of the issue-value MUST match an
-       entry in the challenge object's issuerDomainNames array using
-       ASCII case-insensitive comparison.  For this comparison, ASCII
-       letters A through Z match their lowercase equivalents; all other
-       octets MUST match exactly.  The CA MUST parse the issue-value
-       according to [RFC8659], Section 4.2, before comparing the issuer
-       name.  Surrounding whitespace permitted by that syntax is not
-       part of the issuer name.  If no entry matches, the CA MUST reject
-       the record.
+   2.  The CA MUST parse the issue-value according to [RFC8659],
+       Section 4.2, before comparing the issuer name.  Surrounding
+       whitespace permitted by that syntax is not part of the issuer
+       name.  The parsed issuer-domain-name MUST match an entry in the
+       challenge object's issuerDomainNames array using Simple String
+       Comparison ([RFC3986], Section 6.2.1).  The CA MUST NOT apply
+       case folding or other normalization when comparing these strings.
+       If no entry matches, the CA MUST reject the record.
 
    3.  The issue-value MUST contain an accounturi parameter whose value
        is a hashed URI identifying the ACME account requesting
@@ -604,7 +603,7 @@ Table of Contents
    issuerDomainNames array from the challenge object, and its accounturi
    parameter MUST be a hashed URI that identifies the requesting
    account, as defined in Section 4.1.  The server MUST compare issuer
-   domain names using the ASCII case-insensitive comparison specified in
+   domain names using the Simple String Comparison specified in
    Section 4.1.  The server also interprets any policy parameter values
    according to this specification.  If no record meeting all
    requirements is found, the server MUST treat the challenge as failed.
@@ -1256,12 +1255,12 @@ Table of Contents
 
    The issuerDomainNames field requires lowercase ASCII domain names,
    with internationalized labels represented as A-labels and no trailing
-   dot.  Clients use these advertised names when constructing records.
-   CAs compare the parsed issuer name using ASCII case-insensitive
-   comparison, as specified in Section 4.1.  This comparison permits
-   ASCII case differences without accepting Unicode input or trailing
-   dots that the issue-value syntax prohibits.  The order of names in
-   the array has no significance.
+   dot.  Clients use these advertised names unchanged when constructing
+   records.  CAs compare the parsed issuer name using Simple String
+   Comparison, as specified in Section 4.1.  An issuer name that differs
+   in case from an advertised name does not match.  The issue-value
+   syntax prohibits Unicode input and trailing dots in the issuer name.
+   The order of names in the array has no significance.
 
    The server-side limit on the number of issuer domain names provided
    in a single challenge (e.g., 10) helps mitigate denial-of-service
