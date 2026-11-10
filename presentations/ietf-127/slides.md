@@ -170,7 +170,7 @@ IETF 127 ACME WG — San Francisco
 
 ## Landed in `-03`
 
-- [ASCII-only hash canonicalization](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/89) (after [#77](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/77), [#79](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/79); list feedback): validated A-label input, ASCII lowercase + strip trailing dot; ASCII case-insensitive `issuer-domain-name` match
+- [ASCII-only hash canonicalization](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/89) (after [#77](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/77), [#79](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/79); list feedback): validated A-label input, ASCII lowercase + strip trailing dot; exact `issuer-domain-name` match
 - [Case-insensitive parameter names](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/80): `accounturi`, `policy`, `persistUntil`; duplicate recognized names rejected
 - [`accountHashPrefix` syntax](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/81): fits RFC 8659 TXT `value` grammar
 - [Validation flows & security limits](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/82) + [normative & JIT guidance](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/83) + [per-attempt cost](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/75)
@@ -205,7 +205,7 @@ POST /chall/abc  →  { "ancestorDomain": "example.com" }
 
 - **CA MUST recognize:** no silent fallback to `A`
 - **Proper ancestor:** strict suffix of `A`; VDN ≤ 253 octets
-- **Public suffixes rejected** (`unauthorized`) unless permitted by policy
+- **Public suffixes: SHOULD NOT** accept (`unauthorized` if declined)
 - **Requires `policy=wildcard`** at `R`; digest hashes `R` (or `*`)
 - **First accepted POST locks `R`** for the attempt
 - **RFC 9444 (`subdomainAuthAllowed`):** coexists; satisfies only `A`
