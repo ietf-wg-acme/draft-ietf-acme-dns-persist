@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 14 May 2027                               Crosslayer Labs, Inc.
+Expires: 16 May 2027                               Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                        10 November 2026
+                                                        12 November 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -59,7 +59,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 14 May 2027.
+   This Internet-Draft will expire on 16 May 2027.
 
 Copyright Notice
 
@@ -1034,21 +1034,22 @@ Table of Contents
        the challenge with a malformed error.
 
    4.  *Public-suffix boundary:* The CA SHOULD NOT accept an
-       ancestorDomain that is a public suffix ([RFC9499], Section 9).  A
-       qualifying record at such a name could be used to validate the
-       bound account for any name below it, including names held by
-       unrelated registrants.  A CA can reasonably accept one where a
-       single organization controls the suffix and every name below it,
-       such as a single-organization TLD or a private PKI namespace.  If
-       the CA declines an ancestorDomain under this item, or its policy
-       does not permit subdomain validation at the requested
-       ancestorDomain, the CA MUST reject the challenge with an
-       unauthorized error ([RFC8555], Section 6.7).
+       ancestorDomain that is a public suffix ([RFC9499], Section 9), as
+       determined by the CA from a source such as the Public Suffix
+       List.  A qualifying record at such a name could be used to
+       validate the bound account for any name below it, including names
+       held by unrelated registrants.  A CA can reasonably accept one
+       where a single organization controls the suffix and every name
+       below it, such as a single-organization TLD or a private PKI
+       namespace.  If the CA declines an ancestorDomain under this item,
+       or its policy does not permit subdomain validation at the
+       requested ancestorDomain, the CA MUST reject the challenge with
+       an unauthorized error ([RFC8555], Section 6.7).
 
    5.  *Record scope and digest binding:* When validating at
-       _validation-persist.<ancestorDomain>, a retrieved TXT record
-       qualifies only if it includes policy=wildcard; if no qualifying
-       record at _validation-persist.<ancestorDomain> includes
+       _validation-persist.<ancestorDomain>, a record satisfies
+       validation only if it also includes policy=wildcard.  If the only
+       records that would otherwise satisfy validation lack
        policy=wildcard, the CA MUST fail the validation attempt with an
        unauthorized error.  Both the client (or delegated DNS publisher)
        and the CA MUST compute the expected accounturi digest
@@ -1058,7 +1059,7 @@ Table of Contents
    6.  *Preservation of authorization scope:* Validating a challenge
        with ancestorDomain satisfies only that authorization object for
        A; it MUST NOT alter the authorization object's identifier field
-       or set subdomainAuthAllowed ([RFC9444], Section 4.1).
+       or its subdomainAuthAllowed value ([RFC9444], Section 4.1).
 
    7.  *Suffix-level authorizations:* The guidance in item 4 also
        applies when the authorization's identifier.value (A) is itself a
@@ -1081,10 +1082,12 @@ Table of Contents
 
    Note: Because ancestorDomain is a request-only challenge-response
    field, the resulting challenge object does not echo ancestorDomain.
-   A client interacting with a non-conforming legacy implementation that
-   ignored ancestorDomain while an independent valid record also existed
-   at _validation-persist.<A> would not observe the ignored field from
-   the challenge object alone.
+   A CA implementing an earlier draft of this specification ignores
+   ancestorDomain, as [RFC8555], Section 7.5.1 requires for unrecognized
+   response fields, and validates at _validation-persist.<A>.  The
+   result fails closed: validation succeeds only if a record at
+   _validation-persist.<A> independently authorizes A.  A client cannot
+   tell this outcome from the challenge object.
 
    See Section 7.3 for important security implications of enabling
    subdomain validation.
@@ -2148,6 +2151,10 @@ Table of Contents
               Subdomains", RFC 9444, DOI 10.17487/RFC9444, August 2023,
               <https://www.rfc-editor.org/info/rfc9444>.
 
+   [RFC9499]  Hoffman, P. and K. Fujiwara, "DNS Terminology", BCP 219,
+              RFC 9499, DOI 10.17487/RFC9499, March 2024,
+              <https://www.rfc-editor.org/info/rfc9499>.
+
    [RFC8552]  Crocker, D., "Scoped Interpretation of DNS Resource
               Records through "Underscored" Naming of Attribute Leaves",
               BCP 222, RFC 8552, DOI 10.17487/RFC8552, March 2019,
@@ -2166,10 +2173,6 @@ Table of Contents
    [cabf-br]  "Baseline Requirements for the Issuance and Management of
               Publicly-Trusted TLS Server Certificates", 2025,
               <https://cabforum.org/baseline-requirements-documents/>.
-
-   [RFC9499]  Hoffman, P. and K. Fujiwara, "DNS Terminology", BCP 219,
-              RFC 9499, DOI 10.17487/RFC9499, March 2024,
-              <https://www.rfc-editor.org/info/rfc9499>.
 
    [RFC4033]  Arends, R., Austein, R., Larson, M., Massey, D., and S.
               Rose, "DNS Security Introduction and Requirements",
