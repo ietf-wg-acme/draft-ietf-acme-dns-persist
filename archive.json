@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-11-10T05:13:41.912484+00:00",
+  "timestamp": "2026-11-12T04:54:19.119351+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -6677,13 +6677,13 @@
       "labels": [],
       "body": "Section 5 allows a wildcard `_validation-persist` record at a parent domain to authorize subdomains, but does not say how the CA learns which ancestor domain holds the record when validating a subdomain authorization. Walking the DNS tree up to the public suffix adds unguided queries and ambiguous failure modes, and the draft also leaves interaction with RFC 9444 (`subdomainAuthAllowed`) unspecified.\n\nAllow the client to include an optional `ancestorDomain` field in the `POST` payload when responding to a `dns-persist-01` challenge for a `dns` identifier (#33). Keep `{}` as the default for exact and base-wildcard validation, and leave the server's challenge object unchanged. When `ancestorDomain` is present, the CA validates `_validation-persist.<ancestorDomain>`, requires `policy=wildcard`, and computes the default `accounturi` hash over the normalized ancestor domain (or `*`) rather than the child identifier. Both `ancestorDomain` and the constructed `_validation-persist.<ancestorDomain>` name must fit RFC 1035 length limits, and `ancestorDomain` must be a strict whole-label proper suffix of the normalized authorization identifier and not a public suffix (unless allowed by CA policy). The first accepted challenge response fixes the target domain for that validation attempt; CAs reject conflicting in-flight `POST`s with `malformed` rather than overwriting the target or silently falling back to the leaf domain.\n\nClarify how per-challenge `ancestorDomain` selection coexists with RFC 9444 ancestor authorizations (`subdomainAuthAllowed: true`), which operate at `newOrder` time and also require `policy=wildcard` when validated with `dns-persist-01`. Selecting `ancestorDomain` in a challenge response satisfies only that challenge's authorization object and does not change its `identifier.value` or set `subdomainAuthAllowed`.\n\nVerification: 6 focused local test suites cover the reference evaluator (exact leaf, equal-domain rejection, deeper wildcards, partial-label prefixes, public suffixes, the 233/253-octet validation-name boundary, and invalid syntax/types), challenge-object JSON examples, and HTML anchors. `make lint`, `make`, and `git diff --check` passed on `main`, and generated text and HTML were inspected. These are source and build checks, not live CA interoperability tests.\n\nCloses #33\n",
       "createdAt": "2026-11-02T23:48:47Z",
-      "updatedAt": "2026-11-09T21:19:17Z",
+      "updatedAt": "2026-11-11T11:46:14Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "fd52243ff7f69b38411336c754ba436b9cb64cfd",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "feat-ancestor-domain",
-      "headRefOid": "3e6e104f689fab3affedc44b3d77f3fbee802624",
+      "headRefOid": "f8b6eb3f413cadf3756a976ae17833b2421f194c",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -6695,6 +6695,20 @@
           "body": "@birgelee @slghtr-says could you take a look at #84\u2013#87 and #89?",
           "createdAt": "2026-11-05T22:13:49Z",
           "updatedAt": "2026-11-05T22:13:49Z"
+        },
+        {
+          "author": "commonism",
+          "authorAssociation": "NONE",
+          "body": "Having the CA communicate the public suffix boundary for the dns-persist challenge would be useful.\r\nSo the client can iterate the domain hierarchy up to the boundary and identify adequate ancestorDomains for use with dns-persist.\r\nNot having the CA communicate the boundary forces the client to iterate until it reaches \".\" or require access to a psl.\r\nThe CA already has access to a psl, sharing the boundary would save the client / dns services some queries and assumptions.\r\nAdditionally it would allow iterate from the boundary towards the name as well as from the name towards the boundary.",
+          "createdAt": "2026-11-11T07:22:21Z",
+          "updatedAt": "2026-11-11T07:22:21Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Thanks for raising this. A CA-provided public-suffix boundary could reduce DNS queries for a client discovering an existing record and allow traversal in either direction.\n\nWe kept a per-identifier discovery field out of the Challenge Object for this revision for two main reasons:\n\n1. A Public Suffix List (PSL) boundary alone does not describe all permitted selections: item 4 in the Implementation Requirements is a `SHOULD NOT` with exceptions such as single-organization TLDs and private PKI namespaces (which need no PSL), while a CA's policy may also disallow ancestors that are not public suffixes.\n2. Omitting the field avoids requiring every CA to compute and serialize per-identifier discovery metadata on challenge creation, including when the client validates at the authorization's own identifier (`{}`).\n\nThat leaves the extra discovery queries you note as a trade-off. Happy to revisit during WGLC if implementation experience shows an optional discovery hint is worth adding.\n",
+          "createdAt": "2026-11-11T11:46:14Z",
+          "updatedAt": "2026-11-11T11:46:14Z"
         }
       ],
       "reviews": [
@@ -6735,6 +6749,66 @@
               "body": "This should be a SHOULD NOT, a CA shouldn't have to write policy or join a trust-program in order use a registry-controlled or public suffix as the ancestor domain.",
               "createdAt": "2026-11-09T21:19:17Z",
               "updatedAt": "2026-11-09T21:19:17Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABXC5Ppg",
+          "commit": {
+            "abbreviatedOid": "1a8b0dc"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-11-10T12:05:57Z",
+          "updatedAt": "2026-11-10T12:05:58Z",
+          "comments": [
+            {
+              "originalPosition": 84,
+              "body": "Agreed \u2014 changed to SHOULD NOT with the reason stated, and applied the same guidance when the authorization itself is for a suffix (wildcard or RFC 9444), so both routes are covered.",
+              "createdAt": "2026-11-10T12:05:57Z",
+              "updatedAt": "2026-11-10T12:05:58Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABXIQMdw",
+          "commit": {
+            "abbreviatedOid": "1a8b0dc"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "CHANGES_REQUESTED",
+          "body": "",
+          "createdAt": "2026-11-10T18:21:25Z",
+          "updatedAt": "2026-11-10T18:22:18Z",
+          "comments": [
+            {
+              "originalPosition": 84,
+              "body": "```suggestion\n4. **Public-suffix boundary:** The CA SHOULD NOT accept an `ancestorDomain` that is a public suffix ({{?RFC9499}}, Section 9). A qualifying record at such a name could be used to validate the bound account for any name below it, including names held by unrelated registrants. A CA can reasonably accept one where a single organization controls the suffix and every name below it, such as a single-organization TLD or a private PKI namespace. If the CA declines an `ancestorDomain` under this item, or its policy does not permit subdomain validation at the requested `ancestorDomain`, the CA MUST reject the challenge with an `unauthorized` error ({{!RFC8555}}, Section 6.7).\n```\n\nRFC 9499 section 9 defines the registry as whoever decides what data goes into a zone is the registry for that zone, this would make almost every zone registry controlled.",
+              "createdAt": "2026-11-10T18:21:25Z",
+              "updatedAt": "2026-11-10T18:22:18Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABXLyNCA",
+          "commit": {
+            "abbreviatedOid": "f8b6eb3"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-11-10T23:00:35Z",
+          "updatedAt": "2026-11-10T23:00:35Z",
+          "comments": [
+            {
+              "originalPosition": 84,
+              "body": "Agreed. \"Public suffix\" is the term we mean, and RFC 9499 defines it. Dropped \"registry-controlled or\" here and in item 7, the RFC 9444 bullet, and the list intro.",
+              "createdAt": "2026-11-10T23:00:35Z",
+              "updatedAt": "2026-11-10T23:00:35Z"
             }
           ]
         }
@@ -6951,7 +7025,7 @@
       "labels": [],
       "body": "Deployments such as internal network devices or enterprise workloads often need both domain validation via `dns-persist-01` and cryptographic proof that the certificate private key resides on an approved hardware module (#76). Challenges within a single ACME authorization object are alternatives (RFC 8555 Section 7.1.4), CAA `validationmethods` lists are disjunctive (RFC 8657 Section 4), and unrecognized `_validation-persist` parameters are ignored (Section 4.1 item 1), so conjunctive enforcement cannot be achieved by listing two challenges on one authorization or adding an unnegotiated DNS parameter.\n\nSpecify order-level conjunction in terms of RFC 8555 Sections 7.1.3 and 7.4, citing `draft-ietf-acme-device-attest` informatively so publication does not take a normative `MISREF` dependency. A CA enforcing conjunctive attestation for an identifier or account must include the attestation authorization on every order for that identifier or account, must not allow the client to waive it via `newOrder` parameters or profile selection, and must require all authorizations on the order to be `valid` before transitioning the order to `ready`, finalizing, or issuing.\n\nBecause `_validation-persist` binds the ACME account key rather than the CSR key, require the CA to verify at order finalization that the CSR public key matches the attested public key even when the `dns` authorization was satisfied via Just-in-Time validation or prior authorization reuse, and require fresh attestation when renewing with a new certificate key.\n\nVerification: 4 focused local test suites cover the conjunctive finalization reference evaluator (CSR key match vs. mismatch across JIT and reused `dns` authorizations, key-changing renewal, and non-waivable order policy), informative reference classification, and CAA cross-references. `make lint`, `make`, and `git diff --check` passed on `main`, and generated text and HTML were inspected. These are source and build checks, not live CA testing.\n\nCloses #76\n",
       "createdAt": "2026-11-02T23:48:57Z",
-      "updatedAt": "2026-11-10T01:32:17Z",
+      "updatedAt": "2026-11-10T11:55:09Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "fd52243ff7f69b38411336c754ba436b9cb64cfd",
@@ -6969,6 +7043,13 @@
           "body": "I know sample size of 2 is too small to say anything, I wonder what kind of extensions dns-persist record wants. Extensions we already defined (valid-until, device attestation) are both \"authorized this account for A.com, but only when condition X is met\" form, making current unknown parameters ate ignored by server is seen inadequate. Maybe we'd better make validation to fail for unknown parameters, or add a way to add critical constraints (like x509 Extension)?",
           "createdAt": "2026-11-10T01:32:17Z",
           "updatedAt": "2026-11-10T01:32:17Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Good question. The draft keeps unknown parameters ignored on purpose, for forward compatibility, and the Baseline Requirements method for this validation requires the same. The Security Considerations already say extensions needing strict enforcement should use another mechanism, which is why #87 puts the conjunction in CA order policy rather than a TXT parameter. (`persistUntil` is a defined parameter, so CAs must enforce it.)\n\nA critical-parameter mechanism, like CAA's critical flag, would be a format change with CA/B Forum implications. Worth raising on acme@ietf.org as its own topic.\n",
+          "createdAt": "2026-11-10T11:55:09Z",
+          "updatedAt": "2026-11-10T11:55:09Z"
         }
       ],
       "reviews": [
