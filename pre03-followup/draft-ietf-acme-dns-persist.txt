@@ -342,10 +342,10 @@ Table of Contents
    issuerDomainNames array.  The CA MUST satisfy these requirements:
 
    *  Every value in D MUST appear in C.  A client that pre-provisions a
-      record using a name from D can therefore rely on that name to
-      satisfy the issuer-domain-name requirement of later dns-persist-01
-      challenges from that CA, without first opening an authorization,
-      subject to the stability and migration-period requirements in
+      record using a name from D can therefore use that name to satisfy
+      the issuer-domain-name requirement of later dns-persist-01
+      challenges from that CA while the name remains advertised, subject
+      to the stability requirement and migration-period guidance in
       Section 4.5.
 
    *  C MAY include values beyond D while remaining within the 10-entry
@@ -706,14 +706,14 @@ Table of Contents
    To recompute these hashed URIs, a CA has a data-retention obligation:
    it MUST retain an association between each ACME account and the
    SHA-256 JWK Thumbprints of all public keys that account has used
-   since the CA began accepting dns-persist-01 records.  These keys are
-   the key bound to the account when the CA began accepting dns-
-   persist-01 records (or when the account was created, if later) and
-   every key bound to the account afterward (for example, by key
-   rollover; [RFC8555], Section 7.3.5); the CA need not reconstruct keys
-   retired before that time.  The following rules govern this retained
-   data and the acceptance of the keys behind it, listed in order of
-   precedence with earlier rules overriding later ones:
+   since the CA began accepting key-bound dns-persist-01 records.  These
+   keys are the key bound to the account when the CA began accepting
+   key-bound dns-persist-01 records (or when the account was created, if
+   later) and every key bound to the account afterward (for example, by
+   key rollover; [RFC8555], Section 7.3.5); the CA need not reconstruct
+   keys retired before that time.  The following rules govern this
+   retained data and the acceptance of the keys behind it, listed in
+   order of precedence with earlier rules overriding later ones:
 
    1.  *Deactivation overrides retention.* A CA MUST NOT accept a hashed
        URI computed from a key of an ACME account whose status is not
@@ -768,9 +768,10 @@ Table of Contents
        Name.
 
    2.  *Filter Records*: Iterate through the returned records to find
-       those where the issuer-domain-name value matches one of the
-       Issuer Domain Names the CA is configured to use for this
-       validation.  The CA MUST ignore all other records.
+       those where the issuer-domain-name value matches, using the
+       comparison specified in Section 4.1, one of the Issuer Domain
+       Names the CA is configured to use for this validation.  The CA
+       MUST ignore all other records.
 
    3.  *Validate Record*: For each matching record, the CA proceeds to
        validate it according to the requirements in this specification,
@@ -905,13 +906,12 @@ Table of Contents
       obtained elsewhere is not guaranteed to appear in a later
       challenge and can leave the record unusable.
 
-   The client obtains the accountHashPrefix from the CA's directory
-   ([RFC8555], Section 7.1.1) and SHOULD retrieve the directory over an
-   authenticated channel, so that the record is placed under the
-   intended CA's infrastructure.  Because the hashed URI
-   cryptographically binds the account key (see Section 9.2.3), a record
-   computed with the client's genuine account key cannot be made to
-   validate for a different account, provided the accountHashPrefix
+   The client obtains the accountHashPrefix from the CA's directory over
+   HTTPS ([RFC8555], Sections 6.1 and 7.1.1), so that the record is
+   placed under the intended CA's infrastructure.  Because the hashed
+   URI cryptographically binds the account key (see Section 9.2.3), a
+   record computed with the client's genuine account key cannot be made
+   to validate for a different account, provided the accountHashPrefix
    passes the checks in Section 4.1, item 3.  This key binding lets a
    domain owner safely pre-provision without the challenge-response
    exchange.
@@ -1008,108 +1008,61 @@ Table of Contents
    guarantees.  This stability is required because the hashed URI is
    computed over the account URL and served under the prefix.  A CA MUST
    NOT assign an account URL that has previously identified a different
-   account, including a deactivated or revoked one, and MUST NOT derive
-   account URLs solely from the account key.  If a CA must change its
-   accountHashPrefix or account-URL structure, it MUST provide a
+   account, including a deactivated or revoked one.  If a CA must change
+   its accountHashPrefix or account-URL structure, it MUST provide a
    migration period during which hashed URIs under both the old and new
-   forms are accepted for validation.  The same stability requirement
-   and migration-period rule apply to each name advertised in the
-   directory issuerDomainNames array (Section 3.2).  While a name
-   remains advertised in the directory, the CA MUST continue to include
-   that name in the issuerDomainNames array of every dns-persist-01
-   challenge object it issues.  If the CA removes the name from the
-   directory, it MUST provide a migration period during which every dns-
-   persist-01 challenge object's array still includes the name.  During
-   that period the name still counts toward the 10-entry maximum in
-   Section 3.1 and, if the CA advertises caaIdentities, still appears
-   there (Section 3.2).  A CA whose directory array is at the maximum
-   therefore removes a name and completes its migration period before
-   advertising a replacement.
+   forms are accepted for validation.  Similarly, while a name remains
+   advertised in the directory issuerDomainNames array (Section 3.2),
+   the CA MUST continue to include that name in the issuerDomainNames
+   array of every dns-persist-01 challenge object it issues.  If the CA
+   removes a name from the directory, it SHOULD provide a migration
+   period during which every dns-persist-01 challenge object's array
+   still includes the name; without a migration period, records pre-
+   provisioned using that name fail validation as soon as it leaves
+   challenge objects.  During any migration period, the retained name
+   still counts toward the 10-entry maximum in Section 3.1 and, if the
+   CA advertises caaIdentities, still appears there (Section 3.2).
 
 4.6.  Combining Persistent DNS Validation with Certificate-Key
       Attestation
 
-   Some deployments require both domain authorization via dns-persist-01
-   and cryptographic proof that the certificate private key resides on
-   an approved hardware device or module (for example, using device-
+   Some deployments, such as internal network devices and enterprise
+   workloads that lack DNS write credentials and inbound HTTP
+   connectivity, combine domain authorization via dns-persist-01 with
+   cryptographic proof that the certificate private key resides on an
+   approved hardware device or module (for example, using device-
    attest-01 as described in [I-D.ietf-acme-device-attest], Sections 5,
-   7.4, and 8).  Such deployments include internal network devices and
-   enterprise workloads that lack DNS write credentials and inbound HTTP
-   connectivity.
+   7.4, and 8).
 
-   Within a single ACME authorization object, listed challenges are
+   DNS records alone cannot enforce that conjunction across CAs.  Within
+   a single ACME authorization object, listed challenges are
    alternatives ([RFC8555], Section 7.1.4).  Similarly, a CAA
    validationmethods list ([RFC8657], Section 4) is disjunctive and
-   authorizes issuance if any one listed method is used.  Because CAs
-   are required to ignore unrecognized parameters in _validation-persist
-   TXT records (Section 4.1, item 1), adding an unrecognized parameter
-   to a _validation-persist record cannot force a CA that does not
-   implement that extension to reject issuance.
+   authorizes issuance if any one listed method is used, and CAs ignore
+   unrecognized parameters in _validation-persist TXT records
+   (Section 4.1, item 1).
 
-   Accordingly, conjunctive enforcement of dns-persist-01 domain
-   validation and certificate-key attestation is governed by CA issuance
-   and order policy ([RFC8555], Sections 7.1.3 and 7.4):
-
-   1.  *Conjunctive order authorizations:* Under [RFC8555],
-       Section 7.1.3, the authorizations required for an order are
-       determined by server policy and need not have a one-to-one
-       relationship with the requested certificate identifiers.  For
-       example, in privacy-preserving attestation workflows, a hardware
-       identifier is validated for the order but omitted from the
-       certificate signing request (CSR) and issued certificate (see
-       [I-D.ietf-acme-device-attest], Section 7.4).  A CA enforcing this
-       conjunction for an identifier or account MUST include the
-       attestation authorization in the authorizations array of every
-       order for that identifier or account.  The CA MUST NOT permit the
-       client to waive the requirement through newOrder parameters or
-       profile selection.  An identifier-scoped policy MUST cover every
-       identifier that the domain owner's _validation-persist record can
-       authorize, including wildcard and subordinate names under
-       policy=wildcard; account-level enforcement is therefore
-       RECOMMENDED.  When an order or CA policy requires both dns-
-       persist-01 domain validation and a certificate-key attestation
-       authorization, the CA MUST NOT transition the order to ready,
-       finalize the order, or issue the certificate unless all required
-       authorizations on the order are in the valid state ([RFC8555],
-       Section 7.4).
-
-   2.  *CSR public key binding across JIT and authorization reuse:* A
-       dns-persist-01 record binds the ACME account key, not the
-       certificate key in the CSR.  When a CA enforces conjunctive
-       certificate-key attestation for an order, the CA MUST associate
-       the verified attested public key with the attestation
-       authorization.  The CA MUST verify at order finalization
-       ([RFC8555], Section 7.4) that the public key in the submitted CSR
-       matches that attested public key (see
-       [I-D.ietf-acme-device-attest], Section 8).  This finalization
-       check MUST be enforced even when the order's dns authorization
-       was satisfied via Just-in-Time validation (Section 4.4) or prior
-       authorization reuse.
-
-   3.  *Renewal with a new certificate key:* If a client submits a
-       subsequent order that will use a new CSR public key, a previously
-       validated attestation authorization bound to an earlier
-       certificate public key does not attest the new key.  A
-       finalization failure can result if the order's immutable
-       authorizations list references only the prior key's attestation.
-       To avoid this failure, a CA enforcing conjunctive attestation
-       MUST provide a path to obtain fresh attestation evidence for the
-       new key (such as requiring a fresh attestation authorization per
-       order or when the attested key changes).  The client MUST submit
-       a CSR whose public key matches the attested key for that order.
-
-   4.  *Domain-owner scoping:* _validation-persist records bind
-       authorization to a specific CA (issuer-domain-name) and a
-       specific ACME account (accounturi).  A domain owner that requires
-       certificate-key attestation for a domain SHOULD therefore
-       provision _validation-persist (and reinforcing CAA accounturi /
-       issue) records only for CAs and accounts whose account-level
-       policy enforces, and does not allow the client to waive, the
-       conjunctive requirement above.  If a domain owner provisions a
-       _validation-persist record for a CA or account whose policy does
-       not enforce this non-waivable conjunction, that CA and account
-       can issue certificates for the domain using the persistent DNS
-       authorization alone, without certificate-key attestation.
+   Instead, a deployment that requires both checks relies on CA order
+   policy ([RFC8555], Sections 7.1.3 and 7.4).  Under [RFC8555],
+   Section 7.1.3, the authorizations required for an order are
+   determined by server policy and need not have a one-to-one
+   relationship with the requested certificate identifiers (for example,
+   when a hardware identifier is validated for the order but omitted
+   from the certificate signing request (CSR) and issued certificate;
+   see [I-D.ietf-acme-device-attest], Section 7.4).  In such a
+   deployment, the CA includes both the domain authorization and a non-
+   waivable attestation authorization on each order in scope (including
+   orders for wildcard or subordinate names authorized via
+   policy=wildcard).  At finalization ([RFC8555], Section 7.4), the CA
+   checks that all order authorizations are valid and that the CSR
+   public key matches the attested public key even when dns validation
+   used Just-in-Time validation (Section 4.4) or authorization reuse.
+   When a renewal order uses a new CSR public key, the CA requires fresh
+   attestation for that key.  Because _validation-persist binds
+   authorization to a specific issuer-domain-name and accounturi, a
+   domain owner needing this guarantee provisions _validation-persist
+   (and any reinforcing CAA accounturi / issue) records only for CAs and
+   accounts whose policy enforces both checks.
 
 5.  Wildcard Certificate Validation
 
@@ -1250,23 +1203,25 @@ Table of Contents
    4.  *Public-suffix boundary:* The CA SHOULD NOT accept an
        ancestorDomain (R) that is a public suffix ([RFC9499],
        Section 9), or that is an Ancestor Domain of a public suffix P
-       where P equals A or is an Ancestor Domain of A.  A qualifying
-       record at or above such a suffix could be used to validate the
-       bound account for names held by unrelated registrants.  A CA can
-       reasonably accept such a domain R where a single organization
-       controls every name below R, such as a single-organization top-
-       level domain (TLD) or a namespace used by a private public key
-       infrastructure (PKI).  If the CA declines an ancestorDomain under
-       this item, or its policy does not permit subdomain validation at
-       the requested ancestorDomain, the CA MUST reject the challenge
-       with an unauthorized error ([RFC8555], Section 6.7).
+       where P equals A or is an Ancestor Domain of A, as determined by
+       the CA from a source such as the Public Suffix List.  A
+       qualifying record at or above such a suffix could be used to
+       validate the bound account for names held by unrelated
+       registrants.  A CA can reasonably accept such a domain R where a
+       single organization controls every name below R, such as a
+       single-organization top-level domain (TLD) or a namespace used by
+       a private public key infrastructure (PKI).  If the CA declines an
+       ancestorDomain under this item, or its policy does not permit
+       subdomain validation at the requested ancestorDomain, the CA MUST
+       reject the challenge with an unauthorized error ([RFC8555],
+       Section 6.7).
 
    5.  *Record scope and digest binding:* When validating at
-       _validation-persist.<ancestorDomain>, a retrieved TXT record
-       qualifies only if it includes policy=wildcard.  If the validation
-       attempt fails because no record at _validation-
-       persist.<ancestorDomain> that otherwise meets the requirements of
-       Section 4.1 includes policy=wildcard, the CA MUST fail the
+       _validation-persist.<ancestorDomain>, a record satisfies
+       validation only if it also includes policy=wildcard.  If the only
+       records that would otherwise satisfy validation lack
+       policy=wildcard and the attempt is not eligible for
+       persistExpired (Section 12.3.1), the CA MUST fail the validation
        attempt with an unauthorized error; other failure reasons are
        reported as described in Section 12.3.1.  Both the client (or
        delegated DNS publisher) and the CA MUST compute the expected
@@ -1277,7 +1232,7 @@ Table of Contents
    6.  *Preservation of authorization scope:* Validating a challenge
        with ancestorDomain satisfies only that authorization object for
        A; it MUST NOT alter the authorization object's identifier field
-       or set subdomainAuthAllowed ([RFC9444], Section 4.1).
+       or its subdomainAuthAllowed value ([RFC9444], Section 4.1).
 
    7.  *Suffix-level authorizations:* The guidance in item 4 also
        applies when the authorization's identifier.value (A) is itself a
@@ -1301,9 +1256,12 @@ Table of Contents
 
    Note: Because ancestorDomain is a request-only challenge-response
    field, the resulting challenge object does not echo ancestorDomain.
-   If a nonconforming legacy CA ignores ancestorDomain and an
-   independent valid record exists at _validation-persist.<A>, the
-   challenge object alone does not reveal that the CA ignored the field.
+   A CA implementing an earlier draft of this specification ignores
+   ancestorDomain, as [RFC8555], Section 7.5.1 requires for unrecognized
+   response fields, and validates at _validation-persist.<A>.  The
+   result fails closed: validation succeeds only if a record at
+   _validation-persist.<A> independently authorizes A.  A client cannot
+   tell this outcome from the challenge object.
 
    See Section 9.3 for important security implications of enabling
    subdomain validation.
@@ -1894,9 +1852,10 @@ Table of Contents
 
    The persistent nature of validation records raises concerns about
    potential reuse across different CAs.  While the issuer-domain-name
-   parameter is designed to prevent such reuse, implementations MUST
-   validate that the issuer-domain-name in the DNS record matches the
-   CA's disclosed Issuer Domain Name.
+   parameter is designed to prevent such reuse, CAs MUST validate that
+   the issuer-domain-name in the DNS record matches, using the
+   comparison specified in Section 4.1, one of the CA's disclosed Issuer
+   Domain Names.
 
 9.6.  Record Tampering and Integrity
 
@@ -1953,7 +1912,7 @@ Table of Contents
 
 9.9.1.  DNSSEC
 
-   DNS Security Extensions (DNSSEC) [RFC4033] provide cryptographic
+   DNS Security Extensions (DNSSEC) [RFC9364] provide cryptographic
    authentication of DNS data, ensuring that the validation records
    retrieved by a CA are authentic and have not been tampered with.  CAs
    SHOULD use a DNSSEC-validating resolver when querying dns-persist-01
@@ -2362,7 +2321,8 @@ Table of Contents
 
       -  it uses an accepted hash algorithm;
 
-      -  it matches one of the challenge's issuerDomainNames;
+      -  its issuer-domain-name matches one of the challenge's
+         issuerDomainNames (Section 4.1);
 
       -  it has an accounturi matching the live requesting account
          (Section 4.2); and
@@ -2415,15 +2375,17 @@ Table of Contents
    These error types apply to validation attempts on individual
    challenges.  When multiple records in the same resource record set
    (RRset) fail validation for different reasons and no record satisfies
-   validation, the CA SHOULD report the error corresponding to the
-   record that came closest to satisfying validation for the requesting
-   account.  For this purpose, the order is persistExpired,
-   unauthorized, malformed.  Records that cannot be parsed to a matching
-   issuer-domain-name are ignored as specified in Section 4.3.  In the
-   case of Just-in-Time validation (see Section 4.4), a CA that finds a
-   pre-existing DNS TXT record that does not meet validation
-   requirements does not return an error.  Instead, the CA proceeds with
-   the standard authorization flow by issuing a new pending challenge.
+   validation, reporting persistExpired when eligible (as specified
+   above) and otherwise choosing between unauthorized and malformed
+   according to CA policy (where this document does not mandate a
+   specific error type) gives operators actionable feedback without
+   requiring a fixed evaluation order between unauthorized and
+   malformed.  Records that cannot be parsed to a matching issuer-
+   domain-name are ignored as specified in Section 4.3.  In the case of
+   Just-in-Time validation (see Section 4.4), a CA that finds a pre-
+   existing DNS TXT record that does not meet validation requirements
+   does not return an error.  Instead, the CA proceeds with the standard
+   authorization flow by issuing a new pending challenge.
 
    Table 6 summarizes the challenge-response, DNS validation, and Just-
    in-Time outcomes for common failure conditions:
@@ -2527,32 +2489,26 @@ Table of Contents
    reject with a persistExpired or unauthorized error (see Section 12.3)
    instead of reporting an actionable, locally diagnosed cause.
 
-   When using ancestorDomain for a dns authorization (Section 6.1), a
-   client SHOULD use the record domain R recorded in its configuration
-   or local provisioning state rather than scanning DNS, avoiding
-   unnecessary queries and ambiguity when multiple ancestors carry
-   records.  A client that instead discovers an existing _validation-
-   persist record in DNS SHOULD search upward from the immediate parent
-   of A (most-specific ancestor first) with a bounded number of label
-   steps.  Before submitting the challenge response, the client SHOULD
-   verify locally that the candidate record's issuer-domain-name matches
-   an entry in the challenge's issuerDomainNames, that the record
-   includes policy=wildcard and has not passed any persistUntil
-   timestamp, and that its accounturi matches a hashed URI computed for
-   the account and the candidate R (or *).  Searching from a broader
-   ancestor downward, omitting the step bound, or submitting a candidate
-   without those local checks can generate excessive queries on deep
-   names, select a record with broader scope than needed, or transition
-   the challenge to invalid against an unrelated or planted record at a
-   shared parent domain (Section 9.3).  Unless explicitly configured for
-   a single-organization suffix, the client SHOULD NOT attempt automatic
-   ancestor discovery when A is a known public suffix, and SHOULD stop
-   the upward search upon reaching a known public suffix (including a
-   single-label TLD) or the DNS root, querying neither that suffix nor
-   any name above it.  Querying at or above a public suffix sends
-   unnecessary queries for ancestors the CA is expected to decline
-   (Section 6.2).  Ancestor discovery applies only to dns authorizations
-   (Section 7.2).
+   When using ancestorDomain for a dns authorization (Section 6.1),
+   using the record domain R recorded in configuration or local
+   provisioning state avoids extra DNS queries and ambiguity when
+   multiple ancestors carry records.  A client that instead searches DNS
+   for an existing _validation-persist record can walk upward from the
+   immediate parent of A (most-specific ancestor first) with a small
+   step limit, avoiding queries at or above known public suffixes,
+   single-label TLDs, and the DNS root unless configured for a single-
+   organization suffix.  Checking locally before submitting the
+   challenge response that a candidate record's issuer-domain-name
+   matches an entry in the challenge's issuerDomainNames (Section 4.1),
+   includes policy=wildcard, and has not passed any persistUntil
+   timestamp (and, when the current account key provisioned the record,
+   matches the expected accounturi for R or *) avoids failing the
+   challenge against unrelated or planted records on shared parent
+   domains (Section 9.3).  Note, however, that a record provisioned
+   under an earlier account key can still be accepted by the CA
+   (Section 4.2) even though it will not match a hash computed from the
+   client's current key alone.  Ancestor discovery applies only to dns
+   authorizations (Section 7.2).
 
 12.5.  DNS Provider Considerations
 
@@ -2652,6 +2608,22 @@ Table of Contents
    NpDnSwUthQK8zCgFdefYxAdAVPnygMLbs9US6oO-5ug, does not depend on the
    domain and can be reused across domains (see Section 4.1).
 
+   For a record provisioned at _validation-persist.XN--FA-HIA.example.,
+   Section 12.2 produces domain_name xn--fa-hia.example.  Keeping the
+   key and account_URL of the "example.com" example, the hash inputs
+   are:
+
+   *  length_of_domain: 0x12 (the domain xn--fa-hia.example is 18
+      octets)
+
+   *  domain_name: xn--fa-hia.example
+
+   Computing SHA-256(length_of_domain || domain_name || key ||
+   account_URL) and applying unpadded base64url encoding to the 32-octet
+   digest yields:
+
+   dc3zyKBvsc9_vyWQoZSyM4fgcN0d7jnr61730r7ekAw
+
 13.3.  Pre-Provisioned Validation Example
 
    This example illustrates the pre-provisioning flow described in
@@ -2678,8 +2650,8 @@ Table of Contents
 
        Per Section 3.2, a name taken from this array satisfies the
        issuer-domain-name requirement of later dns-persist-01 challenges
-       from this CA, subject to the stability and migration-period
-       requirements in Section 4.5.
+       from this CA while advertised, subject to the stability
+       requirement and migration-period guidance in Section 4.5.
 
    3.  Before handing off the record inputs, the account holder
        satisfies the account check in Section 4.5 using an authenticated
@@ -2879,6 +2851,10 @@ Table of Contents
               Subdomains", RFC 9444, DOI 10.17487/RFC9444, August 2023,
               <https://www.rfc-editor.org/info/rfc9444>.
 
+   [RFC9499]  Hoffman, P. and K. Fujiwara, "DNS Terminology", BCP 219,
+              RFC 9499, DOI 10.17487/RFC9499, March 2024,
+              <https://www.rfc-editor.org/info/rfc9499>.
+
    [RFC8738]  Shoemaker, R.B., "Automated Certificate Management
               Environment (ACME) IP Identifier Validation Extension",
               RFC 8738, DOI 10.17487/RFC8738, February 2020,
@@ -2888,6 +2864,10 @@ Table of Contents
               "DNS Extensions to Support IP Version 6", STD 88,
               RFC 3596, DOI 10.17487/RFC3596, October 2003,
               <https://www.rfc-editor.org/info/rfc3596>.
+
+   [RFC9364]  Hoffman, P., "DNS Security Extensions (DNSSEC)", BCP 237,
+              RFC 9364, DOI 10.17487/RFC9364, February 2023,
+              <https://www.rfc-editor.org/info/rfc9364>.
 
    [RFC8552]  Crocker, D., "Scoped Interpretation of DNS Resource
               Records through "Underscored" Naming of Attribute Leaves",
@@ -2916,19 +2896,10 @@ Table of Contents
               2026, <https://datatracker.ietf.org/doc/html/draft-ietf-
               acme-device-attest-10>.
 
-   [RFC9499]  Hoffman, P. and K. Fujiwara, "DNS Terminology", BCP 219,
-              RFC 9499, DOI 10.17487/RFC9499, March 2024,
-              <https://www.rfc-editor.org/info/rfc9499>.
-
    [RFC7942]  Sheffer, Y. and A. Farrel, "Improving Awareness of Running
               Code: The Implementation Status Section", BCP 205,
               RFC 7942, DOI 10.17487/RFC7942, July 2016,
               <https://www.rfc-editor.org/info/rfc7942>.
-
-   [RFC4033]  Arends, R., Austein, R., Larson, M., Massey, D., and S.
-              Rose, "DNS Security Introduction and Requirements",
-              RFC 4033, DOI 10.17487/RFC4033, March 2005,
-              <https://www.rfc-editor.org/info/rfc4033>.
 
    [RFC6973]  Cooper, A., Tschofenig, H., Aboba, B., Peterson, J.,
               Morris, J., Hansen, M., and R. Smith, "Privacy
@@ -2976,47 +2947,75 @@ Change Log
 
 Since draft-ietf-acme-dns-persist-02
 
-   *  Added the ancestorDomain challenge-response field to select a
-      parent validation record, with scope checks and rules for
-      interaction with [RFC9444].
+   *  Added the request-only ancestorDomain challenge-response field
+      (Section 6) to select a policy=wildcard validation record at a
+      proper ancestor, with interaction rules for [RFC9444], public-
+      suffix guidance (including nested public suffixes), DNS length
+      checks on every R (including rejecting {} with malformed when
+      _validation-persist.<A> exceeds 253 octets), and client discovery
+      advice (Section 12.4).
 
-   *  Added IP address validation through _ip-validation-persist records
-      in the reverse DNS namespace, with per-address scope and reverse-
-      name digest inputs.
+   *  Added IP address validation (Section 7) through _ip-validation-
+      persist.<R> records in the reverse DNS namespace (in-addr.arpa and
+      ip6.arpa), with per-address scope and pre-alias reverse-name
+      digest inputs.
 
-   *  Added the persistExpired error type for otherwise qualifying
-      records whose persistUntil has expired, with account-specific
-      eligibility and an unauthorized fallback.
+   *  Added the persistExpired error type (Section 11.4, Section 12.3.1)
+      for otherwise qualifying records of the live requesting account
+      whose persistUntil has passed, with an unauthorized fallback and
+      informative multi-record failure guidance.
 
-   *  Described CA order-policy enforcement of persistent DNS validation
-      together with certificate-key attestation, including CSR key
-      binding and renewal with a new key.
+   *  Added informative deployment guidance (Section 4.6) on combining
+      dns-persist-01 with certificate-key attestation through CA order
+      policy.
 
-   *  Clarified exact comparison of parsed issuer names and ASCII-only
-      canonicalization of domain hash inputs.  Kept syntax whitespace
-      separate from issuer comparison.
+   *  Changed domain hash canonicalization (Section 12.2) from Unicode/
+      IDNA processing to ASCII lowercasing and trailing-dot removal on
+      validated A-label inputs, specified that CAs follow CNAME aliases
+      at the Validation Domain Name while keeping domain_name bound to
+      the pre-alias R (or *), and changed issuer-domain-name matching
+      (Section 4.1) to exact Simple String Comparison (adding an XN--FA-
+      HIA.example. test vector in Section 13.2).
 
-   *  Consolidated prior-key retention rules and clarified the effects
-      of account deactivation, key compromise, and validation-data
-      reuse.
+   *  Changed recognized parameter-name matching (accounturi, policy,
+      persistUntil) to ASCII case-insensitive comparison while rejecting
+      duplicate occurrences of recognized parameter names, restricted
+      persistUntil to unsigned ASCII digits not exceeding 2^63 - 1
+      (valid at or before T, expired after T), and specified that CAs
+      evaluate each record individually without combining parameters
+      across records (Section 4.1).
 
-   *  Required that CAs never reassign an account URL to a different
-      account or derive account URLs solely from the account key.
-      Restricted persistUntil to unsigned ASCII digits not exceeding
-      2^63 - 1.  Applied the deactivation rule to any account whose
-      status is not valid.  Recommended that shared-parent operators
-      reserve the validation labels.
+   *  Required clients and any delegated publishers to verify before
+      constructing a hashed URI that accountHashPrefix is present in the
+      directory and contains only [RFC8659] value octets and % plus
+      [RFC3986] reserved/unreserved characters, with no fallback to
+      another value (Section 4.1).
+
+   *  Consolidated prior-key retention rules (Section 4.2,
+      Section 9.2.1): scoped the retention start point to when the CA
+      began accepting key-bound dns-persist-01 records, applied
+      immediate override on any account status other than valid,
+      required that CAs never reassign an account URL to a different
+      account (Section 4.5), noted keyChange / attempt rate limiting
+      (Section 12.3.1), and removed the -02 recommendation to restrict
+      Just-in-Time validation to accounts with a prior dns-persist-01
+      validation (Section 4.4).
+
+   *  Extended Section 4.5 stability rules to names advertised in
+      directory issuerDomainNames (requiring inclusion in issued
+      challenges while advertised and recommending a migration period on
+      removal), clarified that Just-in-Time validated authorizations
+      include the valid dns-persist-01 challenge object, and recommended
+      reserving validation labels on shared parent domains
+      (Section 9.3).
 
    *  Added Privacy Considerations (Section 10) and Implementation
-      Status (Section 8) sections.
-
-   *  Edited the text for readability: shorter sentences, a named actor
-      for each requirement, and consistent terminology, with no change
-      to requirements.
-
-   *  Added figures for hashed-URI construction (Figure 2) and delegated
-      pre-provisioning (Figure 5), and summary tables for domain scope
-      (Table 1) and error handling (Table 6).
+      Status (Section 8, noting that earlier-draft deployments sharing
+      the dns-persist-01 label do not interoperate with -03), upgraded
+      the DNSSEC reference to [RFC9364], added explanatory figures and
+      summary tables, corrected the IANA directory metadata registry
+      name, and edited the prose for clarity and consistent actor
+      attribution.
 
 Since draft-ietf-acme-dns-persist-01
 
