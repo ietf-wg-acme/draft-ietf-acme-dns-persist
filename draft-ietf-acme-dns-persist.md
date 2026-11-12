@@ -276,7 +276,7 @@ When multiple TXT records are present at the same DNS label (e.g., `_validation-
 When a CA performs validation for a domain with multiple `_validation-persist` TXT records, it MUST follow these steps:
 
 1.  **Query DNS**: Retrieve all TXT records from the Validation Domain Name.
-2.  **Filter Records**: Iterate through the returned records to find those where the `issuer-domain-name` value matches one of the Issuer Domain Names the CA is configured to use for this validation. The CA MUST ignore all other records.
+2.  **Filter Records**: Iterate through the returned records to find those where the `issuer-domain-name` value matches, using the comparison specified in {{validation-record-format}}, one of the Issuer Domain Names the CA is configured to use for this validation. The CA MUST ignore all other records.
 3.  **Validate Record**: For each matching record, the CA proceeds to validate it according to the requirements in this specification, including verifying the `accounturi` and `persistUntil` parameters. If any matching record satisfies all requirements, the validation succeeds.
 4.  **Handle No Match**: If no record with a matching `issuer-domain-name` is found, or if no matching record satisfies all validation requirements, the validation attempt MUST fail.
 
@@ -862,6 +862,17 @@ NpDnSwUthQK8zCgFdefYxAdAVPnygMLbs9US6oO-5ug
 ~~~
 
 The resulting hashed URI, `https://ca.example/account-hash/sha-256/NpDnSwUthQK8zCgFdefYxAdAVPnygMLbs9US6oO-5ug`, does not depend on the domain and MAY be reused across domains.
+
+For a record provisioned at `_validation-persist.XN--FA-HIA.example.`, {{normalization-algorithm}} produces `domain_name` `xn--fa-hia.example`. Keeping the `key` and `account_URL` of the "example.com" example, the hash inputs are:
+
+- `length_of_domain`: `0x12` (the domain `xn--fa-hia.example` is 18 octets)
+- `domain_name`: `xn--fa-hia.example`
+
+Computing `SHA-256(length_of_domain || domain_name || key || account_URL)` and applying unpadded base64url encoding to the 32-octet digest yields:
+
+~~~
+dc3zyKBvsc9_vyWQoZSyM4fgcN0d7jnr61730r7ekAw
+~~~
 
 
 ## Pre-Provisioned Validation Example {#pre-provisioned-validation-example}
