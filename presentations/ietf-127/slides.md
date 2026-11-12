@@ -173,7 +173,7 @@ IETF 127 ACME WG — San Francisco
 - **Hash & CNAMEs ([#89](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/89)):** ASCII A-labels; exact `issuer-domain-name`; follow CNAMEs, hash pre-alias `R` (or `*`)
 - **`accountHashPrefix` ([#81](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/81)):** client/publisher **MUST** verify RFC 8659 `value` + URI chars; no fallback
 - **Parameters ([#80](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/80)):** case-insensitive recognized tags (no dupes); `persistUntil` **MUST** be ASCII digits `≤ 2^63−1` (valid `≤ T`)
-- **Account & issuer MUSTs:** no URL reassignment or sole-key URLs; `issuerDomainNames` stable + migration
+- **Account & issuer rules:** no account-URL reassignment; `issuerDomainNames` stable + migration **SHOULD**
 
 </div>
 </div>
@@ -254,7 +254,7 @@ Registers `urn:ietf:params:acme:error:persistExpired` (RFC 8555 §9.7.4):
 | **1. Privacy Gate (`MUST NOT`)** | CA **MUST NOT** return `persistExpired` if any record at the queried name validates, or if no record at that name is otherwise qualifying for the CA and **live requesting account** and failed solely due to an expired `persistUntil` (order-independent across RRsets). |
 | **2. Diagnostic (`SHOULD` / `MAY`)** | When eligible on a challenge attempt, CA **SHOULD** return `persistExpired`, and **MAY** return `unauthorized` for uniform disclosure. |
 
-- **Boundary & order:** valid `≤ T`, expired `> T`; multi-record priority: `persistExpired` → `unauthorized` → `malformed`
+- **Boundary & RRsets:** valid `≤ T`, expired `> T`; `persistExpired` when eligible (`unauthorized` vs `malformed` per CA)
 - **JIT & clients:** JIT falls back to `pending`; clients check `persistUntil` locally and handle `persistExpired` or `unauthorized`
 
 <div class="ask">
@@ -272,11 +272,11 @@ Registers `urn:ietf:params:acme:error:persistExpired` (RFC 8555 §9.7.4):
 Why DNS parameters and CAA alone cannot express `dns-persist-01` **AND** `device-attest-01`:
 - Authorization `challenges` (RFC 8555 §7.1.4) and CAA `validationmethods` (RFC 8657 §4) are **disjunctive (`OR`)**; unknown TXT parameters are `MUST ignore`
 
-## Order-level conjunctive policy ([PR #87](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/87))
+## Informative order-policy guidance ([PR #87](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/87))
 
-1. **Non-waivable Order `authorizations` (RFC 8555 §7.1.3):** CA **MUST** include the attestation authorization on every Order in scope (covering wildcard/subordinate names) and **MUST NOT** allow client waiver
-2. **CSR key binding at finalization (RFC 8555 §7.4):** CA **MUST** verify the CSR public key matches the Order's attested key — even across JIT or reused `dns` authorizations
-3. **Key-rotation renewal:** JIT reuses `_validation-persist`; new Order requires fresh attestation for the rotated CSR key (`device-attest` cited informatively)
+1. **Order `authorizations` (RFC 8555 §7.1.3):** CA policy includes both domain (incl. wildcard/subordinate) and non-waivable attestation authorizations
+2. **Finalization CSR key check (RFC 8555 §7.4):** all Order authorizations `valid` + CSR public key matches attested key across JIT or reuse
+3. **Key-rotation renewal:** JIT reuses `_validation-persist`; new Order obtains fresh attestation for the rotated CSR key (`device-attest` informative)
 
 <div class="ask">
 

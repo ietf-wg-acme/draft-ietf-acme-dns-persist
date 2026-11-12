@@ -37,12 +37,12 @@
 **[DEFAULT — IF SHORT (0:55)]:**
 "In September `-02` landed the mandatory hashed `accounturi`, the star opt-out, lifetime witnessed-key retention overridden by account deactivation, the `persistUntil` clamp, and directory `issuerDomainNames`.
 
-In `-03`, hash canonicalization is ASCII-only on validated A-labels, `issuer-domain-name` matching is exact, and CAs follow CNAMEs at the Validation Domain Name while keeping `domain_name` bound to the pre-alias `R` (or `*`). Clients and delegated publishers MUST verify `accountHashPrefix` uses only RFC 8659 `value` octets and `%` plus RFC 3986 `reserved`/`unreserved` characters—blocking semicolon injection and zone-file escapes—with no fallback if absent or invalid. Recognized parameter tags are ASCII case-insensitive with duplicate recognized tags rejected; `persistUntil` MUST be unsigned ASCII digits up to `2^63 - 1`, valid through `T`, never combining records. CAs MUST NOT reassign account URLs to different accounts or derive them solely from the account key, and directory `issuerDomainNames` require stability and a migration period."
+In `-03`, hash canonicalization is ASCII-only on validated A-labels, `issuer-domain-name` matching is exact, and CAs follow CNAMEs at the Validation Domain Name while keeping `domain_name` bound to the pre-alias `R` (or `*`). Clients and delegated publishers MUST verify `accountHashPrefix` uses only RFC 8659 `value` octets and `%` plus RFC 3986 `reserved`/`unreserved` characters—blocking semicolon injection and zone-file escapes—with no fallback if absent or invalid. Recognized parameter tags are ASCII case-insensitive with duplicate recognized tags rejected; `persistUntil` MUST be unsigned ASCII digits up to `2^63 - 1`, valid through `T`, never combining records. CAs MUST NOT reassign account URLs to different accounts, and directory `issuerDomainNames` MUST remain in issued challenges while advertised, with a recommended migration period on removal."
 
 **[FULL SCRIPT (1:25, only if given extra time)]:**
 "On the left: `-02` published in September with all the core decisions from Vienna and the August list threads. The hashed `accounturi` is the sole form, binding the domain length, domain name, 43-octet RFC 7638 JWK thumbprint, and account URL. The domain-omitted `*` opt-out is client-MAY, CA-MUST. For account key rollover, CAs retain witnessed account-key thumbprints for the lifetime of the account while any non-`valid` account status (deactivated or revoked) immediately overrides retention. And `persistUntil` clamps the resulting authorization's `expires` field.
 
-On the right: `-03` incorporates list feedback and pre-WGLC review hardening, plus new RFC 6973 Privacy Considerations and RFC 7942 Implementation Status sections. Following Jacob's list feedback, PR `#89` keeps hash canonicalization ASCII-only on validated A-labels and makes `issuer-domain-name` comparison exact. CAs follow CNAME aliases at `_validation-persist.<R>`, while `domain_name` stays the pre-alias `R`, never a CNAME target. On `accountHashPrefix`, both the client and any delegated publisher MUST verify the prefix is present and uses only RFC 8659 `value` octets and `%` plus RFC 3986 `reserved`/`unreserved` characters—blocking `;x=` parameter injection and `\`/`"` zone-file escapes—and MUST NOT fall back to another value if missing or invalid. Recognized parameter names are ASCII case-insensitive with duplicate recognized parameters rejected; `persistUntil` MUST be unsigned ASCII digits `<= 9223372036854775807`, valid at or before `T` and expired after `T`, and multiple qualifying records are never combined. Finally, CAs MUST NOT reassign an account URL or derive it solely from the account key, and advertised directory `issuerDomainNames` MUST stay stable with a dual-acceptance migration period."
+On the right: `-03` incorporates list feedback and pre-WGLC review hardening, plus new RFC 6973 Privacy Considerations and RFC 7942 Implementation Status sections. Following Jacob's list feedback, PR `#89` keeps hash canonicalization ASCII-only on validated A-labels and makes `issuer-domain-name` comparison exact. CAs follow CNAME aliases at `_validation-persist.<R>`, while `domain_name` stays the pre-alias `R`, never a CNAME target. On `accountHashPrefix`, both the client and any delegated publisher MUST verify the prefix is present and uses only RFC 8659 `value` octets and `%` plus RFC 3986 `reserved`/`unreserved` characters—blocking `;x=` parameter injection and `\`/`"` zone-file escapes—and MUST NOT fall back to another value if missing or invalid. Recognized parameter names are ASCII case-insensitive with duplicate recognized parameters rejected; `persistUntil` MUST be unsigned ASCII digits `<= 9223372036854775807`, valid at or before `T` and expired after `T`, and multiple qualifying records are never combined. Finally, CAs MUST NOT reassign an account URL to a different account, and advertised directory `issuerDomainNames` MUST stay in issued challenges while advertised, with a SHOULD migration period on removal."
 
 **Transition:** "`-03` also resolves the four open feature issues. First up is subdomain validation in `#33`."
 
@@ -50,7 +50,7 @@ On the right: `-03` incorporates list feedback and pre-WGLC review hardening, pl
 
 ## Slide 3: Subdomain Validation via `ancestorDomain` (`#33` / PR `#84`) (1:30, protect)
 
-"PR `#84` resolves Issue `#33` without DNS tree walks via a request-only `ancestorDomain` field in the challenge-response `POST` payload, leaving the Challenge Object schema unchanged.
+"PR `#84` resolves Issue `#33` without DNS tree walks via a request-only `ancestorDomain` field in the challenge-response `POST` payload—reusing RFC 9444 Section 2's Ancestor Domain term while leaving the Challenge Object schema and authorization scope unchanged.
 
 PR `#84` separates the certificate identifier `F`, the authorization's `identifier.value` `A` (with `*.` already stripped per RFC 8555), and the record domain `R`. Default `{}` sets `R = A`—including base wildcards like `*.example.com`. Deeper wildcards (`*.dept.example.com`) or subdomains send `{\"ancestorDomain\": \"example.com\"}`.
 
@@ -58,7 +58,7 @@ On the right:
 
 1. CAs MUST recognize `ancestorDomain`—no silent fallback to `A`.
 2. DNS length limits (63-octet labels, 253-octet VDN) apply to every `R`, including `R = A`: if `_validation-persist.<A>` is overlong, the CA MUST reject `{}` with HTTP `malformed` without any DNS or JIT query, and the client can select an ancestor.
-3. `R` must be a strict whole-label proper suffix of `A`. CAs SHOULD NOT accept public suffixes—including suffix-level wildcard or RFC 9444 authorizations—with exceptions where one organization controls the suffix, such as a brand TLD or private PKI.
+3. `R` must be a strict whole-label proper suffix of `A`. CAs SHOULD NOT accept public suffixes or ancestors above nested public suffixes—including suffix-level wildcard or RFC 9444 authorizations—with exceptions where one organization controls every name below `R`, such as a brand TLD or private PKI.
 4. The record at `R` requires `policy=wildcard`, and the digest hashes `R` (or `*`).
 5. The first accepted POST locks `R`, and `ancestorDomain` coexists with RFC 9444 while satisfying only `A`."
 
@@ -90,7 +90,7 @@ Two key details:
 "PR `#86` resolves Issue `#39` by registering `urn:ietf:params:acme:error:persistExpired` with a two-part rule:
 
 1. Mandatory `MUST NOT` privacy gate: never return `persistExpired` if any record validates, or unless a record otherwise qualifying for the CA and live requesting account failed solely due to `persistUntil`, independent of RRset order.
-2. `SHOULD` diagnostic: when eligible on a challenge attempt, return `persistExpired` (or `unauthorized` for uniform disclosure). Records are valid through `T` and expired after `T`; multi-record failure priority stays `persistExpired`, `unauthorized`, `malformed`; JIT still falls back to `pending`."
+2. `SHOULD` diagnostic: when eligible on a challenge attempt, return `persistExpired` (or `unauthorized` for uniform disclosure). Records are valid through `T` and expired after `T`, `unauthorized` versus `malformed` ordering across failed records is left to CA policy, and JIT still falls back to `pending`."
 
 **[IF SHORT]:** "PR `#86` registers `persistExpired` with a mandatory `MUST NOT` privacy gate so it only fires when a record belonging to the requesting account and CA failed solely due to `persistUntil`, never leaking another account's or CA's expiry state." (20 sec)
 
@@ -100,13 +100,13 @@ Two key details:
 
 ## Slide 6: Combining with Certificate-Key Attestation (`#76` / PR `#87`) (0:45)
 
-"PR `#87` resolves Issue `#76` on requiring both `dns-persist-01` and certificate-key attestation. Because authorization `challenges` and CAA `validationmethods` are disjunctive and unknown TXT parameters are `MUST ignore`, PR `#87` specifies an ACME Order-level conjunction (citing `device-attest` informatively):
+"PR `#87` answers Issue `#76` with informative deployment guidance on combining `dns-persist-01` and certificate-key attestation. Because authorization `challenges` and CAA `validationmethods` are disjunctive and unknown TXT parameters are `MUST ignore`, deployments achieve conjunction through ACME Order policy (citing `device-attest` informatively):
 
-1. The CA MUST include the attestation authorization on every Order in scope—covering wildcards and subdomains—and MUST NOT allow client waiver.
-2. At finalization, all Order authorizations MUST be `valid` and the CSR key MUST match the attested key, even across JIT or authorization reuse.
-3. Key-rotating renewals reuse `_validation-persist` via JIT with fresh attestation for the new CSR key."
+1. CA order policy includes both the domain authorization—covering wildcards and subdomains—and a non-waivable attestation authorization.
+2. At finalization, all Order authorizations are `valid` and the CSR key matches the attested key, even across JIT or authorization reuse.
+3. Key-rotating renewals reuse `_validation-persist` via JIT with fresh attestation for the new CSR key, and domain owners scope `_validation-persist` to CAs and accounts enforcing that policy."
 
-**[IF SHORT]:** "PR `#87` specifies `dns-persist-01` plus certificate-key attestation as a non-waivable Order-level authorization conjunction with CSR public-key binding at finalization, citing `device-attest` informatively." (20 sec)
+**[IF SHORT]:** "PR `#87` describes combining `dns-persist-01` with certificate-key attestation via ACME Order policy—non-waivable attestation authorization plus CSR public-key verification at finalization—citing `device-attest` informatively." (20 sec)
 
 **Transition:** "Before wrapping up, two questions from Seo Suchan's October 13 Pebble implementation report on the list."
 
@@ -130,7 +130,7 @@ Second, keep inner `key` fixed to the 43-octet RFC 7638 SHA-256 thumbprint: clie
 
 "`-03` resolves Issues `#33`, `#32`, `#39`, and `#76` through PRs `#84` to `#87`, plus `#89` and the pre-WGLC review guardrails. Every tracked issue is addressed.
 
-On implementations (`-03` conformance not yet verified): Pebble and lego have merged support, Pebble has an open `-02` PR (`#566`), Boulder merged `-01` and tracks `-02` in `#9127`, and cert-manager's design PR `#9487` is in review. Note in Section 8 that earlier-draft deployments do not interoperate with `-03`: `-03` clients require `accountHashPrefix` and skip `-01` directories that omit it, such as GTS's `-01` deployment. In CA/B Forum, Michael's Method 23 proposal (`servercert` PR `#9`) currently references `-02`; updating it for `-03` is a next step.
+On implementations (`-03` conformance not yet verified): Pebble and lego have merged support, Pebble has an open `-02` PR (`#566`), Boulder merged `-01` and tracks `-02` in `#9127`, and cert-manager's design PR `#9487` is in review. Note in Section 8 that earlier-draft deployments keep the `dns-persist-01` protocol-v1 label (like `http-01` and `tls-alpn-01` across pre-RFC drafts) and fail closed without interoperating with `-03`: `-03` clients require `accountHashPrefix` and skip `-01` directories that omit it, such as GTS's `-01` deployment—happy to hear if any operator needs a label bump. In CA/B Forum, Michael's Method 23 proposal (`servercert` PR `#9`) currently references `-02`; updating it for `-03` is a next step.
 
 We think `-03` is ready, so we'd like to ask the chairs to start Working Group Last Call."
 
@@ -140,7 +140,7 @@ We think `-03` is ready, so we'd like to ask the chairs to start Working Group L
 
 ## Slide 9: Questions & Discussion (Remaining Time)
 
-Open the floor and take questions on the `-03` changes. Then make one request to the chairs:
+Open the floor and take questions on the `-03` changes—proactively inviting WG reactions on exact `issuer-domain-name` matching vs. RFC 8659 case-insensitivity, keeping the `dns-persist-01` label across `-01` to `-03`, lifetime witnessed-key retention under `#69`, and reusing `ancestorDomain` on `POST /chall`. Then make one request to the chairs:
 
 "Chairs: we believe `-03` addresses all tracked issues and would like to request Working Group Last Call. If anyone has remaining concerns, the list is the best place to raise them."
 
