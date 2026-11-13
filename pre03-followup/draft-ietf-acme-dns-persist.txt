@@ -217,13 +217,23 @@ Table of Contents
       persist" as specified in this document.  In this term, DCV means
       domain control validation.
 
+   *Authorization Identifier (A) and Record Domain (R)*  For a dns
+      authorization, A is the authorization object's identifier.value
+      (with any *. wildcard prefix already removed per [RFC8555],
+      Section 7.1.3), and R is the domain name at which the persistent
+      TXT record is provisioned and queried (_validation-persist.<R>).
+      By default R equals A; when ancestorDomain is supplied in the
+      challenge response (Section 6.1), R is that proper ancestor of A.
+      For an ip authorization (Section 7), R is the normalized Reverse
+      Zone Domain Name queried at _ip-validation-persist.<R>.
+
    *Validation Domain Name*  The domain name that the CA queries for the
       validation TXT record.  For dns identifiers, it is formed by
       prepending the DNS TXT Record Persistent DCV Domain Label to the
-      FQDN being validated (_validation-persist.<R>).  For ip
-      identifiers (Section 7), it is formed by prepending "_ip-
-      validation-persist" to the normalized Reverse Zone Domain Name
-      (_ip-validation-persist.<R>, see Section 7.1).
+      record domain R (_validation-persist.<R>).  For ip identifiers
+      (Section 7), it is formed by prepending "_ip-validation-persist"
+      to the normalized Reverse Zone Domain Name R (_ip-validation-
+      persist.<R>, see Section 7.1).
 
       This term follows the precedent set by [RFC8555], Section 8.4,
       which uses "validation domain name" for the analogous _acme-
@@ -332,34 +342,38 @@ Table of Contents
    with no trailing dot and MUST NOT exceed 253 octets.  The array MUST
    NOT be empty and MUST NOT contain more than 10 entries.
 
-   Let D be the set of values in the directory issuerDomainNames array,
-   and let I be the set of values in the directory caaIdentities array
-   ([RFC8555], Section 7.1.1), represented as lowercase A-label domain
-   names with no trailing dot.  This document does not require a CA to
-   advertise caaIdentities; a CA that does not perform CAA validation
-   has no names to disclose there.  For each dns-persist-01 challenge
-   object the CA issues, let C be the set of values in that challenge's
-   issuerDomainNames array.  The CA MUST satisfy these requirements:
+   For each dns-persist-01 challenge object the CA issues, the CA MUST
+   satisfy these requirements across the directory issuerDomainNames
+   array, the challenge object's issuerDomainNames array, and, when
+   advertised, the directory caaIdentities array ([RFC8555],
+   Section 7.1.1; this document does not require a CA to advertise
+   caaIdentities, as a CA that does not perform CAA validation has no
+   names to disclose there):
 
-   *  Every value in D MUST appear in C.  A client that pre-provisions a
-      record using a name from D can therefore use that name to satisfy
-      the issuer-domain-name requirement of later dns-persist-01
+   *  *Directory baseline in every challenge:* Every value in the
+      directory issuerDomainNames array MUST appear in the challenge's
+      issuerDomainNames array.  A client that pre-provisions a record
+      using a directory-advertised name can therefore use that name to
+      satisfy the issuer-domain-name requirement of later dns-persist-01
       challenges from that CA while the name remains advertised, subject
       to the stability requirement and migration-period guidance in
       Section 4.5.
 
-   *  C MAY include values beyond D while remaining within the 10-entry
-      maximum in Section 3.1, so a CA can offer challenge-specific names
-      in addition to its pre-provisioning baseline.
+   *  *Challenge-specific additions:* The challenge's issuerDomainNames
+      array MAY include values beyond the directory issuerDomainNames
+      array while remaining within the 10-entry maximum in Section 3.1,
+      so a CA can offer challenge-specific names in addition to its pre-
+      provisioning baseline.
 
-   *  If the CA advertises caaIdentities, every value in C MUST also
-      appear in I.  This prevents a CA that participates in CAA
-      validation from accepting an issuer-domain-name it has not also
-      disclosed through caaIdentities.
+   *  *Consistency with caaIdentities:* If the CA advertises
+      caaIdentities, every value in the challenge's issuerDomainNames
+      array MUST also appear in caaIdentities.  This prevents a CA that
+      participates in CAA validation from accepting an issuer-domain-
+      name it has not also disclosed through caaIdentities.
 
    For these subset comparisons, the CA MUST compare caaIdentities
    values, when advertised, after applying the same lowercase A-label
-   and trailing-dot rules used for D and C.
+   and trailing-dot rules used for issuerDomainNames.
 
    CA disclosure identifies the Issuer Domain Names a CA recognizes; it
    does not establish that each name is recognized by only one CA.  For
@@ -372,11 +386,14 @@ Table of Contents
    A client MUST treat a missing or nonconforming directory
    issuerDomainNames array as unavailable for pre-provisioning.  A
    missing or nonconforming caaIdentities array does not affect pre-
-   provisioning; it only makes the I comparisons unavailable.  A client
-   MAY still process an interactive dns-persist-01 challenge.  When D is
-   available, the client MUST consider a challenge malformed if any
-   value in D is absent from C.  When I is available, the client MUST
-   consider a challenge malformed if any value in C is absent from I.
+   provisioning; it only makes the caaIdentities comparison unavailable.
+   A client MAY still process an interactive dns-persist-01 challenge.
+   When the directory issuerDomainNames array is available, the client
+   MUST consider a challenge malformed if any value in the directory
+   issuerDomainNames array is absent from the challenge's
+   issuerDomainNames array.  When caaIdentities is available, the client
+   MUST consider a challenge malformed if any value in the challenge's
+   issuerDomainNames array is absent from caaIdentities.
 
 4.  Challenge Response and Verification
 
@@ -625,21 +642,23 @@ Table of Contents
        record as malformed and reject it.
 
        When a CA validates a _validation-persist record containing a
-       persistUntil parameter with timestamp T, the CA MUST NOT set the
-       expires field of the resulting authorization object ([RFC8555],
-       Section 7.1.4) later than T, and MUST NOT rely on that validation
-       to issue certificates after T.  The record is valid for a
-       validation attempt performed at or before T; a CA MUST NOT
-       consider it valid for a validation attempt performed after T.
-       Already-issued certificates are unaffected by the expiration of a
-       persistUntil timestamp.
+       persistUntil timestamp, the CA MUST NOT set the expires field of
+       the resulting authorization object ([RFC8555], Section 7.1.4)
+       later than that timestamp, and MUST NOT rely on that validation
+       to issue certificates after that timestamp.  The record is valid
+       for a validation attempt performed at or before its persistUntil
+       timestamp; a CA MUST NOT consider it valid for a validation
+       attempt performed after that timestamp.  Already-issued
+       certificates are unaffected by the expiration of a persistUntil
+       timestamp.
 
        When more than one record satisfies all requirements, the CA
        relies on one of them and applies only that record's
        persistUntil; the CA MUST NOT combine parameters from different
        records.  Relying on the record that permits the latest
        expiration (one without persistUntil, otherwise the one with the
-       greatest T) makes the result independent of record order.
+       greatest persistUntil timestamp) makes the result independent of
+       record order.
 
    This specification defines the following case-handling rules for
    parameter values in dns-persist-01 records:
@@ -843,17 +862,18 @@ Table of Contents
    ([RFC9444], Section 4.1) set to true.  If at least one record meets
    all validation requirements for that authorization's scope, the CA
    MAY transition the authorization to the "valid" status, subject to
-   item 7 of Section 6.2, without returning a "pending" challenge to the
-   client.  When a CA makes an authorization valid through Just-in-Time
-   validation, it includes the dns-persist-01 challenge object with
-   status valid and a validated time in the authorization's challenges
-   array ([RFC8555], Section 7.1.4).  This mechanism is an optimization
-   and does not alter the ACME state machine defined in [RFC8555].  The
-   newOrder response is an order object containing authorization URLs;
-   the client retrieves the referenced authorization objects using POST-
-   as-GET requests ([RFC8555], Sections 7.4 and 7.5).  If the CA offers
-   the optional newAuthz resource, its response contains the
-   authorization object directly ([RFC8555], Section 7.4.1).
+   item 7 (suffix-level authorizations) of Section 6.2, without
+   returning a "pending" challenge to the client.  When a CA makes an
+   authorization valid through Just-in-Time validation, it includes the
+   dns-persist-01 challenge object with status valid and a validated
+   time in the authorization's challenges array ([RFC8555],
+   Section 7.1.4).  This mechanism is an optimization and does not alter
+   the ACME state machine defined in [RFC8555].  The newOrder response
+   is an order object containing authorization URLs; the client
+   retrieves the referenced authorization objects using POST-as-GET
+   requests ([RFC8555], Sections 7.4 and 7.5).  If the CA offers the
+   optional newAuthz resource, its response contains the authorization
+   object directly ([RFC8555], Section 7.4.1).
 
    If no DNS TXT record at _validation-persist.<A> meets the validation
    requirements, or if the records are absent, the CA MUST proceed with
@@ -912,9 +932,9 @@ Table of Contents
    URI cryptographically binds the account key (see Section 9.2.3), a
    record computed with the client's genuine account key cannot be made
    to validate for a different account, provided the accountHashPrefix
-   passes the checks in Section 4.1, item 3.  This key binding lets a
-   domain owner safely pre-provision without the challenge-response
-   exchange.
+   passes the character checks in Section 4.1, item 3.  This key binding
+   lets a domain owner safely pre-provision without the challenge-
+   response exchange.
 
    Computing the hashed URI requires no private-key operation.  A party
    that computes or publishes a record on the domain owner's behalf
@@ -1202,19 +1222,18 @@ Table of Contents
 
    4.  *Public-suffix boundary:* The CA SHOULD NOT accept an
        ancestorDomain (R) that is a public suffix ([RFC9499],
-       Section 9), or that is an Ancestor Domain of a public suffix P
-       where P equals A or is an Ancestor Domain of A, as determined by
-       the CA from a source such as the Public Suffix List.  A
-       qualifying record at or above such a suffix could be used to
-       validate the bound account for names held by unrelated
-       registrants.  A CA can reasonably accept such a domain R where a
-       single organization controls every name below R, such as a
-       single-organization top-level domain (TLD) or a namespace used by
-       a private public key infrastructure (PKI).  If the CA declines an
-       ancestorDomain under this item, or its policy does not permit
-       subdomain validation at the requested ancestorDomain, the CA MUST
-       reject the challenge with an unauthorized error ([RFC8555],
-       Section 6.7).
+       Section 9), or that is an Ancestor Domain of any public suffix
+       that equals A or is an Ancestor Domain of A, as determined by the
+       CA from a source such as the Public Suffix List.  A qualifying
+       record at or above such a suffix could be used to validate the
+       bound account for names held by unrelated registrants.  A CA can
+       reasonably accept such a domain R where a single organization
+       controls every name below R, such as a single-organization top-
+       level domain (TLD) or a namespace used by a private public key
+       infrastructure (PKI).  If the CA declines an ancestorDomain under
+       this item, or its policy does not permit subdomain validation at
+       the requested ancestorDomain, the CA MUST reject the challenge
+       with an unauthorized error ([RFC8555], Section 6.7).
 
    5.  *Record scope and digest binding:* When validating at
        _validation-persist.<ancestorDomain>, a record satisfies
@@ -1247,12 +1266,14 @@ Table of Contents
        authorization, it MUST reject the response with an unauthorized
        error ([RFC8555], Section 6.7).
 
-   Rejections of a challenge response under items 2 through 4 and 7 are
-   HTTP errors on the challenge-response request ([RFC8555],
-   Section 7.5.1) that leave the challenge's existing state unchanged; a
-   challenge that has not yet accepted a response remains pending.  In
-   contrast, a failure under item 5 is a validation failure that
-   transitions the challenge to invalid ([RFC8555], Section 7.1.6).
+   Rejections of a challenge response under items 2 through 4 and 7
+   (syntax, length, proper-ancestor, and public-suffix checks) are HTTP
+   errors on the challenge-response request ([RFC8555], Section 7.5.1)
+   that leave the challenge's existing state unchanged; a challenge that
+   has not yet accepted a response remains pending.  In contrast, a
+   failure under item 5 (record scope and digest binding) is a
+   validation failure that transitions the challenge to invalid
+   ([RFC8555], Section 7.1.6).
 
       |  Note: Because ancestorDomain is a request-only challenge-
       |  response field, the resulting challenge object does not echo
@@ -1683,10 +1704,10 @@ Table of Contents
    attacker who substitutes a different account URL still cannot produce
    a validating record without the corresponding key.  This substitution
    resistance is the reason this document defines only the hashed URI
-   and does not permit a raw account URL.  It depends on the checks of
-   accountHashPrefix (Section 4.1, item 3); a prefix carrying a ; could
-   otherwise cause the client's own digest to be parsed as an ignored
-   parameter.
+   and does not permit a raw account URL.  It depends on the character
+   checks of accountHashPrefix (Section 4.1, item 3); a prefix carrying
+   a ; could otherwise cause the client's own digest to be parsed as an
+   ignored parameter.
 
    *Role of the account key (privacy).* ACME account URLs are frequently
    low in entropy (e.g., a short, sequential account identifier of only
@@ -2990,9 +3011,9 @@ Since draft-ietf-acme-dns-persist-02
       persistUntil) to ASCII case-insensitive comparison while rejecting
       duplicate occurrences of recognized parameter names, restricted
       persistUntil to unsigned ASCII digits not exceeding 2^63 - 1
-      (valid at or before T, expired after T), and specified that CAs
-      evaluate each record individually without combining parameters
-      across records (Section 4.1).
+      (valid at or before that timestamp, expired after it), and
+      specified that CAs evaluate each record individually without
+      combining parameters across records (Section 4.1).
 
    *  Required clients and any delegated publishers to verify before
       constructing a hashed URI that accountHashPrefix is present in the
