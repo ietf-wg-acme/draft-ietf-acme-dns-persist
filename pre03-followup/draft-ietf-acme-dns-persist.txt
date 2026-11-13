@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 16 May 2027                               Crosslayer Labs, Inc.
+Expires: 17 May 2027                               Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                        12 November 2026
+                                                        13 November 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -58,7 +58,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 16 May 2027.
+   This Internet-Draft will expire on 17 May 2027.
 
 Copyright Notice
 
@@ -569,19 +569,19 @@ Table of Contents
        Figure 2 illustrates the hash preimage layout and resulting
        accounturi structure:
 
-     |<------------------------ Hash Preimage ------------------------>|
-     +------------------+--------------------+------------+------------+
-     | length_of_domain | domain_name        | key        | account_URL|
-     | 1 octet          | 1..253 ASCII octets| 43 ASCII   | Variable   |
-     | (0x01..0xfd)     | (A-label or "*")   | octets     | ASCII      |
-     +------------------+--------------------+------------+------------+
-                                      |
-                                      v  H(...) (e.g., sha-256) +
-                                      |  unpadded base64url
-                                      v
-         <accountHashPrefix><hash-alg>/<base64url hash value>
+       |<---------------------- Hash Preimage ---------------------->|
+       +------------------+-------------------+----------+-----------+
+       | length_of_domain | domain_name       | key      |account_URL|
+       | 1 octet          | 1..253 ASCII      | 43 ASCII | Variable  |
+       | (0x01..0xfd)     | (A-label or "*")  | octets   | ASCII     |
+       +------------------+-------------------+----------+-----------+
+                                       |
+                                       v  H(...) (e.g., sha-256) +
+                                       |  unpadded base64url
+                                       v
+           <accountHashPrefix><hash-alg>/<base64url hash value>
 
-               Figure 2: Hashed-URI Preimage and Construction
+                 Figure 2: Hashed-URI Preimage and Construction
 
        The CA MUST verify that the hashed URI in the DNS record
        authorizes the ACME account making the request, by recomputing it
@@ -1340,7 +1340,7 @@ Table of Contents
       as four decimal octet labels (0 to 255, with leading zeros omitted
       except for a single 0 octet) in reverse order, followed by the
       suffix .in-addr.arpa.  For example, 192.0.2.1 maps to
-      1.2.0.192.in-addr.arpa.
+      "1.2.0.192.in-addr.arpa".
 
    *  *IPv6 ([RFC3596], Section 2.5):* Expand the 128-bit IPv6 address
       to all 32 hexadecimal digits (expanding any :: zero compression).
@@ -1456,7 +1456,7 @@ Table of Contents
 
       -  length_of_domain: 0x16 (22 octets)
 
-      -  domain_name: 1.2.0.192.in-addr.arpa
+      -  domain_name: "1.2.0.192.in-addr.arpa"
 
       -  Unpadded base64url SHA-256 digest: CnwSwHOHJbE-
          X_FSkydPTw6dGMovluSdRsY3_tmA-0E
@@ -1537,9 +1537,9 @@ Table of Contents
 
    lego (client):  lego is an ACME client and library written in Go.  It
       has supported dns-persist-01 since release v5.0.0
-      (https://github.com/go-acme/lego/releases/tag/v5.0.0), added in PR
-      #2871 (https://github.com/go-acme/lego/pull/2871).  Source:
-      https://github.com/go-acme/lego
+      (https://github.com/go-acme/lego/releases/tag/v5.0.0), added in
+      pull request 2871 (https://github.com/go-acme/lego/pull/2871).
+      Source: https://github.com/go-acme/lego
 
    cert-manager (client):  cert-manager is a certificate controller for
       Kubernetes.  A design proposal for dns-persist-01 is under review
@@ -2789,11 +2789,6 @@ Table of Contents
 
 14.1.  Normative References
 
-   [FIPS180-4]
-              National Institute of Standards and Technology (NIST),
-              "Secure Hash Standard (SHS)", FIPS PUB 180-4, August 2015,
-              <https://doi.org/10.6028/NIST.FIPS.180-4>.
-
    [RFC8555]  Barnes, R., Hoffman-Andrews, J., McCarney, D., and J.
               Kasten, "Automatic Certificate Management Environment
               (ACME)", RFC 8555, DOI 10.17487/RFC8555, March 2019,
@@ -2880,6 +2875,11 @@ Table of Contents
               <https://www.rfc-editor.org/info/rfc5891>.
 
 14.2.  Informative References
+
+   [FIPS180-4]
+              National Institute of Standards and Technology (NIST),
+              "Secure Hash Standard (SHS)", FIPS PUB 180-4, August 2015,
+              <https://doi.org/10.6028/NIST.FIPS.180-4>.
 
    [birgelee-sc082-security]
               Birge-Lee, H., "Security of SC-082 Redux", 2025.
