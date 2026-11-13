@@ -1254,14 +1254,15 @@ Table of Contents
    contrast, a failure under item 5 is a validation failure that
    transitions the challenge to invalid ([RFC8555], Section 7.1.6).
 
-   Note: Because ancestorDomain is a request-only challenge-response
-   field, the resulting challenge object does not echo ancestorDomain.
-   A CA implementing an earlier draft of this specification ignores
-   ancestorDomain, as [RFC8555], Section 7.5.1 requires for unrecognized
-   response fields, and validates at _validation-persist.<A>.  The
-   result fails closed: validation succeeds only if a record at
-   _validation-persist.<A> independently authorizes A.  A client cannot
-   tell this outcome from the challenge object.
+      |  Note: Because ancestorDomain is a request-only challenge-
+      |  response field, the resulting challenge object does not echo
+      |  ancestorDomain.  A CA implementing an earlier draft of this
+      |  specification ignores ancestorDomain, as [RFC8555],
+      |  Section 7.5.1 requires for unrecognized response fields, and
+      |  validates at _validation-persist.<A>.  The result fails closed:
+      |  validation succeeds only if a record at _validation-persist.<A>
+      |  independently authorizes A.  A client cannot tell this outcome
+      |  from the challenge object.
 
    See Section 9.3 for important security implications of enabling
    subdomain validation.
@@ -2181,12 +2182,16 @@ Table of Contents
    IANA is requested to register the following entry in the "ACME Error
    Types" registry defined in [RFC8555], Section 9.7.4:
 
-   *  *Type*: persistExpired
+      +================+================================+===========+
+      | Type           | Description                    | Reference |
+      +================+================================+===========+
+      | persistExpired | A persistent validation record | This      |
+      |                | matching the CA and requesting | document  |
+      |                | account has an expired         |           |
+      |                | persistUntil timestamp         |           |
+      +----------------+--------------------------------+-----------+
 
-   *  *Description*: A persistent validation record matching the CA and
-      requesting account has an expired persistUntil timestamp
-
-   *  *Reference*: This document
+                   Table 6: ACME Error Types Registration
 
 12.  Implementation Requirements and Guidance
 
@@ -2387,7 +2392,7 @@ Table of Contents
    does not return an error.  Instead, the CA proceeds with the standard
    authorization flow by issuing a new pending challenge.
 
-   Table 6 summarizes the challenge-response, DNS validation, and Just-
+   Table 7 summarizes the challenge-response, DNS validation, and Just-
    in-Time outcomes for common failure conditions:
 
    +==========================+==========+================+============+
@@ -2437,7 +2442,7 @@ Table of Contents
    | policy=wildcard          |          |                |            |
    +--------------------------+----------+----------------+------------+
 
-    Table 6: Summary of Validation Failure Conditions and ACME Outcomes
+    Table 7: Summary of Validation Failure Conditions and ACME Outcomes
 
    To mitigate potential denial-of-service risks from accounts with
    extensive key rollover history, CAs MUST rate-limit failed validation
@@ -2543,21 +2548,25 @@ Table of Contents
    1.  CA provides challenge object with a list of valid Issuer Domain
        Names:
 
-      {
-        "type": "dns-persist-01",
-        "url": "https://ca.example/acme/chall/5678",
-        "status": "pending",
-        "issuerDomainNames": ["authority.example", "ca.example.net"]
-      }
+       {
+         "type": "dns-persist-01",
+         "url": "https://ca.example/acme/chall/5678",
+         "status": "pending",
+         "issuerDomainNames": ["authority.example", "ca.example.net"]
+       }
+
+                  Figure 10: Basic Validation Challenge Object
 
    2.  Client chooses one of the provided Issuer Domain Names (e.g.,
        "authority.example"), computes its hashed URI as shown in
        Section 13.2, and provisions a DNS TXT record (note the absence
        of a policy parameter for scope):
 
-      _validation-persist.example.com. IN TXT ("authority.example;"
-      " accounturi=https://ca.example/account-hash/"
-      "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw")
+       _validation-persist.example.com. IN TXT ("authority.example;"
+       " accounturi=https://ca.example/account-hash/"
+       "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw")
+
+                       Figure 11: Basic Validation Record
 
    3.  CA validates the record through DNS queries.  This validation is
        sufficient only for "example.com".
@@ -2594,7 +2603,7 @@ Table of Contents
    " accounturi=https://ca.example/account-hash/"
    "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw")
 
-                  Figure 10: Hashed-URI Validation Record
+                  Figure 12: Hashed-URI Validation Record
 
    To instead opt out of the domain-correlation mitigation
    (Section 4.1), the client sets domain_name to the single octet * (so
@@ -2646,7 +2655,7 @@ Table of Contents
          }
        }
 
-               Figure 11: Directory Metadata for Pre-Provisioning
+               Figure 13: Directory Metadata for Pre-Provisioning
 
        Per Section 3.2, a name taken from this array satisfies the
        issuer-domain-name requirement of later dns-persist-01 challenges
@@ -2695,7 +2704,7 @@ Table of Contents
        " accounturi=https://ca.example/account-hash/"
        "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw")
 
-                  Figure 12: Pre-Provisioned Validation Record
+                  Figure 14: Pre-Provisioned Validation Record
 
    4.  At any later time, the client submits a newOrder request and
        receives an order object containing authorization URLs.  The
@@ -2726,7 +2735,7 @@ Table of Contents
        "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw;"
        " policy=wildcard")
 
-                  Figure 13: Wildcard Policy Validation Record
+                  Figure 15: Wildcard Policy Validation Record
 
    3.  CA validates the record through DNS queries for the requested
        wildcard identifier.  The resulting authorization has identifier
@@ -2753,7 +2762,7 @@ Table of Contents
        "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw;"
        " persistUntil=1924992000")
 
-               Figure 14: Validation Record with Expiration Time
+               Figure 16: Validation Record with Expiration Time
 
    3.  CA validates the record.  This validation is sufficient only for
        "example.com" and will not be considered valid after the
@@ -2776,7 +2785,7 @@ Table of Contents
        " policy=wildcard;"
        " persistUntil=1924992000")
 
-           Figure 15: Wildcard Validation Record with Expiration Time
+           Figure 17: Wildcard Validation Record with Expiration Time
 
    3.  CA validates the record for the requested wildcard identifier,
        with authorization scope as described in Section 13.4.  The

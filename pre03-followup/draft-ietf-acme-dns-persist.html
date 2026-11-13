@@ -1610,7 +1610,7 @@ The server <span class="bcp14">MUST</span> ensure the array is not empty. Server
 </li>
           <li id="section-4.1-2.3">
             <p id="section-4.1-2.3.1">The issue-value <span class="bcp14">MUST</span> contain an <code>accounturi</code> parameter whose value is a hashed URI identifying the ACME account requesting validation. A hashed URI cryptographically binds the account to the domain being validated without publishing the account URL in cleartext. It is formed by concatenating the CA's <code>accountHashPrefix</code>, a hash-algorithm identifier, a "/" separator, and a base64url hash value:<a href="#section-4.1-2.3.1" class="pilcrow">¶</a></p>
-<div class="alignLeft art-text artwork" id="section-4.1-2.3.2">
+<div class="lang-abnf sourcecode" id="section-4.1-2.3.2">
 <pre>
 &lt;accountHashPrefix&gt;&lt;hash-alg&gt;/&lt;base64url hash value&gt;
 </pre><a href="#section-4.1-2.3.2" class="pilcrow">¶</a>
@@ -1621,7 +1621,7 @@ A CA that advertises support for the dns-persist-01 challenge type <span class="
 <p id="section-4.1-2.3.5">
 A CA <span class="bcp14">MUST</span> reject with a <code>malformed</code> error (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 6.7) any <code>_validation-persist</code> record whose <code>&lt;hash-alg&gt;</code> token identifies a hash algorithm the CA no longer accepts, including records the CA previously validated under that algorithm. This rejection applies to the individual record; when several records are retrieved, the challenge-level error follows <a href="#error-handling" class="auto internal xref">Section 12.3.1</a>. If a CA deprecates or discontinues acceptance of a hash algorithm, domain owners <span class="bcp14">MUST</span> re-provision records using an accepted hash algorithm.<a href="#section-4.1-2.3.5" class="pilcrow">¶</a></p>
 <p id="section-4.1-2.3.6"><code>&lt;base64url hash value&gt;</code> is the base64url encoding <span>[<a href="#RFC4648" class="cite xref">RFC4648</a>]</span>, with trailing padding (<code>=</code>) omitted, of the hash digest computed with the identified algorithm over the following octet string:<a href="#section-4.1-2.3.6" class="pilcrow">¶</a></p>
-<div class="alignLeft art-text artwork" id="section-4.1-2.3.7">
+<div class="lang-abnf sourcecode" id="section-4.1-2.3.7">
 <pre>
 H(length_of_domain || domain_name || key || account_URL)
 </pre><a href="#section-4.1-2.3.7" class="pilcrow">¶</a>
@@ -2107,7 +2107,9 @@ ACME Client                  DNS Operator               ACME Server
 </li>
         </ol>
 <p id="section-6.2-3">Rejections of a challenge response under items 2 through 4 and 7 are HTTP errors on the challenge-response request (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.5.1) that leave the challenge's existing state unchanged; a challenge that has not yet accepted a response remains <code>pending</code>. In contrast, a failure under item 5 is a validation failure that transitions the challenge to <code>invalid</code> (<span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.1.6).<a href="#section-6.2-3" class="pilcrow">¶</a></p>
-<p id="section-6.2-4">Note: Because <code>ancestorDomain</code> is a request-only challenge-response field, the resulting challenge object does not echo <code>ancestorDomain</code>. A CA implementing an earlier draft of this specification ignores <code>ancestorDomain</code>, as <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.5.1 requires for unrecognized response fields, and validates at <code>_validation-persist.&lt;A&gt;</code>. The result fails closed: validation succeeds only if a record at <code>_validation-persist.&lt;A&gt;</code> independently authorizes <code>A</code>. A client cannot tell this outcome from the challenge object.<a href="#section-6.2-4" class="pilcrow">¶</a></p>
+<aside id="section-6.2-4">
+          <p id="section-6.2-4.1">Note: Because <code>ancestorDomain</code> is a request-only challenge-response field, the resulting challenge object does not echo <code>ancestorDomain</code>. A CA implementing an earlier draft of this specification ignores <code>ancestorDomain</code>, as <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 7.5.1 requires for unrecognized response fields, and validates at <code>_validation-persist.&lt;A&gt;</code>. The result fails closed: validation succeeds only if a record at <code>_validation-persist.&lt;A&gt;</code> independently authorizes <code>A</code>. A client cannot tell this outcome from the challenge object.<a href="#section-6.2-4.1" class="pilcrow">¶</a></p>
+</aside>
 <p id="section-6.2-5">See <a href="#subdomain-validation-risks" class="auto internal xref">Section 9.3</a> for important security implications of enabling subdomain validation.<a href="#section-6.2-5" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -2683,7 +2685,8 @@ RFC 8555 prohibits further requests authorized by the deactivated account's key,
 <a href="#section-11.1" class="section-number selfRef">11.1. </a><a href="#name-acme-validation-methods-reg" class="section-name selfRef">ACME Validation Methods Registry</a>
         </h3>
 <p id="section-11.1-1">IANA is requested to register the following entries in the "ACME Validation Methods" registry:<a href="#section-11.1-1" class="pilcrow">¶</a></p>
-<span id="name-acme-validation-methods-regi"></span><table class="center" id="table-3">
+<span id="name-acme-validation-methods-regi"></span><div id="tab-iana-validation-methods">
+<table class="center" id="table-3">
           <caption>
 <a href="#table-3" class="selfRef">Table 3</a>:
 <a href="#name-acme-validation-methods-regi" class="selfRef">ACME Validation Methods Registrations</a>
@@ -2711,6 +2714,7 @@ RFC 8555 prohibits further requests authorized by the deactivated account's key,
             </tr>
           </tbody>
         </table>
+</div>
 </section>
 </div>
 <div id="dns-node-names-registry">
@@ -2719,7 +2723,8 @@ RFC 8555 prohibits further requests authorized by the deactivated account's key,
 <a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-underscored-and-globally-sc" class="section-name selfRef">Underscored and Globally Scoped DNS Node Names Registry</a>
         </h3>
 <p id="section-11.2-1">IANA is requested to register the following entries in the "Underscored and Globally Scoped DNS Node Names" registry defined in <span>[<a href="#RFC8552" class="cite xref">RFC8552</a>]</span>:<a href="#section-11.2-1" class="pilcrow">¶</a></p>
-<span id="name-underscored-and-globally-sco"></span><table class="center" id="table-4">
+<span id="name-underscored-and-globally-sco"></span><div id="tab-iana-node-names">
+<table class="center" id="table-4">
           <caption>
 <a href="#table-4" class="selfRef">Table 4</a>:
 <a href="#name-underscored-and-globally-sco" class="selfRef">Underscored and Globally Scoped DNS Node Names Registrations</a>
@@ -2744,6 +2749,7 @@ RFC 8555 prohibits further requests authorized by the deactivated account's key,
             </tr>
           </tbody>
         </table>
+</div>
 </section>
 </div>
 <div id="acme-directory-metadata-field">
@@ -2752,7 +2758,8 @@ RFC 8555 prohibits further requests authorized by the deactivated account's key,
 <a href="#section-11.3" class="section-number selfRef">11.3. </a><a href="#name-acme-directory-metadata-fie" class="section-name selfRef">ACME Directory Metadata Fields</a>
         </h3>
 <p id="section-11.3-1">IANA is requested to register the following entries in the "ACME Directory Metadata Fields" registry defined in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 9.7.6:<a href="#section-11.3-1" class="pilcrow">¶</a></p>
-<span id="name-acme-directory-metadata-fiel"></span><table class="center" id="table-5">
+<span id="name-acme-directory-metadata-fiel"></span><div id="tab-iana-directory-metadata">
+<table class="center" id="table-5">
           <caption>
 <a href="#table-5" class="selfRef">Table 5</a>:
 <a href="#name-acme-directory-metadata-fiel" class="selfRef">ACME Directory Metadata Fields Registrations</a>
@@ -2777,6 +2784,7 @@ RFC 8555 prohibits further requests authorized by the deactivated account's key,
             </tr>
           </tbody>
         </table>
+</div>
 </section>
 </div>
 <div id="acme-error-types-registry">
@@ -2785,17 +2793,28 @@ RFC 8555 prohibits further requests authorized by the deactivated account's key,
 <a href="#section-11.4" class="section-number selfRef">11.4. </a><a href="#name-acme-error-types-registry" class="section-name selfRef">ACME Error Types Registry</a>
         </h3>
 <p id="section-11.4-1">IANA is requested to register the following entry in the "ACME Error Types" registry defined in <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, Section 9.7.4:<a href="#section-11.4-1" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-11.4-2.1">
-            <p id="section-11.4-2.1.1"><strong>Type</strong>: persistExpired<a href="#section-11.4-2.1.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-11.4-2.2">
-            <p id="section-11.4-2.2.1"><strong>Description</strong>: A persistent validation record matching the CA and requesting account has an expired <code>persistUntil</code> timestamp<a href="#section-11.4-2.2.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-11.4-2.3">
-            <p id="section-11.4-2.3.1"><strong>Reference</strong>: This document<a href="#section-11.4-2.3.1" class="pilcrow">¶</a></p>
-</li>
-        </ul>
+<span id="name-acme-error-types-registrati"></span><div id="tab-iana-error-types">
+<table class="center" id="table-6">
+          <caption>
+<a href="#table-6" class="selfRef">Table 6</a>:
+<a href="#name-acme-error-types-registrati" class="selfRef">ACME Error Types Registration</a>
+          </caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Type</th>
+              <th class="text-left" rowspan="1" colspan="1">Description</th>
+              <th class="text-left" rowspan="1" colspan="1">Reference</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">persistExpired</td>
+              <td class="text-left" rowspan="1" colspan="1">A persistent validation record matching the CA and requesting account has an expired <code>persistUntil</code> timestamp</td>
+              <td class="text-left" rowspan="1" colspan="1">This document</td>
+            </tr>
+          </tbody>
+        </table>
+</div>
 </section>
 </div>
 </section>
@@ -2957,11 +2976,11 @@ When a challenge validation attempt fails and at least one retrieved record is o
 </li>
           </ul>
 <p id="section-12.3.1-3">These error types apply to validation attempts on individual challenges. When multiple records in the same resource record set (RRset) fail validation for different reasons and no record satisfies validation, reporting <code>persistExpired</code> when eligible (as specified above) and otherwise choosing between <code>unauthorized</code> and <code>malformed</code> according to CA policy (where this document does not mandate a specific error type) gives operators actionable feedback without requiring a fixed evaluation order between <code>unauthorized</code> and <code>malformed</code>. Records that cannot be parsed to a matching <code>issuer-domain-name</code> are ignored as specified in <a href="#multiple-issuer-support" class="auto internal xref">Section 4.3</a>. In the case of Just-in-Time validation (see <a href="#just-in-time-validation" class="auto internal xref">Section 4.4</a>), a CA that finds a pre-existing DNS TXT record that does not meet validation requirements does not return an error. Instead, the CA proceeds with the standard authorization flow by issuing a new <code>pending</code> challenge.<a href="#section-12.3.1-3" class="pilcrow">¶</a></p>
-<p id="section-12.3.1-4"><a href="#tab-error-handling-summary" class="auto internal xref">Table 6</a> summarizes the challenge-response, DNS validation, and Just-in-Time outcomes for common failure conditions:<a href="#section-12.3.1-4" class="pilcrow">¶</a></p>
+<p id="section-12.3.1-4"><a href="#tab-error-handling-summary" class="auto internal xref">Table 7</a> summarizes the challenge-response, DNS validation, and Just-in-Time outcomes for common failure conditions:<a href="#section-12.3.1-4" class="pilcrow">¶</a></p>
 <span id="name-summary-of-validation-failu"></span><div id="tab-error-handling-summary">
-<table class="center" id="table-6">
+<table class="center" id="table-7">
             <caption>
-<a href="#table-6" class="selfRef">Table 6</a>:
+<a href="#table-7" class="selfRef">Table 7</a>:
 <a href="#name-summary-of-validation-failu" class="selfRef">Summary of Validation Failure Conditions and ACME Outcomes</a>
             </caption>
 <thead>
@@ -3098,7 +3117,9 @@ When a challenge validation attempt fails and at least one retrieved record is o
 <ol start="1" type="1" class="normal type-1" id="section-13.1-2">
 <li id="section-13.1-2.1">
             <p id="section-13.1-2.1.1">CA provides challenge object with a list of valid Issuer Domain Names:<a href="#section-13.1-2.1.1" class="pilcrow">¶</a></p>
-<div class="lang-json sourcecode" id="section-13.1-2.1.2">
+<span id="name-basic-validation-challenge-"></span><div id="ex-basic-challenge-object">
+<figure id="figure-10">
+              <div class="lang-json sourcecode" id="section-13.1-2.1.2.1">
 <pre>
 {
   "type": "dns-persist-01",
@@ -3106,17 +3127,27 @@ When a challenge validation attempt fails and at least one retrieved record is o
   "status": "pending",
   "issuerDomainNames": ["authority.example", "ca.example.net"]
 }
-</pre><a href="#section-13.1-2.1.2" class="pilcrow">¶</a>
+</pre>
+</div>
+<figcaption><a href="#figure-10" class="selfRef">Figure 10</a>:
+<a href="#name-basic-validation-challenge-" class="selfRef">Basic Validation Challenge Object</a>
+              </figcaption></figure>
 </div>
 </li>
           <li id="section-13.1-2.2">
             <p id="section-13.1-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example"), computes its hashed URI as shown in <a href="#hashed-uri-example" class="auto internal xref">Section 13.2</a>, and provisions a DNS TXT record (note the absence of a <code>policy</code> parameter for scope):<a href="#section-13.1-2.2.1" class="pilcrow">¶</a></p>
-<div class="lang-dns sourcecode" id="section-13.1-2.2.2">
+<span id="name-basic-validation-record"></span><div id="ex-basic-txt-record">
+<figure id="figure-11">
+              <div class="lang-dns sourcecode" id="section-13.1-2.2.2.1">
 <pre>
 _validation-persist.example.com. IN TXT ("authority.example;"
 " accounturi=https://ca.example/account-hash/"
 "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw")
-</pre><a href="#section-13.1-2.2.2" class="pilcrow">¶</a>
+</pre>
+</div>
+<figcaption><a href="#figure-11" class="selfRef">Figure 11</a>:
+<a href="#name-basic-validation-record" class="selfRef">Basic Validation Record</a>
+              </figcaption></figure>
 </div>
 </li>
           <li id="section-13.1-2.3">
@@ -3153,7 +3184,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 </div>
 <p id="section-13.2-5">With a CA <code>accountHashPrefix</code> of <code>https://ca.example/account-hash/</code> and the <code>sha-256</code> algorithm identifier, the hashed URI is <code>https://ca.example/account-hash/sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw</code>. Using Issuer Domain Name "authority.example", the client provisions:<a href="#section-13.2-5" class="pilcrow">¶</a></p>
 <span id="name-hashed-uri-validation-recor"></span><div id="ex-hashed-uri">
-<figure id="figure-10">
+<figure id="figure-12">
           <div class="lang-dns sourcecode" id="section-13.2-6.1">
 <pre>
 _validation-persist.example.com. IN TXT ("authority.example;"
@@ -3161,7 +3192,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw")
 </pre>
 </div>
-<figcaption><a href="#figure-10" class="selfRef">Figure 10</a>:
+<figcaption><a href="#figure-12" class="selfRef">Figure 12</a>:
 <a href="#name-hashed-uri-validation-recor" class="selfRef">Hashed-URI Validation Record</a>
           </figcaption></figure>
 </div>
@@ -3202,7 +3233,7 @@ dc3zyKBvsc9_vyWQoZSyM4fgcN0d7jnr61730r7ekAw
           <li id="section-13.3-2.2">
             <p id="section-13.3-2.2.1">The CA's directory <code>meta</code> object advertises the values needed to pre-provision a record:<a href="#section-13.3-2.2.1" class="pilcrow">¶</a></p>
 <span id="name-directory-metadata-for-pre-"></span><div id="ex-preprovisioned-directory-meta">
-<figure id="figure-11">
+<figure id="figure-13">
               <div class="lang-json sourcecode" id="section-13.3-2.2.2.1">
 <pre>
 {
@@ -3213,7 +3244,7 @@ dc3zyKBvsc9_vyWQoZSyM4fgcN0d7jnr61730r7ekAw
 }
 </pre>
 </div>
-<figcaption><a href="#figure-11" class="selfRef">Figure 11</a>:
+<figcaption><a href="#figure-13" class="selfRef">Figure 13</a>:
 <a href="#name-directory-metadata-for-pre-" class="selfRef">Directory Metadata for Pre-Provisioning</a>
               </figcaption></figure>
 </div>
@@ -3250,7 +3281,7 @@ The domain owner then transmits the following values through an authenticated ch
 <p id="section-13.3-2.3.4">
 The client retains the account private key; no private key material is shared. Using the same inputs and result as <a href="#hashed-uri-example" class="auto internal xref">Section 13.2</a>, that party computes the hashed URI and publishes the TXT record:<a href="#section-13.3-2.3.4" class="pilcrow">¶</a></p>
 <span id="name-pre-provisioned-validation-r"></span><div id="ex-preprovisioned">
-<figure id="figure-12">
+<figure id="figure-14">
               <div class="lang-dns sourcecode" id="section-13.3-2.3.5.1">
 <pre>
 _validation-persist.example.com. IN TXT ("authority.example;"
@@ -3258,7 +3289,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw")
 </pre>
 </div>
-<figcaption><a href="#figure-12" class="selfRef">Figure 12</a>:
+<figcaption><a href="#figure-14" class="selfRef">Figure 14</a>:
 <a href="#name-pre-provisioned-validation-r" class="selfRef">Pre-Provisioned Validation Record</a>
               </figcaption></figure>
 </div>
@@ -3282,7 +3313,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
           <li id="section-13.4-2.2">
             <p id="section-13.4-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record at the base domain's Validation Domain Name, including <code>policy=wildcard</code>:<a href="#section-13.4-2.2.1" class="pilcrow">¶</a></p>
 <span id="name-wildcard-policy-validation-"></span><div id="ex-wildcard-validation">
-<figure id="figure-13">
+<figure id="figure-15">
               <div class="lang-dns sourcecode" id="section-13.4-2.2.2.1">
 <pre>
 _validation-persist.example.com. IN TXT ("authority.example;"
@@ -3291,7 +3322,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 " policy=wildcard")
 </pre>
 </div>
-<figcaption><a href="#figure-13" class="selfRef">Figure 13</a>:
+<figcaption><a href="#figure-15" class="selfRef">Figure 15</a>:
 <a href="#name-wildcard-policy-validation-" class="selfRef">Wildcard Policy Validation Record</a>
               </figcaption></figure>
 </div>
@@ -3315,7 +3346,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
           <li id="section-13.5-2.2">
             <p id="section-13.5-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record including <code>persistUntil</code>:<a href="#section-13.5-2.2.1" class="pilcrow">¶</a></p>
 <span id="name-validation-record-with-expi"></span><div id="ex-persist-until">
-<figure id="figure-14">
+<figure id="figure-16">
               <div class="lang-dns sourcecode" id="section-13.5-2.2.2.1">
 <pre>
 _validation-persist.example.com. IN TXT ("authority.example;"
@@ -3324,7 +3355,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 " persistUntil=1924992000")
 </pre>
 </div>
-<figcaption><a href="#figure-14" class="selfRef">Figure 14</a>:
+<figcaption><a href="#figure-16" class="selfRef">Figure 16</a>:
 <a href="#name-validation-record-with-expi" class="selfRef">Validation Record with Expiration Time</a>
               </figcaption></figure>
 </div>
@@ -3348,7 +3379,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
           <li id="section-13.6-2.2">
             <p id="section-13.6-2.2.1">Client chooses one of the provided Issuer Domain Names (e.g., "authority.example") and provisions a DNS TXT record including <code>policy=wildcard</code> and <code>persistUntil</code>:<a href="#section-13.6-2.2.1" class="pilcrow">¶</a></p>
 <span id="name-wildcard-validation-record-"></span><div id="ex-wildcard-persist-until">
-<figure id="figure-15">
+<figure id="figure-17">
               <div class="lang-dns sourcecode" id="section-13.6-2.2.2.1">
 <pre>
 _validation-persist.example.com. IN TXT ("authority.example;"
@@ -3358,7 +3389,7 @@ _validation-persist.example.com. IN TXT ("authority.example;"
 " persistUntil=1924992000")
 </pre>
 </div>
-<figcaption><a href="#figure-15" class="selfRef">Figure 15</a>:
+<figcaption><a href="#figure-17" class="selfRef">Figure 17</a>:
 <a href="#name-wildcard-validation-record-" class="selfRef">Wildcard Validation Record with Expiration Time</a>
               </figcaption></figure>
 </div>
