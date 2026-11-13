@@ -578,7 +578,7 @@ lego (client):
 cert-manager (client):
 : cert-manager is a certificate controller for Kubernetes. A design proposal for `dns-persist-01` is under review as draft [PR #9487](https://github.com/cert-manager/cert-manager/pull/9487). Source: https://github.com/cert-manager/cert-manager
 
-Implementations of earlier revisions of this document use the same challenge type name but do not interoperate with this revision. For example, a client implementing this revision does not use a CA whose directory omits `accountHashPrefix`, as directories implementing revision -01 do.
+Implementations of revisions -00 and -01 of this document use the same challenge type name (`dns-persist-01`) with a raw account URL and do not interoperate with this revision. For example, a client implementing this revision does not use a CA whose directory omits `accountHashPrefix`, as directories implementing revision -01 do.
 
 RFC Editor: please remove this section, together with the reference to {{?RFC7942}}, before publication.
 
