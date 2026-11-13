@@ -189,7 +189,8 @@ IETF 127 ACME WG — San Francisco
 
 ### Request-only selector ([PR #84](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/84))
 
-```json
+```text
+Authz A: sub.dept.example.com
 POST /chall/abc  →  { "ancestorDomain": "example.com" }
 ```
 
@@ -205,7 +206,7 @@ POST /chall/abc  →  { "ancestorDomain": "example.com" }
 
 - **CA MUST recognize:** no silent fallback to `A`
 - **Length MUST (`R` & `A`):** VDN ≤ 253 octets; overlong `_validation-persist.<A>` → `malformed`
-- **Proper ancestor:** strict suffix of `A`; public suffixes **SHOULD NOT** (incl. suffix wildcard/9444; `unauthorized`)
+- **Proper ancestor:** strict suffix of `A`; public & nested suffixes **SHOULD NOT** (incl. suffix wildcard/9444; `unauthorized`)
 - **Record at `R`:** requires `policy=wildcard`; hashes `R` (or `*`)
 - **Locks `R`:** first accepted POST fixes `R`; RFC 9444 (`subdomainAuthAllowed`) coexists
 
@@ -300,7 +301,7 @@ From [Seo Suchan's Pebble `-02` implementation report](https://mailarchive.ietf.
 - **RFC 8657 §5.4:** `accounturi` URIs include an authority component
 - **Zero directory savings:** pre-provisioning already uses directory `issuerDomainNames`
 - **No BCP 35 hold:** avoids IANA scheme; matches [servercert PR #9](https://github.com/slghtr-says/servercert/pull/9)
-- **Rebrands (§4.5):** dual-acceptance migration covers prefix, account URLs, and `issuerDomainNames`
+- **Rebrands (§4.5):** migration covers prefix & account URLs (**MUST**) and `issuerDomainNames` (**SHOULD**)
 
 </div>
 <div>
@@ -334,7 +335,7 @@ H(len || domain_name || key || account_URL)
 ## Issue & PR Status
 
 - **Clarifications & MUSTs:**
-  - [#74](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/74), [#75](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/75), [#77](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/77)–[#83](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/83), [#89](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/89) + pre-WGLC review
+  - [#74](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/74), [#75](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/75), [#77](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/77)–[#83](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/83), [#89](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/89), [#90](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/90)
 - **New in `-03`:**
   - [PR #84](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/84): `#33` `ancestorDomain` + RFC 9444
   - [PR #85](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/85): `#32` `_ip-validation-persist`
@@ -358,19 +359,27 @@ H(len || domain_name || key || account_URL)
 
 <div class="ask">
 
-**Next step:** Request **WGLC** on `-03`.
+**Next step:** WG review of `-03` → **WGLC** after IETF 127.
 
 </div>
 
 ---
 
-<!-- _class: lead -->
+<!-- _class: discuss -->
 
 # Questions & Discussion
 
-- Feedback on how `-03` resolves `#32`, `#33`, `#39`, and `#76`
-- Is `-03` ready for **Working Group Last Call**?
+- **Feature additions in `-03`:**
+  - `#33` `ancestorDomain` ([PR #84](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/84)) · `#32` `_ip-validation-persist` ([PR #85](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/85)) · `#39` `persistExpired` ([PR #86](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/86)) · `#76` attestation guidance ([PR #87](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/87))
+- **Specific design check-ins:**
+  - Exact `issuer-domain-name` match ([PR #89](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/89)) vs. RFC 8659 case-insensitivity
+  - Request-only `ancestorDomain` vs. Challenge Object discovery hint
+  - `https://` `accountHashPrefix` + fixed SHA-256 inner `key` thumbprint
+  - Keeping the `dns-persist-01` label across `-01` → `-03` (fail-closed via `accountHashPrefix`)
+- **Path to Working Group Last Call** following list review of `-03`
 
-Mailing list: acme@ietf.org<br>
-GitHub: [repository](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist)<br>
-Draft: https://datatracker.ietf.org/doc/draft-ietf-acme-dns-persist/
+<div class="ask">
+
+**List:** `acme@ietf.org` · **GitHub:** [`ietf-wg-acme/draft-ietf-acme-dns-persist`](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist) · **Draft:** [`datatracker.ietf.org/doc/draft-ietf-acme-dns-persist`](https://datatracker.ietf.org/doc/draft-ietf-acme-dns-persist/)
+
+</div>

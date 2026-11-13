@@ -28,7 +28,7 @@
 
 ## Slide 1: Title (0:15)
 
-"Good morning—Shiloh Heurich, presenting `draft-ietf-acme-dns-persist-03` with Henry Birge-Lee and Michael Slaughter. Today I'll cover the four feature additions and pre-WGLC hardening in `-03`, two October list questions, and our request for Working Group Last Call."
+"Good morning—Shiloh Heurich, presenting `draft-ietf-acme-dns-persist-03` with Henry Birge-Lee and Michael Slaughter. Since `-03` posted on Sunday after the cutoff, today I'll walk through the four feature additions, the review hardening, two October list questions, and the path to Working Group Last Call."
 
 ---
 
@@ -116,7 +116,7 @@ Two key details:
 
 "Two questions from Seo Suchan's October 13 Pebble `-02` report:
 
-First, keep `https://` `accountHashPrefix` rather than a custom `accounthash:` scheme: RFC 8657 Section 5.4 recommends an authority component, pre-provisioning already fetches the directory for `issuerDomainNames`, we avoid a BCP 35 scheme registration while matching the CA/B Forum proposal's URI form, and Section 4.5's dual-acceptance migration rule covers `accountHashPrefix`, account URLs, and `issuerDomainNames`.
+First, keep `https://` `accountHashPrefix` rather than a custom `accounthash:` scheme: RFC 8657 Section 5.4 recommends an authority component, pre-provisioning already fetches the directory for `issuerDomainNames`, we avoid a BCP 35 scheme registration while matching the CA/B Forum proposal's URI form, and Section 4.5 covers rebrands with required migration periods for `accountHashPrefix` and account URLs and a recommended migration period for directory `issuerDomainNames`.
 
 Second, keep inner `key` fixed to the 43-octet RFC 7638 SHA-256 thumbprint: clients and CAs already compute it for RFC 8555 Section 8.1, and CAs store just one 43-byte thumbprint per historical key regardless of outer `<hash-alg>`."
 
@@ -128,11 +128,11 @@ Second, keep inner `key` fixed to the 43-octet RFC 7638 SHA-256 thumbprint: clie
 
 ## Slide 8: Implementation Status & Path to WGLC (0:45, protect)
 
-"`-03` resolves Issues `#33`, `#32`, `#39`, and `#76` through PRs `#84` to `#87`, plus `#89` and the pre-WGLC review guardrails. Every tracked issue is addressed.
+"`-03` resolves Issues `#33`, `#32`, `#39`, and `#76` through PRs `#84` to `#87`, plus `#89` and `#90`. Every tracked issue is addressed.
 
 On implementations (`-03` conformance not yet verified): Pebble and lego have merged support, Pebble has an open `-02` PR (`#566`), Boulder merged `-01` and tracks `-02` in `#9127`, and cert-manager's design PR `#9487` is in review. Note in Section 8 that earlier-draft deployments keep the `dns-persist-01` protocol-v1 label (like `http-01` and `tls-alpn-01` across pre-RFC drafts) and fail closed without interoperating with `-03`: `-03` clients require `accountHashPrefix` and skip `-01` directories that omit it, such as GTS's `-01` deployment—happy to hear if any operator needs a label bump. In CA/B Forum, Michael's Method 23 proposal (`servercert` PR `#9`) currently references `-02`; updating it for `-03` is a next step.
 
-We think `-03` is ready, so we'd like to ask the chairs to start Working Group Last Call."
+Since `-03` just posted Sunday after the cutoff, we'd like folks to read through it on the list and then ask the chairs to start Working Group Last Call shortly after IETF 127."
 
 **Transition:** "With that, I'll open the floor for questions on the `-03` changes or on WGLC."
 
@@ -142,7 +142,7 @@ We think `-03` is ready, so we'd like to ask the chairs to start Working Group L
 
 Open the floor and take questions on the `-03` changes—proactively inviting WG reactions on exact `issuer-domain-name` matching vs. RFC 8659 case-insensitivity, keeping the `dns-persist-01` label across `-01` to `-03`, lifetime witnessed-key retention under `#69`, and reusing `ancestorDomain` on `POST /chall`. Then make one request to the chairs:
 
-"Chairs: we believe `-03` addresses all tracked issues and would like to request Working Group Last Call. If anyone has remaining concerns, the list is the best place to raise them."
+"Chairs: every tracked issue now has text in `-03`. Since `-03` posted after the pre-meeting cutoff, we'd love working group review on the list over the next couple of weeks and would like to ask the chairs to start Working Group Last Call once folks have had a chance to read it."
 
 ---
 
@@ -174,7 +174,7 @@ Yes—and PR `#85` documents this explicitly in Security Considerations (`{{#ip-
 
 ### 7. Why not add a `require-attestation` parameter to the `_validation-persist` DNS TXT record instead of using CA Order policy? (#76 / PR #87)
 
-Because Section 4.1 Item 1 requires CAs to ignore unrecognized parameters in `_validation-persist` records (so future optional extensions don't break legacy CAs). A DNS parameter that an unaware CA silently ignores cannot fail closed across CAs. Instead, a domain owner that requires certificate-key attestation scopes its `_validation-persist` record (via `issuer-domain-name` and `accounturi`, reinforced by CAA) to a CA and account whose Order policy non-waivably requires the attestation authorization on every Order and verifies the CSR public key at finalization.
+Because Section 4.1 Item 1 requires CAs to ignore unrecognized parameters in `_validation-persist` records (so future optional extensions don't break legacy CAs). A DNS parameter that an unaware CA silently ignores cannot fail closed across CAs. Instead, as Section 4.6 describes informatively, a domain owner that requires certificate-key attestation scopes its `_validation-persist` record (via `issuer-domain-name` and `accounturi`, reinforced by CAA) to a CA and account whose Order policy includes a non-waivable attestation authorization on each Order and verifies the CSR public key at finalization.
 
 ### 8. What about the recomputation DoS discussion on Issue #69 (retained historical keys)?
 
