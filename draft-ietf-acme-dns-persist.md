@@ -34,7 +34,7 @@ author:
    org: "Amazon Trust Services"
    email: "slghtr@amazon.com"
 
-normative:
+informative:
   FIPS180-4:
     title: "Secure Hash Standard (SHS)"
     author:
@@ -43,8 +43,6 @@ normative:
     seriesinfo:
       "FIPS PUB": "180-4"
     target: https://doi.org/10.6028/NIST.FIPS.180-4
-
-informative:
   birgelee-sc082-security:
     title: "Security of SC-082 Redux"
     author:
@@ -211,16 +209,16 @@ The RDATA of this TXT record MUST fulfill the following requirements:
     {{fig-hashed-uri-construction}} illustrates the hash preimage layout and resulting `accounturi` structure:
 
     ~~~
-    |<------------------------ Hash Preimage ------------------------>|
-    +------------------+--------------------+------------+------------+
-    | length_of_domain | domain_name        | key        | account_URL|
-    | 1 octet          | 1..253 ASCII octets| 43 ASCII   | Variable   |
-    | (0x01..0xfd)     | (A-label or "*")   | octets     | ASCII      |
-    +------------------+--------------------+------------+------------+
-                                     |
-                                     v  H(...) (e.g., sha-256) +
-                                     |  unpadded base64url
-                                     v
+    |<---------------------- Hash Preimage ---------------------->|
+    +------------------+-------------------+----------+-----------+
+    | length_of_domain | domain_name       | key      |account_URL|
+    | 1 octet          | 1..253 ASCII      | 43 ASCII | Variable  |
+    | (0x01..0xfd)     | (A-label or "*")  | octets   | ASCII     |
+    +------------------+-------------------+----------+-----------+
+                                    |
+                                    v  H(...) (e.g., sha-256) +
+                                    |  unpadded base64url
+                                    v
         <accountHashPrefix><hash-alg>/<base64url hash value>
     ~~~
     {: #fig-hashed-uri-construction title="Hashed-URI Preimage and Construction"}
@@ -490,7 +488,7 @@ The `dns-persist-01` validation method MAY also be used to validate control of a
 
 When an ACME authorization object has `identifier.type` set to `ip`, the client and CA construct the normalized Reverse Zone Domain Name (`R`) for the IP address in lowercase US-ASCII with no trailing dot. {{!RFC1035}}, Section 3.5 and {{!RFC3596}}, Section 2.5 write `IN-ADDR.ARPA` and `IP6.ARPA` in uppercase; per {{normalization-algorithm}}, this specification uses lowercase `.in-addr.arpa` and `.ip6.arpa`. The construction proceeds as follows:
 
-- **IPv4 ({{!RFC1035}}, Section 3.5):** Represent the 32-bit IPv4 address as four decimal octet labels (0 to 255, with leading zeros omitted except for a single `0` octet) in reverse order, followed by the suffix `.in-addr.arpa`. For example, `192.0.2.1` maps to `1.2.0.192.in-addr.arpa`.
+- **IPv4 ({{!RFC1035}}, Section 3.5):** Represent the 32-bit IPv4 address as four decimal octet labels (0 to 255, with leading zeros omitted except for a single `0` octet) in reverse order, followed by the suffix `.in-addr.arpa`. For example, `192.0.2.1` maps to `"1.2.0.192.in-addr.arpa"`.
 - **IPv6 ({{!RFC3596}}, Section 2.5):** Expand the 128-bit IPv6 address to all 32 hexadecimal digits (expanding any `::` zero compression). Represent them as 32 single-character lowercase hexadecimal (`0` through `9` and `a` through `f`) labels separated by dots in reverse order (low-order nibble first), followed by the suffix `.ip6.arpa`. The resulting Reverse Zone Domain Name is always 72 octets in length. For example, `2001:db8::1` maps to the Reverse Zone Domain Name used in {{ex-ipv6-validation}}.
 
 For an `ip` identifier, the Validation Domain Name is formed by prepending the label `_ip-validation-persist` to the Reverse Zone Domain Name (`_ip-validation-persist.<R>`). This distinct underscore label separates IP-address validation from `dns`-identifier validation.
@@ -528,7 +526,7 @@ Using the same CA `accountHashPrefix` (`https://ca.example/account-hash/`), Issu
 
 - **IPv4 example (`192.0.2.1`):**
   - `length_of_domain`: `0x16` (22 octets)
-  - `domain_name`: `1.2.0.192.in-addr.arpa`
+  - `domain_name`: `"1.2.0.192.in-addr.arpa"`
   - Unpadded base64url SHA-256 digest: `CnwSwHOHJbE-X_FSkydPTw6dGMovluSdRsY3_tmA-0E`
 
 ~~~ dns
@@ -571,7 +569,7 @@ Pebble (test CA server):
 : Organization: ISRG. Pebble is a small ACME test server. It has supported `dns-persist-01` since release [v2.10.0](https://github.com/letsencrypt/pebble/releases/tag/v2.10.0), added in [PR #536](https://github.com/letsencrypt/pebble/pull/536). Source: https://github.com/letsencrypt/pebble
 
 lego (client):
-: lego is an ACME client and library written in Go. It has supported `dns-persist-01` since release [v5.0.0](https://github.com/go-acme/lego/releases/tag/v5.0.0), added in [PR #2871](https://github.com/go-acme/lego/pull/2871). Source: https://github.com/go-acme/lego
+: lego is an ACME client and library written in Go. It has supported `dns-persist-01` since release [v5.0.0](https://github.com/go-acme/lego/releases/tag/v5.0.0), added in [pull request 2871](https://github.com/go-acme/lego/pull/2871). Source: https://github.com/go-acme/lego
 
 cert-manager (client):
 : cert-manager is a certificate controller for Kubernetes. A design proposal for `dns-persist-01` is under review as draft [PR #9487](https://github.com/cert-manager/cert-manager/pull/9487). Source: https://github.com/cert-manager/cert-manager
