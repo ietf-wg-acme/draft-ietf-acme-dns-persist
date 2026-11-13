@@ -181,7 +181,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
 3.  The issue-value MUST contain an `accounturi` parameter whose value is a hashed URI identifying the ACME account requesting validation. A hashed URI cryptographically binds the account to the domain being validated without publishing the account URL in cleartext. It is formed by concatenating the CA's `accountHashPrefix`, a hash-algorithm identifier, a "/" separator, and a base64url hash value:
 
-    ~~~
+    ~~~ abnf
     <accountHashPrefix><hash-alg>/<base64url hash value>
     ~~~
 
@@ -193,7 +193,7 @@ The RDATA of this TXT record MUST fulfill the following requirements:
 
     `<base64url hash value>` is the base64url encoding {{!RFC4648}}, with trailing padding (`=`) omitted, of the hash digest computed with the identified algorithm over the following octet string:
 
-    ~~~
+    ~~~ abnf
     H(length_of_domain || domain_name || key || account_URL)
     ~~~
 
@@ -460,7 +460,8 @@ CAs and clients MUST enforce the following requirements when `ancestorDomain` is
 
 Rejections of a challenge response under items 2 through 4 and 7 are HTTP errors on the challenge-response request ({{!RFC8555}}, Section 7.5.1) that leave the challenge's existing state unchanged; a challenge that has not yet accepted a response remains `pending`. In contrast, a failure under item 5 is a validation failure that transitions the challenge to `invalid` ({{!RFC8555}}, Section 7.1.6).
 
-Note: Because `ancestorDomain` is a request-only challenge-response field, the resulting challenge object does not echo `ancestorDomain`. A CA implementing an earlier draft of this specification ignores `ancestorDomain`, as {{!RFC8555}}, Section 7.5.1 requires for unrecognized response fields, and validates at `_validation-persist.<A>`. The result fails closed: validation succeeds only if a record at `_validation-persist.<A>` independently authorizes `A`. A client cannot tell this outcome from the challenge object.
+{:aside}
+> Note: Because `ancestorDomain` is a request-only challenge-response field, the resulting challenge object does not echo `ancestorDomain`. A CA implementing an earlier draft of this specification ignores `ancestorDomain`, as {{!RFC8555}}, Section 7.5.1 requires for unrecognized response fields, and validates at `_validation-persist.<A>`. The result fails closed: validation succeeds only if a record at `_validation-persist.<A>` independently authorizes `A`. A client cannot tell this outcome from the challenge object.
 
 See {{subdomain-validation-risks}} for important security implications of enabling subdomain validation.
 
@@ -782,7 +783,7 @@ IANA is requested to register the following entries in the "ACME Validation Meth
 |---|---|---|---|
 | dns-persist-01 | dns | Y | This document |
 | dns-persist-01 | ip | Y | This document |
-{: title="ACME Validation Methods Registrations"}
+{: #tab-iana-validation-methods title="ACME Validation Methods Registrations"}
 
 ## Underscored and Globally Scoped DNS Node Names Registry {#dns-node-names-registry}
 
@@ -792,7 +793,7 @@ IANA is requested to register the following entries in the "Underscored and Glob
 |---|---|---|
 | TXT | _validation-persist | This document |
 | TXT | _ip-validation-persist | This document |
-{: title="Underscored and Globally Scoped DNS Node Names Registrations"}
+{: #tab-iana-node-names title="Underscored and Globally Scoped DNS Node Names Registrations"}
 
 ## ACME Directory Metadata Fields {#acme-directory-metadata-field}
 
@@ -802,15 +803,16 @@ IANA is requested to register the following entries in the "ACME Directory Metad
 |---|---|---|
 | accountHashPrefix | string | This document |
 | issuerDomainNames | array of string | This document |
-{: title="ACME Directory Metadata Fields Registrations"}
+{: #tab-iana-directory-metadata title="ACME Directory Metadata Fields Registrations"}
 
 ## ACME Error Types Registry {#acme-error-types-registry}
 
 IANA is requested to register the following entry in the "ACME Error Types" registry defined in {{!RFC8555}}, Section 9.7.4:
 
-- **Type**: persistExpired
-- **Description**: A persistent validation record matching the CA and requesting account has an expired `persistUntil` timestamp
-- **Reference**: This document
+| Type | Description | Reference |
+|---|---|---|
+| persistExpired | A persistent validation record matching the CA and requesting account has an expired `persistUntil` timestamp | This document |
+{: #tab-iana-error-types title="ACME Error Types Registration"}
 
 # Implementation Requirements and Guidance {#implementation-considerations}
 
@@ -942,7 +944,7 @@ For validation of "example.com" by a CA using "authority.example" as its Issuer 
 
 1.  CA provides challenge object with a list of valid Issuer Domain Names:
 
-    ~~~json
+    ~~~ json
     {
       "type": "dns-persist-01",
       "url": "https://ca.example/acme/chall/5678",
@@ -950,6 +952,7 @@ For validation of "example.com" by a CA using "authority.example" as its Issuer 
       "issuerDomainNames": ["authority.example", "ca.example.net"]
     }
     ~~~
+    {: #ex-basic-challenge-object title="Basic Validation Challenge Object"}
 
 2.  Client chooses one of the provided Issuer Domain Names (e.g., "authority.example"), computes its hashed URI as shown in {{hashed-uri-example}}, and provisions a DNS TXT record (note the absence of a `policy` parameter for scope):
 
@@ -958,6 +961,7 @@ For validation of "example.com" by a CA using "authority.example" as its Issuer 
     " accounturi=https://ca.example/account-hash/"
     "sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw")
     ~~~
+    {: #ex-basic-txt-record title="Basic Validation Record"}
 
 3.  CA validates the record through DNS queries. This validation is sufficient only for "example.com".
 
