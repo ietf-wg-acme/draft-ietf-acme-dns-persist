@@ -497,7 +497,7 @@ When an ACME authorization object has `identifier.type` set to `ip`, the client 
 
 For an `ip` identifier, the Validation Domain Name is formed by prepending the label `_ip-validation-persist` to the Reverse Zone Domain Name (`_ip-validation-persist.<R>`). This distinct underscore label separates IP-address validation from `dns`-identifier validation.
 
-A CA MUST query `_ip-validation-persist.<R>` only when validating an authorization with `identifier.type` set to `ip`, and MUST query `_validation-persist` only when validating an authorization with `identifier.type` set to `dns`. When validating an `ip` identifier with `dns-persist-01`, the CA MUST NOT perform a `PTR` lookup or validate the target domain name of a `PTR` record in place of `_ip-validation-persist.<R>`.
+A CA MUST query `_ip-validation-persist.<R>` only when validating an authorization with `identifier.type` set to `ip`, and MUST query `_validation-persist` only when validating an authorization with `identifier.type` set to `dns`. When validating an `ip` identifier with `dns-persist-01`, the CA MUST NOT use a `PTR` lookup, or the `PTRDNAME` of a `PTR` record ({{!RFC1035}}, Section 3.3.12), as a substitute for querying `_ip-validation-persist.<R>`.
 
 ## Record Format, Digest Input, and Scope for IP Validation {#ip-record-and-scope}
 
@@ -670,7 +670,7 @@ When `dns-persist-01` is used for an `ip` identifier ({{ip-address-validation}})
 
 Because the reverse-zone operator controls all nodes within its delegated zone, it can still synthesize TXT responses for any address in that zone. For example, it can publish a DNS wildcard TXT record such as `*.2.0.192.in-addr.arpa` carrying a `domain_name=*` hashed URI, which can answer both `_ip-validation-persist.<R>` and `_validation-persist.<R>` queries where no closer node intervenes.
 
-If an IP address is reassigned while a persistent `_ip-validation-persist.<R>` record (or CNAME delegation) remains in place, the prior holder's account could continue to validate the address until the record is removed and any existing authorizations expire. Operators SHOULD remove `_ip-validation-persist.<R>` records upon address reassignment. Operators SHOULD also use `persistUntil` ({{persist-until-parameter-considerations}}) to bound persistent records to the expected address allocation period. Address holders and CAs SHOULD account for reverse-zone delegation boundaries in their threat models.
+If an IP address is reassigned while a persistent `_ip-validation-persist.<R>` record (or CNAME delegation) remains in place, the prior holder's account could continue to validate the address until the record is removed and any existing authorizations expire. The reverse-zone operator SHOULD remove `_ip-validation-persist.<R>` records upon address reassignment. The reverse-zone operator SHOULD also use `persistUntil` ({{persist-until-parameter-considerations}}) to bound persistent records to the expected address allocation period. Address holders and CAs SHOULD account for reverse-zone delegation boundaries in their threat models.
 
 ## Cross-CA Validation Reuse {#cross-ca-validation-reuse}
 
