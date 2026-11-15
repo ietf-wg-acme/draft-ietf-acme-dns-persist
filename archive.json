@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-11-12T04:54:19.119351+00:00",
+  "timestamp": "2026-11-15T03:49:44.841032+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -6677,13 +6677,13 @@
       "labels": [],
       "body": "Section 5 allows a wildcard `_validation-persist` record at a parent domain to authorize subdomains, but does not say how the CA learns which ancestor domain holds the record when validating a subdomain authorization. Walking the DNS tree up to the public suffix adds unguided queries and ambiguous failure modes, and the draft also leaves interaction with RFC 9444 (`subdomainAuthAllowed`) unspecified.\n\nAllow the client to include an optional `ancestorDomain` field in the `POST` payload when responding to a `dns-persist-01` challenge for a `dns` identifier (#33). Keep `{}` as the default for exact and base-wildcard validation, and leave the server's challenge object unchanged. When `ancestorDomain` is present, the CA validates `_validation-persist.<ancestorDomain>`, requires `policy=wildcard`, and computes the default `accounturi` hash over the normalized ancestor domain (or `*`) rather than the child identifier. Both `ancestorDomain` and the constructed `_validation-persist.<ancestorDomain>` name must fit RFC 1035 length limits, and `ancestorDomain` must be a strict whole-label proper suffix of the normalized authorization identifier and not a public suffix (unless allowed by CA policy). The first accepted challenge response fixes the target domain for that validation attempt; CAs reject conflicting in-flight `POST`s with `malformed` rather than overwriting the target or silently falling back to the leaf domain.\n\nClarify how per-challenge `ancestorDomain` selection coexists with RFC 9444 ancestor authorizations (`subdomainAuthAllowed: true`), which operate at `newOrder` time and also require `policy=wildcard` when validated with `dns-persist-01`. Selecting `ancestorDomain` in a challenge response satisfies only that challenge's authorization object and does not change its `identifier.value` or set `subdomainAuthAllowed`.\n\nVerification: 6 focused local test suites cover the reference evaluator (exact leaf, equal-domain rejection, deeper wildcards, partial-label prefixes, public suffixes, the 233/253-octet validation-name boundary, and invalid syntax/types), challenge-object JSON examples, and HTML anchors. `make lint`, `make`, and `git diff --check` passed on `main`, and generated text and HTML were inspected. These are source and build checks, not live CA interoperability tests.\n\nCloses #33\n",
       "createdAt": "2026-11-02T23:48:47Z",
-      "updatedAt": "2026-11-11T11:46:14Z",
+      "updatedAt": "2026-11-13T07:33:23Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "fd52243ff7f69b38411336c754ba436b9cb64cfd",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "feat-ancestor-domain",
-      "headRefOid": "f8b6eb3f413cadf3756a976ae17833b2421f194c",
+      "headRefOid": "32d29569164a919f98365c5d7a7007012652b4a4",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -6709,6 +6709,41 @@
           "body": "Thanks for raising this. A CA-provided public-suffix boundary could reduce DNS queries for a client discovering an existing record and allow traversal in either direction.\n\nWe kept a per-identifier discovery field out of the Challenge Object for this revision for two main reasons:\n\n1. A Public Suffix List (PSL) boundary alone does not describe all permitted selections: item 4 in the Implementation Requirements is a `SHOULD NOT` with exceptions such as single-organization TLDs and private PKI namespaces (which need no PSL), while a CA's policy may also disallow ancestors that are not public suffixes.\n2. Omitting the field avoids requiring every CA to compute and serialize per-identifier discovery metadata on challenge creation, including when the client validates at the authorization's own identifier (`{}`).\n\nThat leaves the extra discovery queries you note as a trade-off. Happy to revisit during WGLC if implementation experience shows an optional discovery hint is worth adding.\n",
           "createdAt": "2026-11-11T11:46:14Z",
           "updatedAt": "2026-11-11T11:46:14Z"
+        },
+        {
+          "author": "commonism",
+          "authorAssociation": "NONE",
+          "body": "1. as the client can not know about it but the CA does - this is actually good points to provide this information\r\n2. the CA already validates the identifiers when accepting an order and creating the challenges, (for boulder) this includes a psl check, so the compute is likely done already",
+          "createdAt": "2026-11-12T08:32:41Z",
+          "updatedAt": "2026-11-12T08:32:41Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Looking closer at how this works in server code and on shared zones:\n\n1. In Boulder, order-time checking (`iana.ExtractSuffix`) uses only the ICANN PSL section, rate limiting uses the full PSL, and Pebble carries no PSL at all. Because Boulder renders `dns-persist-01` challenge fields on every GET without an `authz2` column, a PSL reload while an authorization is pending would also shift an advertised boundary unless CAs persist per-challenge boundary state.\n2. Walking top-down (boundary toward leaf) has a hazard on shared parent domains: a co-tenant who can publish at `_validation-persist.<shared-parent>` can make a naive top-down walker POST that ancestor and transition the challenge to `invalid`, and top-down picks widest scope instead of least privilege.\n\nIn #90 we're adding client discovery guidance (prefer configured `R`; otherwise walk `dns` names bottom-up with a step bound, verify `issuer-domain-name`, `policy=wildcard`, `persistUntil`, and the account's `accounturi` locally before POSTing, and stop before known public suffixes, single-label TLDs, and the root) and tightening item 4 to cover nested public suffixes between `A` and `R`. That leaves multi-label suffixes like `co.uk` as the one case where a PSL-less walker sends an extra NXDOMAIN query when no record exists.\n",
+          "createdAt": "2026-11-12T16:20:48Z",
+          "updatedAt": "2026-11-12T16:20:48Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I would probably not block on this. If the PR goes forward, I'm fine with it. I'm personally not in love with the whole concept. It obviously adds protocol complexity now that the client has this option of picking where the validation is being performed. It also adds a small amount of implementation complexity because if a CA naively doesn't check that the label provided by the client is actually a valid location for the challenge to be placed, it's just another way for the client to cause a CA to do something wrong. \r\n\r\nI would much prefer to keep communication of the public suffix out of the standard. I think the PSL topic is just blending a lot of ca/b forum politics in with the ACME protocol, which, in theory, can be used outside of the Web pki ecosystem. \r\n\r\nI understand that in the absence of this technique, there's a disconnect: the protocol states it can be used for subdomain certificates, but there's really no clean signaling way of how that's done. \r\n\r\nSo I guess overall I am neutral on this. I would just see if we can get input from some CA operators: whether the complexity of having this extra parameter and the associated security risks of a CA that's not properly validating that parameter are justified by the improved usability of the client being able to specify where the challenge is. ",
+          "createdAt": "2026-11-12T23:01:02Z",
+          "updatedAt": "2026-11-12T23:01:02Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Agreed on keeping PSL communication off the wire\u2014we left the challenge object unchanged and kept item 4 as `SHOULD NOT` with an explicit private-PKI carve-out (matching RFC 9444 Section 7.3). On CA operator demand: Aaron/Let's Encrypt filed #33 and Fabien/GTS seconded it at IETF 125 specifically so CAs can validate a single client-named `R` instead of writing a DNS tree-walk loop for Section 6.\n",
+          "createdAt": "2026-11-13T00:28:00Z",
+          "updatedAt": "2026-11-13T00:28:00Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "lol its hard to compete with CA requests. As long as PSL data is kept off the wire I am OK.",
+          "createdAt": "2026-11-13T07:33:06Z",
+          "updatedAt": "2026-11-13T07:33:06Z"
         }
       ],
       "reviews": [
@@ -6811,6 +6846,112 @@
               "updatedAt": "2026-11-10T23:00:35Z"
             }
           ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABXldiqQ",
+          "commit": {
+            "abbreviatedOid": "f8b6eb3"
+          },
+          "author": "slghtr-says",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-11-12T16:04:24Z",
+          "updatedAt": "2026-11-12T16:04:25Z",
+          "comments": [
+            {
+              "originalPosition": 85,
+              "body": "```suggestion\n5. **Record scope and digest binding:** When validating at `_validation-persist.<ancestorDomain>`, a record satisfies validation only if it also includes `policy=wildcard`. If the only records that would otherwise satisfy validation lack `policy=wildcard`, the CA MUST fail the validation attempt with an `unauthorized` error. Both the client (or delegated DNS publisher) and the CA MUST compute the expected `accounturi` digest ({{validation-record-format}}) using the normalized `ancestorDomain` (`R`) as `domain_name` (or the `*` opt-out), not the child identifier `A`.\n```\n\nNit for clarity ",
+              "createdAt": "2026-11-12T16:04:25Z",
+              "updatedAt": "2026-11-12T16:04:25Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABXlsYAg",
+          "commit": {
+            "abbreviatedOid": "f8b6eb3"
+          },
+          "author": "slghtr-says",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-11-12T16:19:22Z",
+          "updatedAt": "2026-11-12T16:19:23Z",
+          "comments": [
+            {
+              "originalPosition": 91,
+              "body": "```suggestion\nNote: Because `ancestorDomain` is a request-only challenge-response field, the resulting challenge object does not echo `ancestorDomain`. A CA implementing an earlier revision of this document ignores `ancestorDomain`, as {{!RFC8555}}, Section 7.5.1 requires for unrecognized response fields, and validates at `_validation-persist.<A>`. The result fails closed: validation succeeds only if a record at `_validation-persist.<A>` independently authorizes `A`. A client cannot tell this outcome from the challenge object.\n```",
+              "createdAt": "2026-11-12T16:19:22Z",
+              "updatedAt": "2026-11-12T18:33:06Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABXmRdug",
+          "commit": {
+            "abbreviatedOid": "f8b6eb3"
+          },
+          "author": "slghtr-says",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-11-12T16:58:54Z",
+          "updatedAt": "2026-11-12T16:58:54Z",
+          "comments": [
+            {
+              "originalPosition": 84,
+              "body": "```suggestion\n4. **Public-suffix boundary:** The CA SHOULD NOT accept an `ancestorDomain` that is a public suffix ({{!RFC9499}}, Section 9), as determined by the CA from a source such as the Public Suffix List. A qualifying record at such a name could be used to validate the bound account for any name below it, including names held by unrelated registrants. A CA can reasonably accept one where a single organization controls the suffix and every name below it, such as a single-organization TLD or a private PKI namespace. If the CA declines an `ancestorDomain` under this item, or its policy does not permit subdomain validation at the requested `ancestorDomain`, the CA MUST reject the challenge with an `unauthorized` error ({{!RFC8555}}, Section 6.7).\n```\n```",
+              "createdAt": "2026-11-12T16:58:54Z",
+              "updatedAt": "2026-11-12T16:58:54Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABXmS1ZQ",
+          "commit": {
+            "abbreviatedOid": "f8b6eb3"
+          },
+          "author": "slghtr-says",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-11-12T17:00:22Z",
+          "updatedAt": "2026-11-12T17:00:23Z",
+          "comments": [
+            {
+              "originalPosition": 86,
+              "body": "```suggestion\n6. **Preservation of authorization scope:** Validating a challenge with `ancestorDomain` satisfies only that authorization object for `A`; it MUST NOT alter the authorization object's `identifier` field or its `subdomainAuthAllowed` value ({{!RFC9444}}, Section 4.1).\n```",
+              "createdAt": "2026-11-12T17:00:22Z",
+              "updatedAt": "2026-11-12T17:00:23Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABXqYa7g",
+          "commit": {
+            "abbreviatedOid": "f8b6eb3"
+          },
+          "author": "MaxHearnden",
+          "authorAssociation": "NONE",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2026-11-12T22:20:56Z",
+          "updatedAt": "2026-11-12T22:20:56Z",
+          "comments": []
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABXu47uQ",
+          "commit": {
+            "abbreviatedOid": "32d2956"
+          },
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "lgtm",
+          "createdAt": "2026-11-13T07:33:23Z",
+          "updatedAt": "2026-11-13T07:33:23Z",
+          "comments": []
         }
       ]
     },
@@ -6826,7 +6967,7 @@
       "labels": [],
       "body": "`dns-persist-01` is currently defined only for `dns` identifiers, leaving operators of IPv4 and IPv6 addresses (RFC 8738) without a persistent DNS validation path (#32).\n\nDefine an additive reverse-DNS profile for `ip` authorizations using `_ip-validation-persist.<R>`, where `R` is the lowercase US-ASCII `in-addr.arpa` name (RFC 1035 Section 3.5) or full 32-nibble hexadecimal `ip6.arpa` name (RFC 3596 Section 2.5) with no trailing dot. CAs query `_ip-validation-persist` only for `ip` identifiers, query `_validation-persist` only for `dns` identifiers, and never follow `PTR` records. By default, `domain_name` in the `accounturi` hash is `R` (or `*`), even when `_ip-validation-persist.<R>` itself is aliased via CNAME into a delegated zone. Validation authorizes only the single IP address: CAs ignore `policy=wildcard` on IP records, reject `ancestorDomain` on `ip` challenges with `malformed`, and keep validation caches separated by identifier type.\n\nAdd worked IPv4 (`192.0.2.1`) and IPv6 (`2001:db8::1`) examples, register `dns-persist-01` for `ip` in the ACME Validation Methods registry and `_ip-validation-persist` in the RFC 8552 Underscored and Globally Scoped DNS Node Names registry, and document reverse-zone delegation trust boundaries in Security Considerations relative to RFC 8738 Section 7.\n\nVerification: 3 focused local test suites recompute the IPv4 and IPv6 SHA-256 test vectors and `*` opt-out digest, check negative controls against hashing the raw IP literal or full `_ip-validation-persist.<R>` owner name, and verify IANA and HTML anchors. `make lint`, `make`, and `git diff --check` passed on `main`, and generated text and HTML were inspected. These are source and vector checks, not live CA or reverse-DNS deployment tests.\n\nCloses #32\n",
       "createdAt": "2026-11-02T23:48:50Z",
-      "updatedAt": "2026-11-09T18:18:33Z",
+      "updatedAt": "2026-11-13T17:33:32Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "fd52243ff7f69b38411336c754ba436b9cb64cfd",
@@ -6844,6 +6985,34 @@
           "body": "Thanks for catching both of those, @MaxHearnden! Updated in 56cb025:\n\n1. Replaced `\"canonical Reverse Zone Domain Name\"` with **`\"normalized Reverse Zone Domain Name\"`** throughout and explicitly contrasted `R` (the reverse-mapping domain name of the IP address prior to following any `CNAME` aliases) with the DNS canonical name of a `CNAME` target (RFC 1035 Section 3.3.1).\n2. Added a parenthetical in Section 6.1 noting that RFC 1035 Section 3.5 and RFC 3596 Section 2.5 write `IN-ADDR.ARPA` and `IP6.ARPA` in uppercase, whereas this specification normalizes them to lowercase `.in-addr.arpa` and `.ip6.arpa`.",
           "createdAt": "2026-11-03T14:54:05Z",
           "updatedAt": "2026-11-03T14:54:05Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I do know this is needed. I remember Google asking about this very early on when the validation method was established. I'm still trying to figure out if we need to be the ones to put this in this draft, or if we just table it for down the road. It's probably a good courtesy for the community to push us through with this internet draft so it can get standardized faster. I also am always concerned about draft bloat, and IP address validation sometimes has its own quirks. \r\n\r\nI also just don\u2019t like IP address validation and validation using the in-addr.arpa zone. It always feels rather legacy and quite high risk . so take that what you will ",
+          "createdAt": "2026-11-12T23:08:15Z",
+          "updatedAt": "2026-11-12T23:08:15Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Agreed\u2014Aaron/Let's Encrypt (#32) and GTS both asked at IETF 125 to keep IP in this draft rather than split out a separate RFC. Section 9.4 (`IP Address Validation Risks`) calls out the `in-addr.arpa` / `ip6.arpa` delegation, wildcard-synthesis, and IP-reassignment caveats explicitly.\n",
+          "createdAt": "2026-11-13T00:28:01Z",
+          "updatedAt": "2026-11-13T00:28:01Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "good point. Given the circumstances I am in favor. The security considerations section has a good explanation. I am still questionable about how much a binding through reverse DNS actually says about IP address control (and if an IP address is even an identifier that justifies a cryptographic binding). These are more policy questions than protocol questions though.",
+          "createdAt": "2026-11-13T00:33:03Z",
+          "updatedAt": "2026-11-13T00:33:03Z"
+        },
+        {
+          "author": "slghtr-says",
+          "authorAssociation": "COLLABORATOR",
+          "body": "lgtm",
+          "createdAt": "2026-11-13T17:33:32Z",
+          "updatedAt": "2026-11-13T17:33:32Z"
         }
       ],
       "reviews": [
@@ -6963,6 +7132,59 @@
           "createdAt": "2026-11-06T17:27:21Z",
           "updatedAt": "2026-11-06T17:27:21Z",
           "comments": []
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABXrroVA",
+          "commit": {
+            "abbreviatedOid": "fcf12b8"
+          },
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "good security considerations.",
+          "createdAt": "2026-11-13T00:33:27Z",
+          "updatedAt": "2026-11-13T00:33:27Z",
+          "comments": []
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABX2Sldg",
+          "commit": {
+            "abbreviatedOid": "fcf12b8"
+          },
+          "author": "slghtr-says",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-11-13T17:30:47Z",
+          "updatedAt": "2026-11-13T17:30:47Z",
+          "comments": [
+            {
+              "originalPosition": 69,
+              "body": "```suggestion\nWhen `dns-persist-01` is used for an `ip` identifier ({{ip-address-validation}}), authorization derives from control of the `_ip-validation-persist.<R>` node in the `in-addr.arpa` or `ip6.arpa` reverse DNS tree. In many deployments, reverse-zone delegation is held by the upstream network provider, hosting operator, or address-space registrant rather than the operator of the individual host, and {{!RFC8738}}, Section 7 prohibits `dns-01` for IP identifiers (see also {{!RFC8738}}, Section 9.1). Unlike `dns-01`, `_ip-validation-persist` uses a dedicated underscore label (`_ip-validation-persist`), binds both the CA (`issuer-domain-name`) and the ACME account (`accounturi`), forbids `PTR` target indirection, and ignores `policy=wildcard` so a single authorization covers only one IP address. However, because the reverse-zone operator controls all nodes within its delegated zone, it can still synthesize TXT responses across addresses in that zone (for example, by publishing a DNS wildcard TXT record such as `*.2.0.192.in-addr.arpa` carrying a `domain_name=*` hashed URI, which can answer both `_ip-validation-persist.<R>` and `_validation-persist.<R>` queries where no closer node intervenes). Furthermore, if an IP address is reassigned while a persistent `_ip-validation-persist.<R>` record (or CNAME delegation) remains in place, the prior holder's account could continue to validate the address until the record is removed and any existing authorizations expire; the reverse-zone operator SHOULD remove `_ip-validation-persist.<R>` records upon address reassignment and SHOULD use `persistUntil` ({{persist-until-parameter-considerations}}) to bound persistent records to the expected address allocation period. Address holders and CAs SHOULD account for reverse-zone delegation boundaries in their threat models.\n```\nNit: ; operators -> ; the reverse-zone operator SHOULD remove `_ip-validation-persist.<R>` records",
+              "createdAt": "2026-11-13T17:30:47Z",
+              "updatedAt": "2026-11-13T17:30:47Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABX2TvRA",
+          "commit": {
+            "abbreviatedOid": "fcf12b8"
+          },
+          "author": "slghtr-says",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-11-13T17:32:19Z",
+          "updatedAt": "2026-11-13T17:32:19Z",
+          "comments": [
+            {
+              "originalPosition": 17,
+              "body": "```suggestion\nA CA MUST query `_ip-validation-persist.<R>` only when validating an authorization with `identifier.type` set to `ip`, and MUST query `_validation-persist` only when validating an authorization with `identifier.type` set to `dns`. When validating an `ip` identifier with `dns-persist-01`, the CA MUST NOT use a `PTR` lookup, or the PTRDNAME of a `PTR` record ({{!RFC1035}}, Section 3.3.12), as a substitute for querying `_ip-validation-persist.<R>`.\n```\nThe current language could be interpreted as a CA is non-conforming for running a `PTR` lookup as an extra check, which RFC 8738 Section 9.1 allows (\"The CA may wish to perform additional checks not specified in this document\"). ",
+              "createdAt": "2026-11-13T17:32:19Z",
+              "updatedAt": "2026-11-13T17:32:19Z"
+            }
+          ]
         }
       ]
     },
@@ -6978,7 +7200,7 @@
       "labels": [],
       "body": "When a record's `persistUntil` timestamp passes, returning only generic `unauthorized` prevents ACME clients from distinguishing routine timestamp expiration from an account-hash, issuer-domain, or policy mismatch (#39). However, returning an expiration error before verifying that the record belongs to the CA and the requesting account would leak expiration state for other accounts' or CAs' records at the same name.\n\nRegister the `persistExpired` error type (`urn:ietf:params:acme:error:persistExpired`) in the ACME Error Types registry (RFC 8555 Section 9.7.4). Recommend (`SHOULD`) returning `persistExpired` when challenge validation fails and at least one retrieved record at the queried name is otherwise qualifying for the CA and the live requesting account (including any required `policy=wildcard`) but fails solely because its well-formed `persistUntil` timestamp has passed. Prohibit (`MUST NOT`) returning `persistExpired` if any record satisfies validation or if no otherwise qualifying record for the CA and requesting account failed solely due to an expired `persistUntil` timestamp, regardless of evaluation order.\n\nA CA may still return `unauthorized` under a uniform error-disclosure policy, so client guidance is updated to handle both error types. Just-in-Time validation fallback to a `pending` challenge is unchanged. Note that the `### Error Handling` section overlaps with #84 if both are merged.\n\nVerification: 4 focused local test suites cover the reference eligibility evaluator across record permutations, cross-account and cross-CA privacy gates, JIT fallback preservation, and the IANA registration. `make lint`, `make`, and `git diff --check` passed on `main`, and generated text and HTML were inspected. These are source and build checks, not live CA testing.\n\nCloses #39\n",
       "createdAt": "2026-11-02T23:48:54Z",
-      "updatedAt": "2026-11-09T18:18:34Z",
+      "updatedAt": "2026-11-13T19:23:39Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "fd52243ff7f69b38411336c754ba436b9cb64cfd",
@@ -7010,6 +7232,32 @@
               "updatedAt": "2026-11-02T23:52:02Z"
             }
           ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABXu5gNg",
+          "commit": {
+            "abbreviatedOid": "afb988b"
+          },
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "I like this. a bit of added complexity but a lot of added clarity for clients.",
+          "createdAt": "2026-11-13T07:34:31Z",
+          "updatedAt": "2026-11-13T07:34:31Z",
+          "comments": []
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABX3mSJg",
+          "commit": {
+            "abbreviatedOid": "afb988b"
+          },
+          "author": "slghtr-says",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "lgtm",
+          "createdAt": "2026-11-13T19:23:39Z",
+          "updatedAt": "2026-11-13T19:23:39Z",
+          "comments": []
         }
       ]
     },
@@ -7023,15 +7271,15 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "Deployments such as internal network devices or enterprise workloads often need both domain validation via `dns-persist-01` and cryptographic proof that the certificate private key resides on an approved hardware module (#76). Challenges within a single ACME authorization object are alternatives (RFC 8555 Section 7.1.4), CAA `validationmethods` lists are disjunctive (RFC 8657 Section 4), and unrecognized `_validation-persist` parameters are ignored (Section 4.1 item 1), so conjunctive enforcement cannot be achieved by listing two challenges on one authorization or adding an unnegotiated DNS parameter.\n\nSpecify order-level conjunction in terms of RFC 8555 Sections 7.1.3 and 7.4, citing `draft-ietf-acme-device-attest` informatively so publication does not take a normative `MISREF` dependency. A CA enforcing conjunctive attestation for an identifier or account must include the attestation authorization on every order for that identifier or account, must not allow the client to waive it via `newOrder` parameters or profile selection, and must require all authorizations on the order to be `valid` before transitioning the order to `ready`, finalizing, or issuing.\n\nBecause `_validation-persist` binds the ACME account key rather than the CSR key, require the CA to verify at order finalization that the CSR public key matches the attested public key even when the `dns` authorization was satisfied via Just-in-Time validation or prior authorization reuse, and require fresh attestation when renewing with a new certificate key.\n\nVerification: 4 focused local test suites cover the conjunctive finalization reference evaluator (CSR key match vs. mismatch across JIT and reused `dns` authorizations, key-changing renewal, and non-waivable order policy), informative reference classification, and CAA cross-references. `make lint`, `make`, and `git diff --check` passed on `main`, and generated text and HTML were inspected. These are source and build checks, not live CA testing.\n\nCloses #76\n",
+      "body": "Resolves #76 with concise informative deployment guidance (`{#certificate-key-attestation}`, zero uppercase BCP 14 keywords, citing `draft-ietf-acme-device-attest` informatively):\n\n- Explains why DNS parameters and CAA alone cannot express `dns-persist-01` AND certificate-key attestation across CAs (per-authorization challenge lists and CAA `validationmethods` are disjunctive `OR` lists, and unknown `_validation-persist` TXT parameters are ignored).\n- Describes how deployments requiring both checks achieve conjunction through CA order policy (RFC 8555 Sections 7.1.3 and 7.4): including both the domain authorization and a non-waivable attestation authorization on each order in scope, verifying at finalization that all authorizations are `valid` and the CSR public key matches the attested key across Just-in-Time validation and authorization reuse, requiring fresh attestation when a renewal order rotates CSR keys, and scoping `_validation-persist` records to CAs and accounts enforcing that policy.\n",
       "createdAt": "2026-11-02T23:48:57Z",
-      "updatedAt": "2026-11-10T11:55:09Z",
+      "updatedAt": "2026-11-13T07:37:25Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "fd52243ff7f69b38411336c754ba436b9cb64cfd",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "feat-device-attest-conjunction",
-      "headRefOid": "355efee035fb4d4ca28c65a7db1a888847e7763f",
+      "headRefOid": "8dae4605ded384967ae2b7176acbcc5960225687",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -7072,6 +7320,19 @@
               "updatedAt": "2026-11-02T23:52:20Z"
             }
           ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABXu6-0g",
+          "commit": {
+            "abbreviatedOid": "8dae460"
+          },
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "I think this is fine.",
+          "createdAt": "2026-11-13T07:37:25Z",
+          "updatedAt": "2026-11-13T07:37:25Z",
+          "comments": []
         }
       ]
     },
@@ -7087,13 +7348,13 @@
       "labels": [],
       "body": "Follows up on Jacob's [list feedback](https://mailarchive.ietf.org/arch/msg/acme/DyyVO-iQeanVcYlqs-ANVYRbr-8/) on normalization.\n\n- **Domain hash input:** canonicalization is now just ASCII lowercasing and dropping a trailing dot. The input is a name already validated as ASCII, with internationalized labels already in A-label form, so the hash step does no Unicode or IDNA processing.\n- **Issuer name matching:** the CA compares the `issuer-domain-name` in the TXT record to its advertised `issuerDomainNames` exactly, with no case folding.\n",
       "createdAt": "2026-11-04T02:48:25Z",
-      "updatedAt": "2026-11-10T01:27:56Z",
+      "updatedAt": "2026-11-13T07:42:35Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "fd52243ff7f69b38411336c754ba436b9cb64cfd",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "fix-ascii-normalization-and-issuer-matching",
-      "headRefOid": "acf8eee675d8f50f3b6b08bea1844ad552f5c514",
+      "headRefOid": "2fa8f3dee84a71014ccb6fd5da055d01be1b1296",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -7105,6 +7366,13 @@
           "body": "Thanks @jsha!",
           "createdAt": "2026-11-04T02:53:41Z",
           "updatedAt": "2026-11-04T02:53:41Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "the ASCII thing is fine. I think the case enforcement is good too. I am not convinced its a true security issue (domain names are case insensitive so I think if two CAs claim different issuer domain names with different cases its a bigger ecosystem issue, like SecTigo.com and sectigo.com just always need to refer to the same CA). That said, since we are writing the standard and this could be an implementation issue its probably better to just be conservative and enforce that everyone is matching case.",
+          "createdAt": "2026-11-13T07:42:24Z",
+          "updatedAt": "2026-11-13T07:42:24Z"
         }
       ],
       "reviews": [
@@ -7119,6 +7387,99 @@
           "body": "<!-- ccr-overview-v2 -->\n\n### \ud83d\udfe2 Approval recommended\n\nNo active review issues were identified for the domain-name canonicalization and issuer-name matching clarifications.\n\n**No open issues** \ud83c\udf89\n\n<details>\n<summary><strong>What changed in this PR</strong></summary>\n\nThis PR clarifies domain-name handling in the ACME persistent DNS validation draft, separating hash canonicalization from name validation and making issuer-name comparison rules explicit.\n\n**Changes:**\n- Limits hash canonicalization to ASCII lowercasing and optional trailing-dot removal after name selection and validation.\n- Specifies ASCII case-insensitive matching of parsed issuer names while preserving syntax restrictions on Unicode and trailing dots.\n- Aligns verification guidance, security text, and examples with these rules.\n\n| File | Description |\r\n| ---- | ----------- |\r\n| `draft-ietf-acme-dns-persist.md` | Clarifies hash-input canonicalization and issuer-name matching requirements. |\n</details>\n\n<sub>Review effort: Balanced</sub>",
           "createdAt": "2026-11-04T02:50:33Z",
           "updatedAt": "2026-11-04T02:50:33Z",
+          "comments": []
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABXk6gBA",
+          "commit": {
+            "abbreviatedOid": "acf8eee"
+          },
+          "author": "slghtr-says",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-11-12T15:30:29Z",
+          "updatedAt": "2026-11-12T15:30:29Z",
+          "comments": [
+            {
+              "originalPosition": 1,
+              "body": "```suggestion\n2.  **Filter Records**: Iterate through the returned records to find those where the `issuer-domain-name` value matches, using the comparison specified in {{validation-record-format}}, one of the Issuer Domain Names the CA is configured to use for this validation. The CA MUST ignore all other records.\n```",
+              "createdAt": "2026-11-12T15:30:29Z",
+              "updatedAt": "2026-11-12T15:30:29Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABXlTSQw",
+          "commit": {
+            "abbreviatedOid": "acf8eee"
+          },
+          "author": "slghtr-says",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-11-12T15:54:13Z",
+          "updatedAt": "2026-11-12T15:54:13Z",
+          "comments": [
+            {
+              "originalPosition": 1,
+              "body": "```suggestion\nThe resulting hashed URI, `https://ca.example/account-hash/sha-256/NpDnSwUthQK8zCgFdefYxAdAVPnygMLbs9US6oO-5ug`, does not depend on the domain and MAY be reused across domains.\n\nFor a record provisioned at `_validation-persist.XN--FA-HIA.example.`, {{normalization-algorithm}} produces `domain_name` `xn--fa-hia.example`. Keeping the `key` and `account_URL` of the \"example.com\" example, the hash inputs are:\n\n- `length_of_domain`: `0x12` (the domain `xn--fa-hia.example` is 18 octets)\n- `domain_name`: `xn--fa-hia.example`\n\nComputing `SHA-256(length_of_domain || domain_name || key || account_URL)` and applying unpadded base64url encoding to the 32-octet digest yields:\n\n~~~\ndc3zyKBvsc9_vyWQoZSyM4fgcN0d7jnr61730r7ekAw\n~~~\n```",
+              "createdAt": "2026-11-12T15:54:13Z",
+              "updatedAt": "2026-11-12T15:54:13Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABXu9jpw",
+          "commit": {
+            "abbreviatedOid": "2fa8f3d"
+          },
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "LGTM",
+          "createdAt": "2026-11-13T07:42:35Z",
+          "updatedAt": "2026-11-13T07:42:35Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 90,
+      "id": "PR_kwDOO4VY2c8AAAABOsTyiA",
+      "title": "docs: prepare -03 with protocol clarifications, Privacy Considerations, and Implementation Status",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/90",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "> **Base branch note:** Stacked on `pre03-base` (a merge of `#84`\u2013`#87` and `#89`) so this PR's diff shows only the follow-up changes; will rebase and retarget to `main` once those five merge.\n\nPrepares the `-03` revision following `#84`\u2013`#87` and `#89`:\n\n- **Protocol clarifications:** CAs follow CNAME aliases at `_validation-persist.<R>` while keeping `domain_name` bound to the pre-alias `R` (or `*`); a record is valid at or before its `persistUntil` timestamp `T` and expired after `T`; when multiple records qualify, the CA relies on one and never combines parameters across records; a Just-in-Time validated authorization includes the `valid` `dns-persist-01` challenge object; prior-key retention starts when the CA began accepting key-bound `dns-persist-01` records; the public-suffix `SHOULD NOT` in Section 6.2 item 4 also covers an `ancestorDomain` above a nested public suffix; Section 12.3.1 leaves `unauthorized` vs `malformed` multi-record ordering to CA policy; and Section 12.4 adds non-keyword client advice for bounded bottom-up `ancestorDomain` discovery.\n- **New sections:** adds Implementation Status (RFC 7942, marked for removal before publication, noting that earlier-draft deployments such as `-01` directories without `accountHashPrefix` do not interoperate with this revision) and Privacy Considerations (RFC 6973).\n- **Editorial, examples, and IANA:** adds explanatory figures and summary tables, makes the two-CA and IPv6 examples reproducible against the test vectors, presents IANA registrations as tables with the exact directory registry name, upgrades the DNSSEC reference to RFC 9364 (BCP 237), anchors every heading, applies an RFC 7322 prose pass, and expands the `Since -02` change log.\n\n### Normative additions for coauthor review (@birgelee @slghtr-says)\n\n1. **Overlong `_validation-persist.<A>` on `{}` (Section 6.2, item 2):** DNS length limits (63-octet labels, 253-octet Validation Domain Name) apply to every `R`, including `R = A`. If `_validation-persist.<A>` would exceed them, the CA MUST reject `{}` with an HTTP `malformed` error without changing the challenge state, performing a Just-in-Time lookup, or querying that name or a shortened form; the client can select an ancestor instead.\n2. **`accountHashPrefix` check before constructing `accounturi` (Section 4.1, item 3):** Before constructing a hashed URI, a client and any party computing or publishing a record on its behalf MUST verify that `accountHashPrefix` is present in the directory, contains only octets allowed by the `value` production of RFC 8659 Section 4.2, and contains only `%` plus RFC 3986 `reserved` and `unreserved` characters; otherwise `dns-persist-01` is unavailable at that CA and the client MUST NOT construct a record or substitute another value (such as the account URL). This prevents `;x=` parameter injection and `\\` / `\"` DNS master-file escapes.\n3. **Directory `issuerDomainNames` stability and migration (Section 4.5):** While a name remains advertised in the directory `issuerDomainNames` array, the CA MUST include it in every issued `dns-persist-01` challenge's `issuerDomainNames`, and if removed, SHOULD provide a migration period during which challenge objects continue to include it.\n4. **Account URL non-reassignment (Section 4.5):** A CA MUST NOT assign an account URL that previously identified a different account (including a deactivated or revoked one).\n5. **Unsigned `persistUntil` integer syntax (Section 4.1, item 5):** If `persistUntil` is present, its value MUST consist of one or more ASCII digits (`0` through `9`) with no sign or other characters and MUST NOT exceed `9223372036854775807` (`2^63 - 1`), or the CA MUST treat the record as malformed and reject it.\n",
+      "createdAt": "2026-11-12T16:14:26Z",
+      "updatedAt": "2026-11-13T17:26:44Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "pre03-base",
+      "baseRefOid": "201f2054bb44a361e9cb0c03c60bc82ce09fb472",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "pre03-followup",
+      "headRefOid": "5fa94ab605605eec15d93ff35b91c40999fbbe55",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABXlnlqA",
+          "commit": {
+            "abbreviatedOid": "d0ee01b"
+          },
+          "author": "copilot-pull-request-reviewer",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "Copilot wasn't able to review any files in this pull request. Copilot's per-file or total diff limits were exceeded. Try reducing the changed content or splitting the changes into smaller pull requests, then request a review from Copilot again.\n\n\n\n",
+          "createdAt": "2026-11-12T16:14:36Z",
+          "updatedAt": "2026-11-13T13:58:36Z",
           "comments": []
         }
       ]
