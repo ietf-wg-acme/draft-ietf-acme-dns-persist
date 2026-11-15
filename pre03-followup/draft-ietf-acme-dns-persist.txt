@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 17 May 2027                               Crosslayer Labs, Inc.
+Expires: 19 May 2027                               Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                        13 November 2026
+                                                        15 November 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -58,7 +58,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 17 May 2027.
+   This Internet-Draft will expire on 19 May 2027.
 
 Copyright Notice
 
@@ -1382,9 +1382,9 @@ Table of Contents
    authorization with identifier.type set to ip, and MUST query
    _validation-persist only when validating an authorization with
    identifier.type set to dns.  When validating an ip identifier with
-   dns-persist-01, the CA MUST NOT perform a PTR lookup or validate the
-   target domain name of a PTR record in place of _ip-validation-
-   persist.<R>.
+   dns-persist-01, the CA MUST NOT use a PTR lookup, or the PTRDNAME of
+   a PTR record ([RFC1035], Section 3.3.12), as a substitute for
+   querying _ip-validation-persist.<R>.
 
 7.2.  Record Format, Digest Input, and Scope for IP Validation
 
@@ -1863,12 +1863,13 @@ Table of Contents
    If an IP address is reassigned while a persistent _ip-validation-
    persist.<R> record (or CNAME delegation) remains in place, the prior
    holder's account could continue to validate the address until the
-   record is removed and any existing authorizations expire.  Operators
-   SHOULD remove _ip-validation-persist.<R> records upon address
-   reassignment.  Operators SHOULD also use persistUntil (Section 9.11)
-   to bound persistent records to the expected address allocation
-   period.  Address holders and CAs SHOULD account for reverse-zone
-   delegation boundaries in their threat models.
+   record is removed and any existing authorizations expire.  The
+   reverse-zone operator SHOULD remove _ip-validation-persist.<R>
+   records upon address reassignment.  The reverse-zone operator SHOULD
+   also use persistUntil (Section 9.11) to bound persistent records to
+   the expected address allocation period.  Address holders and CAs
+   SHOULD account for reverse-zone delegation boundaries in their threat
+   models.
 
 9.5.  Cross-CA Validation Reuse
 
