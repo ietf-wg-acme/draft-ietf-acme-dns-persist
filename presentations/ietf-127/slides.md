@@ -140,9 +140,7 @@ style: |
 
 # ACME Persistent DNS Challenge
 
-## draft-ietf-acme-dns-persist
-
-*A long-lived DNS TXT record, carrying a hashed `accounturi` and an optional `persistUntil` expiry, authorizes one CA account to issue for a domain or IP address with no DNS change at each issuance.*
+## draft-ietf-acme-dns-persist-03
 
 **Shiloh Heurich** (Fastly)
 **Henry Birge-Lee** (Crosslayer Labs)
@@ -159,20 +157,20 @@ IETF 127 ACME WG — San Francisco
 
 ## Published in `-02` (Sept 2026)
 
-- **Mandatory hashed `accounturi`**: `H(len || domain_name || key || account_URL)` under `accountHashPrefix` ([#64](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/64))
+- **Mandatory hashed `accounturi`**: `H(len || domain_name || key || account_URL)` under `accountHashPrefix`
 - **Domain-omitted `*` opt-out**: client MAY / CA MUST
-- **Rollover durability**: CAs retain witnessed account-key thumbprints for account lifetime; account deactivation overrides retention ([#69](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/69))
+- **Rollover durability**: CAs retain witnessed account-key thumbprints for account lifetime; account deactivation overrides retention
 - **`persistUntil` clamp**: clamps authorization `expires`
-- **Directory `issuerDomainNames`**: pre-order discovery ([#60](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/60))
+- **Directory `issuerDomainNames`**: pre-order discovery
 
 </div>
 <div>
 
-## Landed in `-03`
+## Published in `-03` (Nov 2026)
 
-- **Hash & CNAMEs ([#89](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/89)):** ASCII A-labels; exact `issuer-domain-name`; follow CNAMEs, hash pre-alias `R` (or `*`)
-- **`accountHashPrefix` ([#81](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/81)):** client/publisher **MUST** verify RFC 8659 `value` + URI chars; no fallback
-- **Parameters ([#80](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/80)):** case-insensitive recognized tags (no dupes); `persistUntil` **MUST** be ASCII digits `≤ 2^63−1` (valid `≤ T`)
+- **Hash & CNAMEs:** ASCII A-labels; exact `issuer-domain-name`; follow CNAMEs, hash pre-alias `R` (or `*`)
+- **`accountHashPrefix`:** client/publisher **MUST** verify RFC 8659 `value` + URI chars; no fallback
+- **Parameters:** case-insensitive recognized tags (no dupes); `persistUntil` **MUST** be ASCII digits `≤ 2^63−1` (valid `≤ T`)
 - **Account & issuer rules:** no account-URL reassignment; `issuerDomainNames` stable + migration **SHOULD**
 
 </div>
@@ -182,12 +180,12 @@ IETF 127 ACME WG — San Francisco
 
 <!-- _class: discuss -->
 
-# Subdomain Validation: `ancestorDomain` ([#33](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/33))
+# Subdomain Validation: `ancestorDomain`
 
 <div class="columns">
 <div>
 
-### Request-only selector ([PR #84](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/84))
+### Request-only selector
 
 ```text
 Authz A: sub.dept.example.com
@@ -223,9 +221,9 @@ POST /chall/abc  →  { "ancestorDomain": "example.com" }
 
 <!-- _class: discuss -->
 
-# IP Validation: `_ip-validation-persist` ([#32](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/32))
+# IP Validation: `_ip-validation-persist`
 
-Additive profile for ACME `ip` identifiers (RFC 8738) in the reverse DNS tree ([PR #85](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/85)):
+Additive profile for ACME `ip` identifiers (RFC 8738) in the reverse DNS tree:
 
 ```text
 _ip-validation-persist.1.2.0.192.in-addr.arpa. IN TXT "authority.example; accounturi=https://ca.example/account-hash/sha-256/CnwSwHOHJbE-..."
@@ -246,7 +244,7 @@ _ip-validation-persist.1.2.0.192.in-addr.arpa. IN TXT "authority.example; accoun
 
 <!-- _class: discuss -->
 
-# `persistExpired` Error Type ([#39](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/39) / [PR #86](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/86))
+# `persistExpired` Error Type
 
 Registers `urn:ietf:params:acme:error:persistExpired` (RFC 8555 §9.7.4):
 
@@ -268,12 +266,12 @@ Registers `urn:ietf:params:acme:error:persistExpired` (RFC 8555 §9.7.4):
 
 <!-- _class: discuss -->
 
-# Certificate-Key Attestation Conjunction ([#76](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/issues/76))
+# Certificate-Key Attestation Conjunction
 
 Why DNS parameters and CAA alone cannot express `dns-persist-01` **AND** `device-attest-01`:
 - Authorization `challenges` (RFC 8555 §7.1.4) and CAA `validationmethods` (RFC 8657 §4) are **disjunctive (`OR`)**; unknown TXT parameters are `MUST ignore`
 
-## Informative order-policy guidance ([PR #87](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/87))
+## Informative order-policy guidance
 
 1. **Order `authorizations` (RFC 8555 §7.1.3):** CA policy includes both domain (incl. wildcard/subordinate) and non-waivable attestation authorizations
 2. **Finalization CSR key check (RFC 8555 §7.4):** all Order authorizations `valid` + CSR public key matches attested key across JIT or reuse
@@ -300,7 +298,7 @@ From [Seo Suchan's Pebble `-02` implementation report](https://mailarchive.ietf.
 
 - **RFC 8657 §5.4:** `accounturi` URIs include an authority component
 - **Zero directory savings:** pre-provisioning already uses directory `issuerDomainNames`
-- **No BCP 35 hold:** avoids IANA scheme; matches [servercert PR #9](https://github.com/slghtr-says/servercert/pull/9)
+- **No BCP 35 hold:** avoids IANA scheme; matches CA/B Forum Method 23 proposal
 - **Rebrands (§4.5):** migration covers prefix & account URLs (**MUST**) and `issuerDomainNames` (**SHOULD**)
 
 </div>
@@ -332,27 +330,27 @@ H(len || domain_name || key || account_URL)
 <div class="columns">
 <div>
 
-## Issue & PR Status
+## Draft Status (`-03`)
 
-- **Clarifications & MUSTs:**
-  - [#74](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/74), [#75](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/75), [#77](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/77)–[#83](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/83), [#89](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/89), [#90](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/90)
-- **New in `-03`:**
-  - [PR #84](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/84): `#33` `ancestorDomain` + RFC 9444
-  - [PR #85](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/85): `#32` `_ip-validation-persist`
-  - [PR #86](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/86): `#39` `persistExpired`
-  - [PR #87](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/87): `#76` attestation conjunction
-- **All tracked issues addressed**
+- **All WG issues & PRs resolved**
+- **Feature additions in `-03`:**
+  - `ancestorDomain` + RFC 9444
+  - `_ip-validation-persist` for IPv4/IPv6
+  - `persistExpired` error type
+  - Certificate-key attestation guidance
+- **Hardening & new sections:**
+  - Normative guardrails, Privacy (RFC 6973) & Implementation Status (RFC 7942)
 
 </div>
 <div>
 
 ## Implementations & CABF
 
-- **Servers:** Pebble ([#536](https://github.com/letsencrypt/pebble/pull/536) merged, `-02` PR [#566](https://github.com/letsencrypt/pebble/pull/566)); Boulder [`-01`](https://github.com/letsencrypt/boulder/pull/8725) (`-02` [#9127](https://github.com/letsencrypt/boulder/issues/9127))
-- **Clients:** lego merged ([#2871](https://github.com/go-acme/lego/pull/2871)); cert-manager PR ([#9487](https://github.com/cert-manager/cert-manager/pull/9487))
+- **Servers:** Pebble (`-01` merged, `-02` in review); Boulder (`-01` merged, `-02` tracked)
+- **Clients:** lego (`-01` merged); cert-manager (design in review)
 - **CAs:** Let's Encrypt, Fastly / Certainly, Amazon Trust Services, Google Trust Services
 - **No old-draft interop:** `-03` clients require `accountHashPrefix` (skip `-01`)
-- **CA/B Forum:** Method 23 ([servercert PR #9](https://github.com/slghtr-says/servercert/pull/9): cites `-02`, `-03` next)
+- **CA/B Forum:** Method 23 proposal (cites `-02`, `-03` next)
 
 </div>
 </div>
@@ -370,9 +368,9 @@ H(len || domain_name || key || account_URL)
 # Questions & Discussion
 
 - **Feature additions in `-03`:**
-  - `#33` `ancestorDomain` ([PR #84](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/84)) · `#32` `_ip-validation-persist` ([PR #85](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/85)) · `#39` `persistExpired` ([PR #86](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/86)) · `#76` attestation guidance ([PR #87](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/87))
+  - `ancestorDomain` subdomain validation · `_ip-validation-persist` IP validation · `persistExpired` error · certificate-key attestation guidance
 - **Specific design check-ins:**
-  - Exact `issuer-domain-name` match ([PR #89](https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/89)) vs. RFC 8659 case-insensitivity
+  - Exact `issuer-domain-name` match vs. RFC 8659 case-insensitivity
   - Request-only `ancestorDomain` vs. Challenge Object discovery hint
   - `https://` `accountHashPrefix` + fixed SHA-256 inner `key` thumbprint
   - Keeping the `dns-persist-01` label across `-01` → `-03` (fail-closed via `accountHashPrefix`)
