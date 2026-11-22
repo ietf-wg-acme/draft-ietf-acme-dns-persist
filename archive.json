@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-11-17T05:43:09.074247+00:00",
+  "timestamp": "2026-11-22T04:02:44.125401+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -7502,6 +7502,58 @@
           "comments": []
         }
       ]
+    },
+    {
+      "number": 91,
+      "id": "PR_kwDOO4VY2c8AAAABQyVh3w",
+      "title": "feat: make prior account-key retention and acceptance optional (MAY)",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/91",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Following IETF 127 ACME WG feedback (from Let's Encrypt and DigiCert) and co-author discussion, relax historical account-key retention and prior-key acceptance from a mandatory lifetime `MUST` to an optional `MAY` governed by CA policy.\n\n### What changed\n\n- **Verification & retention (\u00a74.1, \u00a74.2):** Current-key acceptance and live `valid` account-status checks remain mandatory (`MUST`). Retaining prior account-key thumbprints (e.g., for audit) and accepting them for `dns-persist-01` validation are now independently optional (`MAY`), with no required minimum count or retention window.\n- **Documentation & caching (\u00a74.2):** CAs `SHOULD` document their prior-key retention and acceptance policy so subscribers can plan rollover. Cached matches `MUST NOT` be accepted after a key ceases to be eligible under CA policy or bypass live account-status checks.\n- **Zero-downtime rollover (\u00a74.1, \u00a74.5, \u00a79.2.1):** Allows a client to pre-publish a record computed with a newly generated replacement key ahead of a planned `keyChange` (authenticating the \u00a74.5 pre-publication POST-as-GET check with the account's current key), or migrate via a new ACME account, when a CA retains no prior keys. Explicitly preserves RFC 8555 \u00a77.3.5 (pending orders and authorization transactions are not invalidated on `keyChange`).\n- **Resource controls & security/privacy (\u00a79.2, \u00a79.12, \u00a710, \u00a712.3, \u00a712.4):** Updates compromise, revocation, privacy (noting audit-retained thumbprints still allow CA-side correlation), and DoS/resource-control guidance (recommending bounds on prior-key storage and verification work rather than mandating `keyChange` rate limits).\n\nLeaves `accounturi` / `accountHashPrefix` and `persistExpired` unchanged so this PR can be reviewed independently.\n\n### Verification\n\n- `make lint`, `make` (`kramdown-rfc`, `xml2rfc` TXT/HTML), and `make check` (`idnits`) pass cleanly.\n",
+      "createdAt": "2026-11-20T22:59:13Z",
+      "updatedAt": "2026-11-20T22:59:13Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "272951c37d5ccf77206b779a132b5f291f58e01c",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "key-retention-may",
+      "headRefOid": "4d2c10ab2a87f8511a930c8f9160e3ba062a0776",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 92,
+      "id": "PR_kwDOO4VY2c8AAAABQyVj-w",
+      "title": "feat: remove persistExpired error type in favor of unauthorized",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/92",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Following IETF 127 ACME WG feedback and co-author discussion, remove the `persistExpired` ACME error type (`urn:ietf:params:acme:error:persistExpired`) and its IANA Error Types registry entry.\n\n### What changed\n\n- **IANA & error handling (\u00a711, \u00a712.3.1, Table 6):** Removes the `ACME Error Types Registry` subsection registering `persistExpired`. An expired `persistUntil` timestamp is reported with the existing `unauthorized` error type.\n- **Privacy-gated optional `detail` (\u00a712.3.1, Table 6):** A CA `MAY` include a human-readable `detail` message (RFC 8555 \u00a76.7) indicating that `persistUntil` has expired when no record validates and at least one retrieved record matches syntax, hash algorithm, `issuerDomainNames`, live requesting account, and any `policy=wildcard` requirement, failing solely due to `persistUntil`. A CA `MUST NOT` indicate expiration in `detail` otherwise, preserving non-disclosure of other accounts' or CAs' records.\n- **Cross-references (\u00a76.2, \u00a710, \u00a712.4):** Removes remaining operative references to `persistExpired` and updates client guidelines accordingly (historical `Since -02` Change Log text is kept with the deleted IANA anchor reference removed).\n\nLeaves `accounturi` / `accountHashPrefix` and key-retention rules unchanged so this PR can be reviewed independently.\n\n### Verification\n\n- `make lint`, `make` (`kramdown-rfc`, `xml2rfc` TXT/HTML), and `make check` (`idnits`) pass cleanly.\n",
+      "createdAt": "2026-11-20T22:59:16Z",
+      "updatedAt": "2026-11-20T22:59:16Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "272951c37d5ccf77206b779a132b5f291f58e01c",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "drop-persist-expired",
+      "headRefOid": "f343de434f6cc6bc8f2d982352220a11face04c3",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
     }
   ]
 }
