@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 27 May 2027                               Crosslayer Labs, Inc.
+Expires: 28 May 2027                               Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                        23 November 2026
+                                                        24 November 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -58,7 +58,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 27 May 2027.
+   This Internet-Draft will expire on 28 May 2027.
 
 Copyright Notice
 
@@ -1569,9 +1569,12 @@ Table of Contents
    operators need to establish which revision their CA and client
    support when provisioning or migrating records.  A legacy accounturi
    parameter does not satisfy the mandatory accountdigest requirement.
-   Publishing both parameters does not make an older implementation
-   enforce the new account-binding rules, because unrecognized
-   parameters are ignored.
+   Publishing both parameters can support migration between formats, but
+   each implementation enforces only the account-binding rules for the
+   parameter it recognizes.  A record that also carries a raw account
+   URL in accounturi discloses that URL, and an implementation that
+   recognizes the raw form can accept the record without the domain and
+   key binding that accountdigest provides.
 
    RFC Editor: please remove this section, together with the reference
    to [RFC7942], before publication.
