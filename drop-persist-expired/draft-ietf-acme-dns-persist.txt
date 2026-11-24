@@ -5,10 +5,10 @@
 Automated Certificate Management Environment                  S. Heurich
 Internet-Draft                                                    Fastly
 Intended status: Standards Track                            H. Birge-Lee
-Expires: 24 May 2027                               Crosslayer Labs, Inc.
+Expires: 28 May 2027                               Crosslayer Labs, Inc.
                                                             M. Slaughter
                                                    Amazon Trust Services
-                                                        20 November 2026
+                                                        24 November 2026
 
 
    Automated Certificate Management Environment (ACME) Challenge for
@@ -58,7 +58,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 24 May 2027.
+   This Internet-Draft will expire on 28 May 2027.
 
 Copyright Notice
 
@@ -1239,7 +1239,7 @@ Table of Contents
        validation only if it also includes policy=wildcard.  If the only
        records that would otherwise satisfy validation lack
        policy=wildcard, the CA MUST fail the validation attempt with an
-       unauthorized error; other failure reasons are reported as
+       incorrectResponse error; other failure reasons are reported as
        described in Section 12.3.1.  Both the client (or delegated DNS
        publisher) and the CA MUST compute the expected accounturi digest
        (Section 4.1) using the normalized ancestorDomain (R) as
@@ -2141,6 +2141,12 @@ Table of Contents
       under Section 4.2; exposure of those associations can weaken the
       correlation mitigation described in Section 9.2.3.
 
+   Information returned in errors:  Optional human-readable detail
+      messages indicating persistUntil expiration are restricted in
+      Section 12.3.1 to otherwise qualifying records for the live
+      requesting account and matching issuer so they do not disclose
+      another account's or CA's record state.
+
 11.  IANA Considerations
 
 11.1.  ACME Validation Methods Registry
@@ -2282,8 +2288,8 @@ Table of Contents
    implementing the "dns-persist-01" validation method SHOULD return the
    following ACME error types so that clients can tell validation
    failures apart.  A CA that returns other error types can prevent
-   clients from distinguishing syntax errors from authorization
-   failures.
+   clients from distinguishing syntax errors, challenge-response
+   mismatches, and policy rejections.
 
    *  CAs SHOULD return a malformed error (as defined in [RFC8555]) when
       the challenge response or TXT record has invalid syntax.  Examples
@@ -2316,12 +2322,18 @@ Table of Contents
       For syntax errors detected in retrieved DNS TXT records (rather
       than the client's HTTP request payload) where this specification
       does not mandate a specific error type, a CA MAY return
-      unauthorized instead of malformed.  This choice lets the CA
-      maintain a uniform authorization-failure disclosure policy.
+      incorrectResponse instead of malformed.  This choice lets the CA
+      maintain a uniform challenge-failure disclosure policy.
 
-   *  CAs SHOULD return an unauthorized error (as defined in [RFC8555])
-      when validation fails due to other authorization or policy issues,
+   *  CAs SHOULD return an incorrectResponse error (as defined in
+      [RFC8555]) when DNS validation completes and establishes that
+      retrieved TXT records do not satisfy the challenge requirements,
       including:
+
+      -  a completed lookup establishes that no qualifying TXT record is
+         present at the Validation Domain Name (DNS query, timeout, and
+         DNSSEC validation failures SHOULD instead use the dns error
+         type defined in [RFC8555], Section 6.7);
 
       -  the accounturi hashed URI in the DNS TXT record does not, when
          recomputed by the CA over the requesting account's retained
@@ -2332,93 +2344,100 @@ Table of Contents
 
       -  the issuer-domain-name in the DNS TXT record does not match any
          of the values provided in the issuerDomainNames array of the
-         challenge object;
+         challenge object; and
 
       -  the record lacks policy=wildcard when required for a wildcard
          authorization, an [RFC9444] subdomainAuthAllowed authorization,
-         or a challenge response specifying ancestorDomain; and
-
-      -  the request is declined under item 4 or 7 of Section 6.2, or is
-         otherwise disallowed by the CA's policy.
+         or a challenge response specifying ancestorDomain.
 
       When no record satisfies validation, a CA MAY include a human-
       readable detail message ([RFC8555], Section 6.7) on the
-      unauthorized error indicating that persistUntil has expired if at
-      least one retrieved record has valid syntax, uses an accepted hash
-      algorithm, matches one of the challenge's issuerDomainNames,
-      matches the live requesting account (Section 4.2), satisfies any
-      applicable policy=wildcard requirement, and fails solely because
-      its persistUntil timestamp has passed.  A CA MUST NOT include a
-      detail message indicating persistUntil expiration unless such a
-      record is present.  This rule keeps error details from disclosing
-      the state of another account's or CA's records.
+      incorrectResponse error indicating that persistUntil has expired
+      if at least one retrieved record has valid syntax, uses an
+      accepted hash algorithm, matches one of the challenge's
+      issuerDomainNames, matches the live requesting account
+      (Section 4.2), satisfies any applicable policy=wildcard
+      requirement, and fails solely because its persistUntil timestamp
+      has passed.  A CA MUST NOT include a detail message indicating
+      persistUntil expiration unless such a record is present, and any
+      such detail MUST refer only to records meeting those conditions.
+      This rule keeps expiration details from disclosing the state of
+      another account's or CA's records.
+
+   *  CAs SHOULD return an unauthorized error (as defined in [RFC8555])
+      when a request is declined under item 4 or 7 of Section 6.2, or is
+      otherwise disallowed by the CA's policy.
 
    These error types apply to validation attempts on individual
    challenges.  When multiple records in the same resource record set
    (RRset) fail validation for different reasons and no record satisfies
-   validation, choosing between unauthorized and malformed according to
-   CA policy (where this document does not mandate a specific error
-   type) avoids requiring a fixed evaluation order between the two.
-   Records that cannot be parsed to a matching issuer-domain-name are
-   ignored as specified in Section 4.3.  In the case of Just-in-Time
-   validation (see Section 4.4), a CA that finds a pre-existing DNS TXT
-   record that does not meet validation requirements does not return an
-   error.  Instead, the CA proceeds with the standard authorization flow
-   by issuing a new pending challenge.
+   validation, choosing between incorrectResponse and malformed
+   according to CA policy (where this document does not mandate a
+   specific error type) avoids requiring a fixed evaluation order
+   between the two.  Records that cannot be parsed to a matching issuer-
+   domain-name are ignored as specified in Section 4.3.  In the case of
+   Just-in-Time validation (see Section 4.4), a CA that finds a pre-
+   existing DNS TXT record that does not meet validation requirements
+   does not return an error.  Instead, the CA proceeds with the standard
+   authorization flow by issuing a new pending challenge.
 
    Table 6 summarizes the challenge-response, DNS validation, and Just-
    in-Time outcomes for common failure conditions:
 
-   +==========================+==========+==============+==============+
-   | Failure Condition        |Stage     | Challenge    | Just-in-Time |
-   |                          |          | Outcome      | Outcome      |
-   +==========================+==========+==============+==============+
-   | Invalid ancestorDomain   |Challenge | malformed    | N/A          |
-   | syntax, length, non-     |POST      | (challenge   |              |
-   | ancestor, or R == A;     |(HTTP)    | state        |              |
-   | ancestorDomain sent for  |          | unchanged)   |              |
-   | ip authorization;        |          |              |              |
-   | modifying                |          |              |              |
-   | ancestorDomain after     |          |              |              |
-   | acceptance; {} when      |          |              |              |
-   | _validation-persist.<A>  |          |              |              |
-   | is too long              |          |              |              |
-   +--------------------------+----------+--------------+--------------+
-   | Request declined under   |Challenge | unauthorized | No valid     |
-   | the public-suffix        |POST      | (challenge   | transition;  |
-   | guidance, or CA policy   |(HTTP)    | state        | pending      |
-   | disallows ancestor       |          | unchanged)   | challenge    |
-   |                          |          |              | issued       |
-   +--------------------------+----------+--------------+--------------+
-   | Discontinued <hash-alg>  |DNS       | malformed    | Fall back to |
-   | token in TXT record      |Validation| (invalid)    | pending      |
-   | (Section 4.1, item 3)    |          |              | challenge    |
-   +--------------------------+----------+--------------+--------------+
-   | Other TXT syntax         |DNS       | malformed or | Fall back to |
-   | violation (duplicate     |Validation| unauthorized | pending      |
-   | recognized parameter,    |          | (invalid)    | challenge    |
-   | missing accounturi,      |          |              |              |
-   | invalid persistUntil     |          |              |              |
-   | integer, malformed       |          |              |              |
-   | hashed URI)              |          |              |              |
-   +--------------------------+----------+--------------+--------------+
-   | Record matches syntax,   |DNS       | unauthorized | Fall back to |
-   | hash algorithm, issuer,  |Validation| (invalid),   | pending      |
-   | live requesting          |          | optionally   | challenge    |
-   | account, and scope but   |          | with a       |              |
-   | fails solely due to      |          | detail       |              |
-   | expired persistUntil     |          | message      |              |
-   | (no other record         |          | indicating   |              |
-   | validates)               |          | expiration   |              |
-   +--------------------------+----------+--------------+--------------+
-   | issuer-domain-name       |DNS       | unauthorized | Fall back to |
-   | mismatch, accounturi     |Validation| (invalid)    | pending      |
-   | digest mismatch, or      |          |              | challenge    |
-   | missing required         |          |              |              |
-   | policy=wildcard          |          |              |              |
-   +--------------------------+----------+--------------+--------------+
+   +========================+==========+=================+============+
+   |Failure Condition       |Stage     |Challenge Outcome|Just-in-Time|
+   |                        |          |                 |Outcome     |
+   +========================+==========+=================+============+
+   |Invalid ancestorDomain  |Challenge |malformed        |N/A         |
+   |syntax, length, non-    |POST      |(challenge state |            |
+   |ancestor, or R == A;    |(HTTP)    |unchanged)       |            |
+   |ancestorDomain sent for |          |                 |            |
+   |ip authorization;       |          |                 |            |
+   |modifying ancestorDomain|          |                 |            |
+   |after acceptance; {}    |          |                 |            |
+   |when _validation-       |          |                 |            |
+   |persist.<A> is too long |          |                 |            |
+   +------------------------+----------+-----------------+------------+
+   |Request declined under  |Challenge |unauthorized     |No valid    |
+   |the public-suffix       |POST      |(challenge state |transition; |
+   |guidance, or CA policy  |(HTTP)    |unchanged)       |pending     |
+   |disallows ancestor      |          |                 |challenge   |
+   |                        |          |                 |issued      |
+   +------------------------+----------+-----------------+------------+
+   |Discontinued <hash-alg> |DNS       |malformed        |Fall back to|
+   |token in TXT record     |Validation|(invalid)        |pending     |
+   |(Section 4.1, item 3)   |          |                 |challenge   |
+   +------------------------+----------+-----------------+------------+
+   |Other TXT syntax        |DNS       |malformed or     |Fall back to|
+   |violation (duplicate    |Validation|incorrectResponse|pending     |
+   |recognized parameter,   |          |(invalid)        |challenge   |
+   |missing accounturi,     |          |                 |            |
+   |invalid persistUntil    |          |                 |            |
+   |integer, malformed      |          |                 |            |
+   |hashed URI)             |          |                 |            |
+   +------------------------+----------+-----------------+------------+
+   |Record matches syntax,  |DNS       |incorrectResponse|Fall back to|
+   |hash algorithm, issuer, |Validation|(invalid),       |pending     |
+   |live requesting account,|          |optionally with a|challenge   |
+   |and scope but fails     |          |detail message   |            |
+   |solely due to expired   |          |indicating       |            |
+   |persistUntil (no other  |          |expiration       |            |
+   |record validates)       |          |                 |            |
+   +------------------------+----------+-----------------+------------+
+   |Completed lookup finds  |DNS       |incorrectResponse|Fall back to|
+   |no qualifying TXT       |Validation|(invalid)        |pending     |
+   |record, issuer-domain-  |          |                 |challenge   |
+   |name mismatch,          |          |                 |            |
+   |accounturi digest       |          |                 |            |
+   |mismatch, or missing    |          |                 |            |
+   |required policy=wildcard|          |                 |            |
+   +------------------------+----------+-----------------+------------+
+   |DNS query, timeout, or  |DNS       |dns (invalid)    |Fall back to|
+   |DNSSEC validation       |Validation|                 |pending     |
+   |failure                 |          |                 |challenge   |
+   +------------------------+----------+-----------------+------------+
 
-    Table 6: Summary of Validation Failure Conditions and ACME Outcomes
+   Table 6: Summary of Validation Failure Conditions and ACME Outcomes
 
    To mitigate potential denial-of-service risks from accounts with
    extensive key rollover history, CAs MUST rate-limit failed validation
@@ -2450,8 +2469,8 @@ Table of Contents
 
    *  Implementing validation record monitoring and alerting
 
-   *  Handling validation failures, including unauthorized responses
-      when a record's persistUntil timestamp has passed
+   *  Handling validation failures, including incorrectResponse
+      responses when a record's persistUntil timestamp has passed
 
    *  Considering the security implications of persistent records in
       their threat models
@@ -2465,8 +2484,8 @@ Table of Contents
    DNS lookup) before initiating a new order.  Such clients SHOULD warn
    the operator if a record's persistUntil value has already expired or
    is likely to expire before validation completes.  A client that skips
-   this check risks initiating a validation attempt that the CA will
-   reject with an unauthorized error (see Section 12.3) instead of
+   this check risks initiating a validation attempt that the CA can
+   reject with an incorrectResponse error (see Section 12.3) instead of
    reporting an actionable, locally diagnosed cause.
 
    When using ancestorDomain for a dns authorization (Section 6.1),
