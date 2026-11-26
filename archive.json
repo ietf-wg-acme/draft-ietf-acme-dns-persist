@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-11-24T07:36:25.960135+00:00",
+  "timestamp": "2026-11-26T05:57:33.313700+00:00",
   "repo": "ietf-wg-acme/draft-ietf-acme-dns-persist",
   "labels": [
     {
@@ -7515,7 +7515,7 @@
       "labels": [],
       "body": "Relax historical account-key retention and prior-key acceptance from a mandatory lifetime `MUST` to an optional `MAY` governed by CA policy.\n\n### What changed\n\n- **Verification & retention (\u00a74.1, \u00a74.2):** Current-key acceptance and live `valid` account-status checks remain mandatory (`MUST`). Retaining prior account-key thumbprints (e.g., for audit) and accepting them for `dns-persist-01` validation are now independently optional (`MAY`), with no required minimum count or retention window.\n- **Documentation & caching (\u00a74.2):** CAs `SHOULD` document their prior-key retention and acceptance policy so subscribers can plan rollover. Cached matches `MUST NOT` be accepted after a key ceases to be eligible under CA policy or bypass live account-status checks.\n- **Zero-downtime rollover (\u00a74.1, \u00a74.5, \u00a79.2.1):** Allows a client to pre-publish a record computed with a newly generated replacement key ahead of a planned `keyChange` (authenticating the \u00a74.5 pre-publication POST-as-GET check with the account's current key), or migrate via a new ACME account, when a CA retains no prior keys. Explicitly preserves RFC 8555 \u00a77.3.5 (pending orders and authorization transactions are not invalidated on `keyChange`).\n- **Resource controls & security/privacy (\u00a79.2, \u00a79.12, \u00a710, \u00a712.3, \u00a712.4):** Updates compromise, revocation, privacy (noting audit-retained thumbprints still allow CA-side correlation), and DoS/resource-control guidance (recommending bounds on prior-key storage and verification work rather than mandating `keyChange` rate limits).\n\n### Verification\n\n- `make lint`, `make` (`kramdown-rfc`, `xml2rfc` TXT/HTML), and `make check` (`idnits`) pass cleanly.\n",
       "createdAt": "2026-11-20T22:59:13Z",
-      "updatedAt": "2026-11-23T22:11:04Z",
+      "updatedAt": "2026-11-25T22:26:43Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "272951c37d5ccf77206b779a132b5f291f58e01c",
@@ -7527,32 +7527,95 @@
       "mergedBy": null,
       "mergeCommit": null,
       "comments": [],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABaEb8Vg",
+          "commit": {
+            "abbreviatedOid": "4d2c10a"
+          },
+          "author": "slghtr-says",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-11-24T17:47:02Z",
+          "updatedAt": "2026-11-24T17:47:02Z",
+          "comments": [
+            {
+              "originalPosition": 84,
+              "body": "```suggestion\nThese rules govern subsequent `dns-persist-01` verification. To comply with {{!RFC8555}}, Section 7.3.5, a CA MUST continue to treat the key that was current when an order or authorization transaction became pending as eligible for `dns-persist-01` validation until that transaction reaches a final state. A subsequent validation attempt still applies all other requirements in {{verification-procedure}}.\n```\n\nNit: For clarity",
+              "createdAt": "2026-11-24T17:47:02Z",
+              "updatedAt": "2026-11-24T17:47:02Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABaY1-Qg",
+          "commit": {
+            "abbreviatedOid": "4d2c10a"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-11-25T22:26:43Z",
+          "updatedAt": "2026-11-25T22:26:43Z",
+          "comments": [
+            {
+              "originalPosition": 84,
+              "body": "I'd keep the current text. RFC 8555 Section 7.3.5 says a key change can't invalidate a pending order. It doesn't require a later validation to accept the old key, and this PR leaves that to CA policy.",
+              "createdAt": "2026-11-25T22:26:43Z",
+              "updatedAt": "2026-11-25T22:26:43Z"
+            }
+          ]
+        }
+      ]
     },
     {
       "number": 92,
       "id": "PR_kwDOO4VY2c8AAAABQyVj-w",
-      "title": "feat: remove persistExpired error type in favor of unauthorized",
+      "title": "feat: remove persistExpired error type in favor of incorrectResponse",
       "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/92",
       "state": "OPEN",
       "author": "sheurich",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "Remove the `persistExpired` ACME error type (`urn:ietf:params:acme:error:persistExpired`) and its IANA Error Types registry entry.\n\n### What changed\n\n- **IANA & error handling (\u00a711, \u00a712.3.1, Table 6):** Removes the `ACME Error Types Registry` subsection registering `persistExpired`. An expired `persistUntil` timestamp is reported with the existing `unauthorized` error type.\n- **Privacy-gated optional `detail` (\u00a712.3.1, Table 6):** A CA `MAY` include a human-readable `detail` message (RFC 8555 \u00a76.7) indicating that `persistUntil` has expired when no record validates and at least one retrieved record matches syntax, hash algorithm, `issuerDomainNames`, live requesting account, and any `policy=wildcard` requirement, failing solely due to `persistUntil`. A CA `MUST NOT` indicate expiration in `detail` otherwise, preserving non-disclosure of other accounts' or CAs' records.\n- **Cross-references (\u00a76.2, \u00a710, \u00a712.4):** Removes remaining operative references to `persistExpired` and updates client guidelines accordingly (historical `Since -02` Change Log text is kept with the deleted IANA anchor reference removed).\n\n### Verification\n\n- `make lint`, `make` (`kramdown-rfc`, `xml2rfc` TXT/HTML), and `make check` (`idnits`) pass cleanly.\n",
+      "body": "Remove the `persistExpired` ACME error type (`urn:ietf:params:acme:error:persistExpired`) and its IANA Error Types registry entry, and use `incorrectResponse` for DNS TXT validation failures.\n\n### What changed\n\n- **IANA & error handling (\u00a76.2, \u00a711, \u00a712.3.1, Table 6):** Removes the `ACME Error Types Registry` subsection registering `persistExpired`. Switches DNS TXT validation failures (including expired `persistUntil`, missing qualifying record on a completed lookup, digest/issuer mismatch, missing required `policy=wildcard`, and optional non-mandated TXT-syntax fallback) to `incorrectResponse` per RFC 8555 \u00a76.7, keeps `unauthorized` for HTTP policy rejections (\u00a76.2 items 4 & 7), and notes `dns` for DNS query/timeout/DNSSEC failures.\n- **Privacy-gated optional `detail` (\u00a710, \u00a712.3.1, Table 6):** A CA `MAY` include a human-readable `detail` message (RFC 8555 \u00a76.7) on `incorrectResponse` indicating that `persistUntil` has expired when no record validates and at least one retrieved record matches syntax, hash algorithm, `issuerDomainNames`, live requesting account, and any `policy=wildcard` requirement, failing solely due to `persistUntil`. A CA `MUST NOT` indicate expiration in `detail` otherwise, and any such detail `MUST` refer only to records meeting those conditions. Retains a brief pointer in Section 10 (`Privacy Considerations`).\n- **Cross-references (\u00a712.4):** Updates client guidelines for `incorrectResponse` (historical `Since -02` Change Log text is kept with the deleted IANA anchor reference removed).\n\n### Verification\n\n- `make lint`, `make` (`kramdown-rfc`, `xml2rfc` TXT/HTML), and `make check` (`idnits`) pass cleanly.\n",
       "createdAt": "2026-11-20T22:59:16Z",
-      "updatedAt": "2026-11-23T22:11:28Z",
+      "updatedAt": "2026-11-24T17:37:52Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "272951c37d5ccf77206b779a132b5f291f58e01c",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "drop-persist-expired",
-      "headRefOid": "f343de434f6cc6bc8f2d982352220a11face04c3",
+      "headRefOid": "9ea5df6ab4850c952c162c3ac1daedffca91a837",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
-      "comments": [],
+      "comments": [
+        {
+          "author": "aarongable",
+          "authorAssociation": "NONE",
+          "body": "I believe `incorrectResponse` (\"Response received didn't match the challenge's requirements\") is the most correct existing error code to use here.",
+          "createdAt": "2026-11-24T17:07:05Z",
+          "updatedAt": "2026-11-24T17:07:05Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Updated in 9ea5df6: switched all DNS TXT validation failures to `incorrectResponse` (keeping `unauthorized` for HTTP policy declines and `dns` for lookup/DNSSEC failures).",
+          "createdAt": "2026-11-24T17:33:05Z",
+          "updatedAt": "2026-11-24T17:33:05Z"
+        },
+        {
+          "author": "slghtr-says",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Changes LGTM ",
+          "createdAt": "2026-11-24T17:37:52Z",
+          "updatedAt": "2026-11-24T17:37:52Z"
+        }
+      ],
       "reviews": []
     },
     {
@@ -7567,13 +7630,123 @@
       "labels": [],
       "body": "Replace the `accounturi` parameter and `accountHashPrefix` URI wrapper with `accountdigest=<hash-alg>/<base64url-digest>`.\n\n### What changed\n\n- **Record format & comparison (\u00a71, \u00a74.1, \u00a74.2):** Renames the mandatory TXT parameter from `accounturi` to `accountdigest` with value `<hash-alg>/<base64url-digest>` (for example, `accountdigest=sha-256/5SQm7n6tPh2-PlLbCKGnViTXX5z19SCN4cPGQHSk-kw`). Preserves the exact digest preimage `H(length_of_domain || domain_name || key || account_URL)`, `sha-256` MTI and RFC 6920 algorithm agility, all 43-character test-vector digests, and the `dns-persist-01` challenge identifier. Requires exact, case-sensitive ASCII equality with no URI parsing or normalization, and leaves CAA `accounturi` (RFC 8657) unchanged.\n- **Remove `accountHashPrefix` (\u00a74.1, \u00a74.5, \u00a711.3, \u00a712.1):** Removes `accountHashPrefix` from ACME directory `meta`, the IANA Directory Metadata Fields table (leaving `issuerDomainNames`), client/publisher prefix character checks, prefix migration rules (retaining the mandatory `account-URL` migration period), and directory/delegation examples.\n- **Discontinued algorithm errors (\u00a74.1, \u00a712.3.1, Table 6):** Allows a CA to return either `malformed` or `unauthorized` for a discontinued `<hash-alg>` token, consistent with other DNS TXT syntax errors.\n- **Implementation Status, Security & Examples (\u00a77.3, \u00a78, \u00a79.2, \u00a79.7, \u00a710, \u00a713):** Updates section titles, figures, examples (\u2264 72 columns in rendered text), and Implementation Status non-interoperability notes for `-00`/`-01` (including GTS) and `-02`/`-03`.\n\n### Verification\n\n- `make lint`, `make` (`kramdown-rfc`, `xml2rfc` TXT/HTML), and `make check` (`idnits`) pass cleanly.\n",
       "createdAt": "2026-11-23T22:34:11Z",
-      "updatedAt": "2026-11-23T22:34:11Z",
+      "updatedAt": "2026-11-25T22:32:45Z",
       "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "baseRefName": "main",
       "baseRefOid": "272951c37d5ccf77206b779a132b5f291f58e01c",
       "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
       "headRefName": "accountdigest",
-      "headRefOid": "fea2569299799f21767376cfb4f7fa7f862f68ec",
+      "headRefOid": "94a2526c82174ff60c851ad0053d3abdfd608efa",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "orangepizza",
+          "authorAssociation": "NONE",
+          "body": "As change parameter name from accounturi makes this incompatible with word in ca/b BR 3.2.2.4.22, wouldn't it require another pass for cab forum to be able to used? And in that case we may need to grab another validation subdomain because  _validation-persist is already used by it.\n\nI think fixed way to craft hashprefix may be least resistive way to move forward. \nLike accountdigest:// so record is like\n<issuerdomaon>; accounturi = accountdigest://sha-256/<hash>",
+          "createdAt": "2026-11-24T19:51:13Z",
+          "updatedAt": "2026-11-24T19:51:13Z"
+        },
+        {
+          "author": "slghtr-says",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@orangepizza I'm currently drafting the corresponding [CABF ballot](https://github.com/slghtr-says/servercert/pull/9/changes) intended to introduce 3.2.2.4.23 specifically for the ACME variant of DNS Persist. \r\n\r\nShould we continue down the path of fully decoupling methods 22 and 23 however, your suggestion of grabbing another validation subdomain for method 23 ( `_acme-dcv-persist` or `_acme-validation-persist`) would be present an even cleaner separation than the current migration path which relies on ignoring parameters based on draft versions. \r\n\r\nThis also follows the precedent established by 3.2.2.4.18 and 3.2.2.4.19 (Agreed\u2011Upon Change to Website) where the token directory is at `/.well\u2010known/pki\u2010validation` and `/.well-known/acme-challenge/{token}` respectively. \r\n\r\nThoughts @sheurich and @birgelee?",
+          "createdAt": "2026-11-24T20:10:22Z",
+          "updatedAt": "2026-11-24T20:11:30Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@orangepizza You're right that a record carrying only `accountdigest` does not satisfy BR Section 3.2.2.4.22, which requires an `accounturi` parameter. That is intended. Using this revision under the BRs would need a CA/B Forum change. A separate ACME-specific method is one proposed approach, discussed in cabforum/servercert#677 and in Michael's draft ballot, which would need updating for this PR.\n\nI'd prefer not to use `accounturi=accountdigest://sha-256/<hash>`. It keeps a parameter name that could lead operators to publish their raw account URL, and it adds a URI scheme for a value that validation only compares and never dereferences.\n\n@slghtr-says On the label, I'd keep `_validation-persist` and `_ip-validation-persist`:\n\n- The parameter name already separates the two methods. A record carrying only `accountdigest` cannot satisfy Section 3.2.2.4.22, and a record carrying only `accounturi` cannot satisfy this revision. Records for both can share one RRset, as records for different CAs already do.\n- The one case I can find where a second label helps is a single record that carries both a raw `accounturi` and `accountdigest`. It can qualify under the raw-form method, which ignores the digest, if that method's other requirements are met. Publishing such a record only at a separate ACME label would keep Section 3.2.2.4.22 validators from finding it, but publishing qualifying records at both labels leaves both methods able to accept them.\n- A second label has a cost: different node names to register with IANA, a query-name change in every implementation, and new configuration for every operator who has delegated or aliased `_validation-persist`.\n- Sections 3.2.2.4.18 and 3.2.2.4.19 use different paths, but they also use different validation payloads. Here both methods use the same record grammar, and the account parameter shows which method a record serves.\n\nThis document requests IANA registration of both node names, so changing them would also need discussion on the ACME list. Is there a case beyond that one that the ballot needs a separate label for?",
+          "createdAt": "2026-11-24T22:32:09Z",
+          "updatedAt": "2026-11-24T22:32:09Z"
+        },
+        {
+          "author": "birgelee",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I guess I have slowly come around to separate property tag (e.g., accounthash=....)  same dns label ( _dns-persist ) . Yes I acknowledge this introduces the issue of both tags in the same label. We should decide if this is unsatisfiable (probably the cleanest and what I would recommend given the existing single property requirement of accounturi) or a way of permitting acme and non-ACME validation by the same CA.\r\n\r\nI know the different dns labels offers the cleanest separation, but I guess I have always felt this is a point of complexity and confusion as now there are two related labels for very similar methods. I always found the pki-validation vs acme-validation distinction to be somewhat arbitrary.\r\n\r\nI think I am not particularly opinionated on this matter. moving to a new label does mean more friction with things people are already doing (+IANA).",
+          "createdAt": "2026-11-25T07:15:12Z",
+          "updatedAt": "2026-11-25T07:16:07Z"
+        },
+        {
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@birgelee Agreed. I'd make a record with both `accounturi` and `accountdigest` unsatisfiable, like multiple `accounturi` in RFC 8657 Section 3. Separate records still work.\n\n@slghtr-says that means migration needs two records, so the Implementation Status sentence you suggested would change. Any objection?",
+          "createdAt": "2026-11-25T21:58:32Z",
+          "updatedAt": "2026-11-25T21:58:32Z"
+        },
+        {
+          "author": "slghtr-says",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@sheurich no objections. Keeping the same label and making a record with both the accounturi and accountdigest unsatisfiable makes the domain owners intent clear without adding more complexity to the client. \n\nThanks y'all! ",
+          "createdAt": "2026-11-25T22:32:45Z",
+          "updatedAt": "2026-11-25T22:32:45Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABaEW_OQ",
+          "commit": {
+            "abbreviatedOid": "fea2569"
+          },
+          "author": "slghtr-says",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-11-24T17:41:16Z",
+          "updatedAt": "2026-11-24T17:41:17Z",
+          "comments": [
+            {
+              "originalPosition": 312,
+              "body": "```suggestion\nThis revision retains the `dns-persist-01` challenge identifier and does not define a format-negotiation mechanism. The absence of `accountHashPrefix` does not establish support for this revision, because early implementations also omit that field. Implementers and operators need to establish which revision their CA and client support when provisioning or migrating records. A legacy `accounturi` parameter does not satisfy the mandatory `accountdigest` requirement. Publishing both parameters can support migration between formats, but each implementation enforces only the account-binding rules for the parameter it recognizes.\n```\nNit: For clarity",
+              "createdAt": "2026-11-24T17:41:16Z",
+              "updatedAt": "2026-11-24T17:47:28Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOO4VY2c8AAAABaINqCw",
+          "commit": {
+            "abbreviatedOid": "94a2526"
+          },
+          "author": "sheurich",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2026-11-24T22:29:02Z",
+          "updatedAt": "2026-11-24T22:29:02Z",
+          "comments": [
+            {
+              "originalPosition": 312,
+              "body": "Applied in 94a2526, with one added sentence on raw account URLs.",
+              "createdAt": "2026-11-24T22:29:02Z",
+              "updatedAt": "2026-11-24T22:29:02Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 94,
+      "id": "PR_kwDOO4VY2c8AAAABRrqueA",
+      "title": "docs: note MPIC corroboration when perspectives observe different records",
+      "url": "https://github.com/ietf-wg-acme/draft-ietf-acme-dns-persist/pull/94",
+      "state": "OPEN",
+      "author": "sheurich",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Add one informative paragraph to Multi-Perspective Validation (Section 9.9.2), following Ameer Ghani's question on the list about perspectives that observe different qualifying values.\n\n### What changed\n\n- Notes that perspectives can select different qualifying records, and that an attacker on one perspective's network path can alter a record's parameters while other perspectives observe the authentic record.\n- Leaves corroboration rules to the CA's MPIC policy and applicable root program requirements, and states that such policy adds to the existing verification, expiration, and DNSSEC requirements.\n- Adds no BCP 14 requirement and changes none.\n\nList thread: https://mailarchive.ietf.org/arch/msg/acme/AnjZChVVcJY4CkuHUWESI_puxNc/\n\n### Verification\n\n- `make lint`, `make`, and `make check` pass.\n",
+      "createdAt": "2026-11-24T22:46:56Z",
+      "updatedAt": "2026-11-24T22:46:56Z",
+      "baseRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "baseRefName": "main",
+      "baseRefOid": "272951c37d5ccf77206b779a132b5f291f58e01c",
+      "headRepository": "ietf-wg-acme/draft-ietf-acme-dns-persist",
+      "headRefName": "mpic-note",
+      "headRefOid": "24bb680e218c78b057e3e8809c877aff43bc899a",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
